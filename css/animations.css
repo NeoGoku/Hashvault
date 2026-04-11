@@ -1,0 +1,63 @@
+/* ============================================================
+   ANIMATIONS — Keyframes, Notifications, Float-Text
+   ============================================================ */
+
+/* ── Notification toasts ─────────────────────────────────── */
+#notif-container {
+  position: fixed; bottom: 20px; right: 20px;
+  z-index: 1000;
+  display: flex; flex-direction: column-reverse; gap: 8px;
+}
+
+.notif {
+  background: var(--panel2);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  min-width: 220px; max-width: 300px;
+  animation: slideIn .3s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,.4);
+}
+.notif.success { border-color: var(--green); }
+.notif.gold    { border-color: var(--gold); }
+.notif.error   { border-color: var(--red); }
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* ── Floating click text ─────────────────────────────────── */
+.float-text {
+  position: fixed;
+  pointer-events: none;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--green);
+  animation: floatUp .8s ease forwards;
+  z-index: 999;
+}
+
+@keyframes floatUp {
+  0%   { opacity: 1; transform: translateY(0)    scale(1);  }
+  100% { opacity: 0; transform: translateY(-60px) scale(.8); }
+}
+
+/* ── General transitions ─────────────────────────────────── */
+.rig-card,
+.upgrade-card,
+.research-card,
+.staff-card,
+.coin-card,
+.ach-card,
+.chip-item {
+  transition: border-color .2s, transform .15s, opacity .2s;
+}
+
+/* ── Prestige glow pulse ─────────────────────────────────── */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(255,215,0,.3); }
+  50%      { box-shadow: 0 0 40px rgba(255,215,0,.7); }
+}
+.prestige-info { animation: glowPulse 3s ease infinite; }

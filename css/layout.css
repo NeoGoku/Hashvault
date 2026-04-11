@@ -1,0 +1,181 @@
+/* ============================================================
+   LAYOUT — Header, Tabs, Main, Panels, Mine-Split
+   ============================================================ */
+
+/* ── Header ────────────────────────────────────────────────── */
+#header {
+  background: linear-gradient(90deg,#0a0e1a 0%,#111827 50%,#0a0e1a 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+#logo {
+  font-size: 22px;
+  font-weight: 900;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  white-space: nowrap;
+}
+
+.stat-pill {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.stat-pill span { font-weight: 700; color: var(--accent); }
+
+#prestige-btn {
+  margin-left: auto;
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  border: none;
+  color: #000;
+  padding: 6px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  display: none;
+}
+#prestige-btn:hover { filter: brightness(1.2); }
+
+/* ── Tabs ────────────────────────────────────────────────── */
+#tabs {
+  display: flex;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.tab {
+  padding: 10px 18px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: .2s;
+  touch-action: manipulation;
+}
+.tab:hover  { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab .badge {
+  background: var(--red);
+  color: #fff;
+  border-radius: 8px;
+  padding: 1px 6px;
+  font-size: 10px;
+  margin-left: 4px;
+}
+
+/* ── Main ────────────────────────────────────────────────── */
+#main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.panel {
+  display: none;
+  flex-direction: column;
+  overflow-y: auto;
+  width: 100%;
+}
+.panel.active { display: flex; }
+
+/* ── Mine Panel (split layout) ──────────────────────────── */
+#mine-panel { flex-direction: row !important; gap: 0; }
+
+#mine-left {
+  width: 320px;
+  min-width: 280px;
+  padding: 20px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#mine-right {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+/* ── Common panel header ─────────────────────────────────── */
+.panel-header {
+  padding: 20px 20px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.panel-header h2 { font-size: 18px; font-weight: 700; }
+
+/* ── Section title with line ─────────────────────────────── */
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 700px) {
+  #mine-panel { flex-direction: column !important; }
+  #mine-left  { width: 100%; border-right: none; border-bottom: 1px solid var(--border); padding: 14px; }
+  #mine-right { padding: 14px; }
+  .panel-header { padding: 14px 14px 0; }
+  .tab { padding: 11px 12px; font-size: 12px; min-height: 42px; display: inline-flex; align-items: center; }
+  #header {
+    gap: 6px;
+    padding: 8px 10px;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    justify-content: flex-start;
+    align-content: flex-start;
+  }
+  #logo { width: 100%; font-size: 24px; margin-bottom: 2px; }
+  .stat-pill {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    padding: 3px 8px;
+    font-size: 10px;
+    min-height: 26px;
+    border-radius: 10px;
+  }
+  #prestige-btn { margin-left: 0; width: 100%; }
+  .panel { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+}
+
+@media (max-width: 420px) {
+  #logo { font-size: 20px; }
+  .tab { padding: 10px 10px; font-size: 11px; }
+  .stat-pill { flex: 0 0 auto; }
+}

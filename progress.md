@@ -1,0 +1,544 @@
+Original prompt: Lass uns hier weitermachen am Projekt.
+
+- 2026-04-02: Skills `develop-web-game` und `playwright` aktiviert. Ziel: Smoke-Test fuer Startscreen + Save-Slot-Flow mit Playwright.
+
+- 2026-04-02: Automatischer Smoke-Test mit `develop-web-game` versucht.
+  - Lokaler Server auf `http://127.0.0.1:8787/index.html` laeuft.
+  - `web_game_playwright_client.js` benoetigt Node `playwright`, aber Playwright bricht auf Android mit `Unsupported platform: android` ab.
+  - `playwright` Skill-Wrapper ebenfalls nicht nutzbar (npx/cli-Umgebung in dieser Session defekt).
+  - Fallback: Weiterentwicklung + statische Checks hier, vollautomatischer Browser-Smoketest nur auf Desktop/Linux/Windows Host.
+
+- 2026-04-02: Vollstaendige Code-/Content-Inventur durchgefuehrt (Boot, Save, Systems, Data, UI).
+  - Umgesetzte Kernsysteme bestaetigt: Boot-Loader mit echtem Modul-Load, Startscreen + Save-Slots, Mining/Market/Research/Staff/Contracts/Achievements/Prestige, Daily Goals/Challenges, NPC-Trader, Volatility Orders, Events, Rig-Energy.
+  - Content-Stand erfasst: 8 Rigs, 26 Upgrades, 16 Research, 6 Staff, 17 Contract-Templates, 47 Achievements, 12 Goals, 18 Challenge-Definitionen (5 taeglich aktiv), 7 NPC-Trader, 6 Rig-Mods, 25 Events, 4 Coins.
+  - Wichtige offene Punkte notiert: falsche Consumable-IDs (`cs*` statt `cc*`), Buy-Order-Logik mit doppelter USD-Reservierung, Rig-Mod-UI/Mod-Boni nur teilweise integriert.
+
+- 2026-04-02: Fix-Runde umgesetzt.
+  - Consumable-ID-Bug gefixt (`cc1..cc4` statt `cs1..cs4`) in Challenge-/Trader-Rewards.
+  - Volatility Buy-Orders gefixt: keine doppelte USD-Belastung mehr (Reservierung nur beim Platzieren).
+  - Rig-Mods erweitert: Hash-Bonus in `getRigHps`, Dual-Coin-Mining im Loop, Mod-Installations-UI in Rig-Karten, Unlock-Check beim Installieren.
+  - Lokaler No-Cache-Server aktiv auf `http://127.0.0.1:8123/index.html` (Header: no-store/no-cache).
+
+- 2026-04-02: Haltbarkeitsskala fuer Rigs eingebaut.
+  - Pro Rig-Karte jetzt sichtbare `Haltbarkeit` (0-100%) mit Farbstufen (grün/gelb/rot).
+  - Bei kritischem Zustand (<12%) wird Warnhinweis fuer hohes Explosionsrisiko angezeigt.
+  - Lokaler No-Cache-Server neu gestartet: `http://127.0.0.1:8123/index.html`.
+
+- 2026-04-02: Stromsystem V1 + V2 umgesetzt.
+  - V1: Realer Stromverbrauch pro Rig (powerW), Netzkapazitaet, Ueberlastungs-Drosselung, Stromrechnung (laufende Kosten + Grundgebuehr + Peak-Aufschlag), Stromschuld.
+  - V1 UI: Header-Lastanzeige, Mine-Panel Strom-Statistiken, Buttons fuer Netz-Ausbau (`+2.00 kW`) und Schuld-Tilgung.
+  - V2: Ingame-Uhrzeit (Tag/Uhrzeit), zeitbasierte Tarife (Nacht/Tag/Peak/Spaet) und zufaellige Grid-Events (Netzstoerung, Lastsenkung, Industrie-Boost).
+  - V2 Effekte: Preis-, Kapazitaets- und Crash-Multiplikatoren ueber Eventdauer.
+  - Serverstatus: No-Cache-Host laeuft auf `http://127.0.0.1:8123/index.html`.
+
+- 2026-04-02: Drei-Punkte-Runde umgesetzt + verifiziert.
+  - Punkt 1 (Balancing): Power-Balance zentralisiert (`POWER_BALANCE`) und durchverdrahtet in Kosten/Defaults/Bill-Timings.
+    - `main.js`: Netzausbaukosten/Schritt lesen jetzt aus `HV_POWER_BALANCE`, Init-Defaults auf BasePrice `0.20` + Billing `480s` umgestellt.
+    - `gameLoop.js`: Billing-Fallback auf `POWER_BALANCE.billIntervalSec` angeglichen.
+  - Punkt 2 (Power-Tab): Vollstaendige Verdrahtung inkl. Live-Render.
+    - `switchTab('power')` rendert jetzt gezielt.
+    - Neue UI-Renderfunktion `renderPowerPanel()` zeigt Last/Kapazitaet, Tarif, Preis, offene Rechnung, Schuld, Event-Status, Tarifzeiten.
+    - Einheitliche Power-Aktionsbuttons via `[data-power-action]` fuer Mine- und Power-Panel.
+    - Neue CSS-Komponenten fuer Power-Karten, Status-Chip, Tarif-Liste und Mod-Fortschritt.
+  - Punkt 3 (planbare Rig-Mod-Unlocks): Deterministische Unlock-Regeln + Fortschrittsanzeige.
+    - `rigMods.js`: `RIG_MOD_UNLOCKS` mit Requirements pro Mod, `getRigModUnlockProgress()` fuer Fortschritt + Zielwerte.
+    - `gameLoop.js`: `checkRigModUnlocks()` fuehrt automatische Unlocks aus (mit Notification), in Tick integriert.
+    - Power-Panel zeigt pro Mod den Unlock-Fortschritt und alle Teilbedingungen.
+
+- 2026-04-02: Verifikation.
+  - JS-Syntax geprueft (`node --check`) fuer: `main.js`, `render.js`, `gameLoop.js`, `rigMods.js`.
+  - HTTP-Smoketest lokal erfolgreich: `index.html`, `gameLoop.js`, `render.js`, `rigMods.js` liefern `200 OK`.
+  - Hinweis: Playwright-Smoke auf Android weiterhin blockiert (`Unsupported platform: android`), daher in dieser Session nur statische + HTTP-Verifikation moeglich.
+
+- TODO (naechster Schritt): Optional mini balancing pass per real gameplay telemetry (Debt-/Overload-Haeufigkeit, Mod-Unlock-Pacing) und ggf. Feinjustierung einzelner Targets.
+- 2026-04-02: Nachtrag Mod-Unlock-Robustheit.
+  - `totalRigs`-Progress nutzt jetzt `max(G.totalRigs, Summe aus G.rigs)` als Fallback gegen alte Saves mit inkonsistentem Zaehler.
+
+- 2026-04-02: 5er-Runde umgesetzt (Balance, Mod-Pacing, QA, Mobile-Polish, Strom-V3 mini).
+  - Power-Balance feinjustiert (`gameLoop.js` / `POWER_BALANCE`): geringere Basiskosten/Strafen, sanftere Tarifevents, Startkapazitaet 3.0 kW.
+  - Haltbarkeit 0%-Stuck gefixt:
+    - Root Cause: `checkRigExplosions()` nutzte `G.rigEnergy[rigId] || 100`, dadurch wurde `0` als `100` interpretiert.
+    - Fix: 0 bleibt 0 (`Number.isFinite`-Check) + harte Explosion bei `<=0.01%` und Reset auf 100%.
+  - Mod-Unlock-Pacing angepasst (fruehere, gleichmaessigere Unlocks).
+  - Strom-V3 mini hinzugefuegt: Notstrom-Akku.
+    - Neue State-/Save-Felder (Tier, Kapazitaet, Fuellstand, Lade-/Entladeraten, Modus).
+    - Logik im Power-Loop: Entladen bei Ueberlast, Laden bei Reserve, Billing basiert auf effektiver Grid-Last.
+    - Neue UI-Infos + Akku-Upgrade-Buttons in Mine- und Power-Panel.
+  - Mobile-Polish fuer Power-Tab:
+    - kompaktere Power-Cards/Rows/Buttons unter 700px.
+    - Header/Tab-Paddings auf kleinen Displays reduziert.
+  - Cache-Build angehoben: `index BUILD_ID` + `version.json` auf `20260402v2` synchronisiert.
+
+- 2026-04-02: Verifikation
+  - `node --check` erfolgreich fuer: `state.js`, `save.js`, `main.js`, `render.js`, `rigMods.js`, `gameLoop.js`.
+  - HTTP-Smoketest lokal erfolgreich (`200 OK`) fuer `index.html`, `gameLoop.js`, `rigMods.js` mit no-cache Headern.
+  - Zielgerichtete Node-Szenariotests erfolgreich:
+    - Explosion-/Reset-Fix: `0% -> Rig -1, Energy 100%`.
+    - Mod-Progress: Unlock-Bedingungen greifen deterministisch.
+    - Akku-Logik: Ueberlast wird durch Entladung reduziert (`usage 5 -> 3 kW` im Test).
+
+- 2026-04-02: Verifikation fuer neue Ops-Systeme (Locations + Rig-Crew + Tagesabrechnung) abgeschlossen.
+  - Syntaxchecks (`node --check`) erfolgreich fuer: `gameLoop.js`, `main.js`, `render.js`, `mining.js`, `state.js`, `save.js`, `locations.js`, `rigCrew.js`, `boot.js`.
+  - Runtime-Checks in isoliertem Node-VM-Szenario erfolgreich:
+    - Rig-Crew Hiring + Zuweisung strikt pro Rig-Typ (inkl. Kapazitaetsgrenzen).
+    - Standortwechsel nur zum naechsten Tier + Cap-/Kostenregeln greifen.
+    - Tagesabrechnung bucht Strom + Miete + Lohn auf Betriebsschuld.
+    - Haltbarkeit 0% -> Explosion -> Rig-Anzahl -1 + Haltbarkeit reset auf 100%.
+  - HTTP-Smoketest lokal erfolgreich (`200 OK`) fuer `index.html`, `js/core/gameLoop.js`, `js/data/locations.js`.
+
+- 2026-04-03: Punkte 1-3 umgesetzt (Wirtschaft, Staff-Workflow, Location-Progression).
+  - Punkt 1 (Wirtschafts-Loop):
+    - Schuldenstufen eingefuehrt: Stabil, Mahnung, Sanktion, Notbetrieb, Abschaltung.
+    - Stufen wirken auf Leistung/Crash-Risiko und passives Einkommen.
+    - Abschaltung blockiert manuelles/auto Klick-Mining; Stromverbrauch/Billing wird in Abschaltung auf 0 gesetzt.
+    - Insolvenz-Regel eingebaut: 3 Abschalt-Tage in Folge -> Teilpfandung der Rigs, Crew reset, Standort reset auf Zuhause, Schuld reset auf 0.
+  - Punkt 2 (Mitarbeiter-Workflow):
+    - Rig-Crew UI erweitert um `Entlassen` pro Tier.
+    - `Auto zuweisen` (pro Rig-Typ) und `Neu verteilen` (alle Assignments reset) hinzugefuegt.
+    - Kapazitaetsgrenzen beim Entlassen bleiben strikt (nur freie Crew entlassbar).
+  - Punkt 3 (Locations):
+    - Pro Standort unlock-Requirements eingefuehrt (Umsatz, Rigs, Infra-Level, Forschung, Prestige je nach Tier).
+    - Fortschrittsanzeige im Power-Panel (`power-location-status`) mit Requirement-Liste.
+    - Umzugs-Boost hinzugefuegt: +8% H/s fuer 1 Ingame-Tag nach Standortwechsel.
+    - Permanenter Standort-Fortschritt via `unlockedLocationTier` gespeichert.
+
+- 2026-04-03: Verifikation
+  - Syntaxchecks erfolgreich fuer: `locations.js`, `state.js`, `save.js`, `main.js`, `gameLoop.js`, `mining.js`, `render.js`, `boot.js`.
+  - Runtime-Checks (Node VM) erfolgreich fuer:
+    - Standort-Freischaltung + Umzug inkl. Boost.
+    - Rig-Crew Hire/Fire/Auto-Assign/Reset.
+    - Schuldenstufe 4 + Abschaltung + Insolvenz-Reset nach 3 Tagen.
+    - Klick-Blockade bei Abschaltung.
+  - HTTP-Smoketest lokal erfolgreich (`200 OK`) fuer `index.html`, `gameLoop.js`, `render.js`.
+
+- Cache-Build aktualisiert:
+  - `index.html` BUILD_ID -> `20260403v1`
+  - `version.json` buildId -> `20260403v1`
+
+- 2026-04-03: UX-Fixrunde nach erstem Playtest umgesetzt.
+  - Rig-Verkauf: Button in jeder Rig-Karte (`Verkauf`) + 55% Rueckkaufwert (`sellRig`/`getRigSellValue`) implementiert.
+  - Power->Standort:
+    - Auswahl zeigt jetzt alle hoeheren Standorte (nicht nur den naechsten).
+    - Umzug erlaubt zu jedem hoeheren, freigeschalteten Standort.
+    - Select-Rebuild pausiert waehrend Fokus, damit das Dropdown auf Mobile nicht mehr sofort "weggerendert" wird.
+  - Orders-Tab entfernt (Tab + Panel aus `index.html`), Auto-Sell bleibt als Verkaufsweg.
+  - Upgrade-Badge korrigiert: `!` nur noch bei kaufbaren Upgrades (Req + genug USD), nicht mehr bei allen theoretisch verfuegbaren.
+  - Marktvolatilitaet verlangsamt: Schwankungsintensitaet auf 80% reduziert.
+  - Rig-Crew separiert: eigener Tab `Rig Crew` + eigenes Panel `crew-panel`; Staff-Tab zeigt nur Staff.
+
+- 2026-04-03: Verifikation
+  - `node --check` erfolgreich fuer: `render.js`, `main.js`, `mining.js`, `gameLoop.js`, `features.js`.
+  - Runtime-Spotchecks erfolgreich:
+    - Rig-Verkauf reduziert Count und gibt USD.
+    - Standortwechsel zu hoeherem freigeschaltetem Tier funktioniert.
+    - Markt-Schwankungsfaktor 0.8 im Loop aktiv.
+  - Build-ID aktualisiert auf `20260403v2` (`index.html`, `version.json`).
+
+- 2026-04-03: Missionen-Merge + Legacy-Cleanup + Balance/Content-Update (in Arbeit).
+  - Tabs/Panels: `Contracts` + `Daily` in einen Reiter `Missionen` zusammengefuehrt (`missions-panel`), Daily-Bonus-Bar aus Mine dorthin verschoben.
+  - UI-Logik: `switchTab('missions')` + `renderMissions()` implementiert; Mission-Badge (`mission-badge`) zeigt claimbare Daily/Goals/Challenges/Contracts.
+  - Volatility/Orders-Legacy entfernt: Tab/Panel-Code bereits weg, jetzt auch Funktionspfade in `main.js`, `gameLoop.js`, `features.js`, `state.js`, `save.js` bereinigt.
+  - Rig-Verkauf gebalanced: 55% Buyback bleibt, zusaetzlich 6% Verkaufsgebuehr + 1.8s Cooldown pro Rig-Typ.
+  - Standort-Panel erweitert: Zielstandort-Details (Cap-/Mietdelta) und klarere Blockierungsgruende.
+  - Content erweitert: 4 neue Upgrades (`sp9`, `ru7`, `mu6`, `sp10`) + 2 standortgebundene Events (`ev_hall_airflow`, `ev_dc_enterprise`) mit Tier-Gating.
+
+- 2026-04-03: Verifikation fuer Missionen-/Cleanup-Runde.
+  - Syntaxchecks (`node --check`) erfolgreich fuer: `main.js`, `render.js`, `gameLoop.js`, `features.js`, `mining.js`, `state.js`, `save.js`, `upgrades.js`, `events.js`.
+  - Runtime-Checks (Node VM) erfolgreich:
+    - Rig-Verkauf: Refund greift, Cooldown blockiert direkten Re-Sell.
+    - Standort-Event-Gating: tiergebundene Events triggern nicht auf niedrigen Tiers, aber auf freigeschalteten hohen Tiers.
+
+- 2026-04-03: Skill-Testloop (`develop-web-game`) erneut versucht.
+  - `web_game_playwright_client.js` startet hier nicht auf Android (`Unsupported platform: android`).
+  - Fallback-Checks erfolgt: lokaler HTTP-Smoketest auf `http://127.0.0.1:8765` mit `200 OK` fuer `index.html`, `js/main.js`, `js/ui/render.js`.
+
+- 2026-04-03: Abschlussstatus dieser Runde.
+  - 6/6 Punkte umgesetzt:
+    1) Missionen-Tab (Contracts + Daily zusammen)
+    2) Volatility-/Orders-Legacy entfernt
+    3) Rig-Sell-Balancing (Fee + Cooldown)
+    4) Location-Panel-Polish
+    5) QA-Lauf (Syntax + Runtime + HTTP)
+    6) Content-Pass (neue Upgrades + standortgebundene Events)
+  - Build-Version angehoben: `20260403v3` (`index.html`, `version.json`).
+  - Offener Rest: visueller E2E-Playwright-Flow auf Desktop-Host (Android-Playwright bleibt nicht verfuegbar).
+
+- 2026-04-03: Robustheitsrunde vor no-cache Bugfix-Test.
+  - `updateMissionBadge()` auf einen einzelnen Story-Progress-Lookup reduziert.
+  - Power-Panel nutzt fuer die Tagesabrechnung jetzt robust `lastFinanceBill || lastDailyBill`.
+  - Default fuer neue Saves bei `marketRegime` auf `range` vereinheitlicht.
+  - Build-Version angehoben: `20260403v4` (`index.html`, `version.json`).
+
+- 2026-04-06: Markt-Fix + Balance/Prestige/Content/UX Pass.
+  - Markt repariert:
+    - Regime-Normalisierung (`neutral` -> `range`) in Init + Loop + UI.
+    - Preis-Engine auf Trend + Mean-Reversion + Shock + dynamischen Floor/Ceiling umgestellt.
+    - Robustheitsnetz fuer korrupte/alte Saves (`prices`/`priceHistory` werden validiert).
+    - Market-UI zeigt jetzt Regime, Zyklusstatus, Timer bis Regimewechsel und aktuellen Floor.
+  - Balance Pass:
+    - Neues `ECONOMY_BALANCE` mit Prestige-getriebenen Kosten-/Cap-Effekten.
+    - Ops-Kosten, Build-Kosten, Research-Kosten und Markt-Floor skalieren nun ueber Prestige.
+    - Kredite neu austariert (niedrigere Zinsen, laengere Laufzeiten).
+    - Tagesabrechnung nutzt nun konsistenten Ops-Kostenfaktor fuer Miete/Lohn/Leasing/Versicherung.
+  - Prestige Integration:
+    - Prestige-Effekte werden in Multiplikatoren gerechnet und im Prestige-Tab sichtbar gemacht.
+    - `doPrestige()` setzt Marktzustand sauber auf `range` und uebernimmt Story-/Tutorial-Fortschritt robust.
+    - Preise nach Prestige an `COIN_DATA.basePrice` gekoppelt statt Hardcode.
+  - Content Pass:
+    - Story-Missionen erweitert auf `sm1..sm10` inkl. Prestige-Ziel.
+    - Neue Upgrades: `mu7`, `ru8`, `sp11`, `sp12`.
+    - Neue Research: `r20`, `r21`.
+    - Neue Events: `ev_dc_cooling_mesh`, `ev_mega_farm_spot_bid`, `ev_market_circuit_breaker`.
+    - Achievements erweitert/aktualisiert (`g4`, `m5`, `m6`, Story-/Rig-/Research-Ziele angepasst).
+  - UX Pass:
+    - Power-Action-Buttons haben jetzt klare Tooltips.
+    - Finance-Panel zeigt zusaetzlich den aktiven Prestige Ops-Cut.
+    - Upgrades/Research zeigen effektive Kosten (nach Prestige-Multiplikatoren).
+  - Build-Version angehoben: `20260406v1` (`index.html`, `version.json`).
+
+- 2026-04-06: Coin-Utility V1 umgesetzt (Reserve/Frei-Coins + Utility-Rollen).
+  - Core (`gameLoop.js`):
+    - Neue Balance-Konstanten `HV_COIN_UTILITY_BALANCE`.
+    - Neue Helper: `ensureCoinReserveState`, `getCoinReserve`, `getAvailableCoinBalance`, `spendCoin`.
+    - Neue Utility-Kostenfunktionen: `getResearchEthCostByUsd`, `getRepairLtcCostByUsd`, `getPowerBtcTokenCost`.
+    - BNB-Holding-Rabatt fuer Tagesabrechnung: `getBnbOpsDiscount` (bis 18%); Rechnung speichert Rabattwerte.
+    - Auto-Sell verkauft nur noch `frei verfuegbare` Coins (Reserve bleibt unangetastet).
+  - Save/State:
+    - `coinReserves` in `DEFAULT_STATE` und `SAVE_FIELDS` aufgenommen.
+    - `_opsBnbDiscount` als berechneter Laufzeitwert ergaenzt.
+  - Systems:
+    - `market.js`: manuelles Verkaufen nutzt nur frei verfuegbare Coins.
+    - `research.js`: Research benoetigt jetzt USD + ETH (ETH wird beim Start abgebucht).
+    - `mining.js`: Reparaturen benoetigen jetzt USD + LTC (einzeln + Sammelreparatur).
+    - `main.js`: Power- und Battery-Upgrades benoetigen jetzt USD + BTC; NPC coin-cash Deals respektieren Reserve.
+  - UI (`render.js`):
+    - Market zeigt Utility-Rolle je Coin + Reserve/Frei-Bestand.
+    - Research-Karten zeigen USD+ETH-Kosten inkl. Budget-Status (USD/ETH ok/fehlt).
+    - Rig-Reparaturbuttons zeigen USD+LTC-Kosten und pruefen beide Ressourcen.
+    - "Alle reparieren" zeigt Gesamtpreis (USD+LTC) und deaktiviert bei zu wenig Ressourcen.
+    - Power-Buttons zeigen USD+BTC-Kosten; Power-Panel zeigt aktuellen BNB-Ops-Rabatt.
+
+- 2026-04-06: Verifikation
+  - `node --check` erfolgreich fuer: `state.js`, `save.js`, `gameLoop.js`, `market.js`, `research.js`, `mining.js`, `main.js`, `render.js`.
+  - HTTP-Smoketest: `http://127.0.0.1:8765/index.html` antwortet `200 OK`.
+  - Build-ID/Version angehoben: `20260406v2` (`index.html`, `version.json`).
+
+- 2026-04-06: UX-Fixrunde (Live-Dropdowns + Stromlimit)
+  - Dropdown-Flackern gefixt:
+    - Power-Provider-Select und Loan-Plan-Select werden bei Fokus nicht mehr pro Tick neu aufgebaut.
+    - Rig-Crew-Spezialisierungs-Select blockiert Live-Rebuild waehrend Interaktion.
+    - 1s-UI-Intervall rendert Rigs/Staff/Crew nur noch im aktiven Tab.
+  - Stromlimit beim Rig-Kauf:
+    - Neue Helpers: `getPowerCapForPurchases`, `getRigPowerUsageKw`, `getMaxRigBuyByPower`.
+    - `getMaxBuyable()` beruecksichtigt jetzt Standort-Cap + Strom-Cap.
+    - `buyRig()` blockiert/limitiert Kauf bei fehlendem Stromspielraum mit klaren Notifications.
+  - Build-ID angehoben auf `20260406v3`.
+
+- 2026-04-06: System-Pass (Abrechnung, Auto-Repair, Market-AutoSell, Tutorial)
+  - Tagesabrechnung:
+    - Alle Tageskosten werden am Tagesende direkt vom Konto (`usd`) abgebucht.
+    - Konto darf ins Minus gehen (kein Debt-Staging/Shutdown mehr durch Tagesrechnung).
+    - Bill-Log erweitert um `usdBefore`/`usdAfter`.
+  - Auto-Reparatur-Fix:
+    - Auto-Reparatur braucht jetzt wie manuelle Reparatur BOTH USD + LTC.
+    - Ohne LTC keine Auto-Reparatur mehr.
+  - Market Auto-Sell:
+    - Von globalem Toggle auf per-Coin Auto-Sell umgestellt (`autoSellCoins`).
+    - Pro Coin eigener Toggle direkt in der Coin-Karte.
+    - Legacy-Migration: alte Saves mit `autoSell=true` werden einmalig auf alle Coins gesetzt.
+  - Tutorial erweitert:
+    - Von 5 auf 9 Schritte ausgebaut (inkl. Auto-Sell, Crew-Spezialisierung, Forschung, Umzug).
+    - Abschlussreward erhöht auf `+$5.000`, `+2 Chips`, `+6 Mod-Parts`.
+  - Build-ID angehoben auf `20260406v4`.
+
+- 2026-04-06: UI+Maintenance-Pass (Debt-UI raus, Auto-Repair-Timer, Buyout-Klartext)
+  - Statistik/Power-UI: Betriebsschuld/Schuldenstatus entfernt (Mine-Stats + Power-Overview + Debt-Buttons).
+  - Auto-Reparatur: gebuendelte Kostenbuchung im festen Intervall statt quasi pro Tick.
+    - Neuer Zyklus: alle 30s Echtzeit (~30 Ingame-Minuten) mit max. 8% Repair pro Zyklus.
+    - Auto-Reparatur nutzt weiterhin USD + LTC; ohne LTC erfolgt keine Reparatur.
+  - Rig-Textklarheit: "Buyout" in "Uebernehmen" / "Leasing-Uebernahme" umbenannt.
+  - Build-ID angehoben auf `20260406v5`.
+  - Nachtrag: Debt-Action-Code bereinigt (`paydebt` UI/Handler entfernt) und Build-ID auf `20260406v6` angehoben.
+
+- 2026-04-06: Standort-Shop V1 (Location + Crew gekoppelt)
+  - Neu: `js/data/locationShop.js`
+    - Item-Katalog mit Tier-Gates/Kosten.
+    - Slot-Caps pro Standort-Tier (T1=5 ... T9=20).
+    - Helper: `ensureLocationShopState`, `getLocationShopItemById`, `getLocationShopSlotCap`, `getLocationShopOwnedIds`, `getLocationShopItemsForLocation`, `getLocationShopEffects`, `getCurrentLocationShopEffects`.
+  - Loader/State/Save:
+    - `boot.js`: neues Modul `js/data/locationShop.js` in `BOOT_JS_MODULES`.
+    - `state.js`: `locationShopPurchases` + Runtime-Multiplikatoren (`_shopHpsMult`, `_shopStaffEffMult`, `_shopStaffWageMult`, `_shopCrewXpMult`, `_shopCrashRiskMult`, `_shopPowerUsageMult`).
+    - `save.js`: `locationShopPurchases` in `SAVE_FIELDS` aufgenommen.
+  - Gameplay-Integration:
+    - `main.js`: `buyLocationShopItem(itemId)` mit Slot-/Tier-/Kosten-Pruefung und Re-Render.
+    - `gameLoop.js`:
+      - `computeLocationEffects()` kombiniert Standort-Bonus + Shop-Effekte.
+      - Shop wirkt auf H/s, Crew-Effizienz, Crew-Lohn, Crew-XP, Crash-Risiko, Power-Verbrauch.
+      - Crew-Wages und Crew-XP (Tagesabrechnung) verwenden Shop-Multiplikatoren.
+  - UI:
+    - `index.html`: neue Power-Card `Standort-Shop`.
+    - `render.js`: Shop-Info (Slots + aktive Gesamtboni) und kaufbare Item-Liste pro aktuellem Standort.
+    - `components.css`: Styles fuer Shop-Karten/Status.
+  - Cache/Bust:
+    - Build-ID auf `20260406v7` gesetzt (`index.html`, `version.json`).
+  - Verifikation:
+    - `node --check` erfolgreich fuer geaenderte JS-Dateien.
+
+- 2026-04-06: Hotfix-Runde (Auto-Repair + Standort-Kategorie + Missions-Refresh)
+  - Auto-Repair:
+    - Fix in `updateRigEnergy()`: Teilreparatur aktiv, falls Ressourcen nicht fuer den vollen Zyklus reichen.
+    - Reparaturmenge wird jetzt nach verfuegbarem USD/LTC gefittet (0.25%-Schritte), statt komplett auszufallen.
+  - UI-Kategorisierung:
+    - Neuer Tab `🏢 Standort` hinzugefuegt.
+    - `Standort` + `Standort-Shop` aus `Power` ausgegliedert in `location-panel`.
+    - `switchTab()` erweitert (`location`) und Tick-Render aktualisiert, damit Standortansicht live bleibt.
+  - Missionen:
+    - Contract-Refresh auf 30 Minuten gesetzt (`1800s`).
+    - Default-State + Runtime-Reset + Save-Migration fuer alte 5-Minuten-Werte.
+    - Missions-Header-Text auf `Refresh in: 30:00` gesetzt.
+  - Cache/Bust:
+    - Build-ID auf `20260406v8` angehoben (`index.html`, `version.json`).
+  - Verifikation:
+    - `node --check` fuer geaenderte JS-Dateien erfolgreich.
+    - No-Cache HTTP-Smoketest auf `127.0.0.1:8765` erfolgreich.
+
+- 2026-04-06: Auto-Repair Stabilitaetsfix (nach User-Feedback)
+  - Problem: Rigs explodierten trotz aktivem Auto-Repair.
+  - Ursache: Intervall/Cap war zu konservativ; Cooldown blockierte Reparatur bis zur Explosion bei hoher Last.
+  - Fix in `gameLoop.js`:
+    - Auto-Repair-Balance angepasst: Intervall 12s, Trigger 88%, Ziel 96%, Notfall-Schwelle 10%, Repair-Cap 32%/Zyklus.
+    - Dynamisches Repair-Limit auf Basis erwarteter Drain-Last bis zum naechsten Zyklus.
+    - Emergency-Bypass: bei kritischer Energie wird Cooldown ignoriert und sofort repariert.
+    - Teilreparatur bleibt aktiv (USD/LTC-abhängig); bei Notfall-Fehlschlag klare Warnung mit Cooldown.
+  - UI-Text synchronisiert auf dynamischen Auto-Repair-Intervall (statt fest `30s`).
+  - Build-ID auf `20260406v9` angehoben.
+
+- 2026-04-06: Punkt-Runde (alles ausser #2) finalisiert.
+  - Offener UX-Pass (Mobile) abgeschlossen:
+    - `css/layout.css`: Header + Tab-Bar auf Mobile sticky gemacht, Touch-Hoehen erhoeht, Safe-Area Bottom-Spacing verbessert, Extra-Feinschliff fuer sehr kleine Breiten.
+    - `css/components.css`: Touch-Optimierung fuer zentrale Buttons (`buy/hire/accept`), Mobile-Grids auf 1 Spalte vereinheitlicht (Rigs/Market/Upgrades/Staff/Contracts/Achievements/Chip-Shop), Research-Karten mobil auf volle Breite, Crew-Zuweisung horizontal besser bedienbar (sticky erste Spalte).
+  - Stabilitaets-/Smoke-Checks:
+    - `node --check` erneut erfolgreich fuer alle zuletzt geaenderten Kern-JS-Dateien (`main`, `render`, `gameLoop`, `state`, `save`, `prestige`, `features`, `contracts`, `locationShop`, `goals`, `challenges`).
+    - Lokaler No-Cache HTTP-Smoketest auf `http://127.0.0.1:8765` erfolgreich (`200 OK`) fuer `index.html`, Kernmodule und CSS; Response-Header liefern `Cache-Control: no-store, no-cache`.
+  - Cache/Build:
+    - Build-ID auf `20260406v10` angehoben (`index.html`, `version.json`).
+
+- TODO (naechster Schritt): In-UI Spieltest auf Device fuer Crew-Grid (sticky Spalte) + Standort-Shop-Kauffluss durchklicken; danach ggf. finaler Layout-Feinschliff fuer sehr schmale Displays (<380px).
+
+- 2026-04-06: Balance-Pass + Midgame-Content-Pass umgesetzt.
+  - Balance:
+    - `POWER_BALANCE` geglaettet: guenstigerer Basisstrom, softere Peak-Strafen, etwas billigere Infra-Upgrades.
+    - `LOAN_PLANS` erweitert/entschaerft: hoeheres Kapital bei leicht niedrigeren Tageszinsen und laengeren Laufzeiten.
+    - `RIG_STAFF_TIERS` neu austariert: bessere Kapazitaet pro Crew-Stufe bei geringeren Lohn-/Hire-Kosten.
+    - `LOCATIONS` Midgame geglaettet: niedrigere Mieten/Umzugskosten fuer T3-T8, staerkere Standortboni und etwas fruehere Unlock-Schwellen.
+    - `contracts.js`: Vertragsskalierung von linear auf weichere Wurzel-Skalierung umgestellt; Hard-Contracts werden nun erst ab spaeterem Progress in den Pool aufgenommen.
+  - Content:
+    - `locationShop.js`: neue Midgame-Items fuer T2-T8 (`Airflow Panels`, `Parts Lockers`, `Sensor Tags`, `Shift Planner`, `Coolant Loop`, `Quality Lab`, `Logistics Rack`, `Operator Suite`, `Thermal Baffles`).
+    - `features.js`: Story-Missionen `sm15..sm18` hinzugefuegt (Facility, Crew, Campus, Contract-Pipeline).
+    - `goals.js`: neue Langzeitziele fuer T8, 30 Contracts, 95% Crew-Abdeckung und 18 Shop-Items.
+    - `challenges.js`: neue Dailies fuer 8 Shop-Items, Tier 7, 92% Crew-Abdeckung, 97% Rig-Health, 8 Research und 8 Contracts.
+    - `data/contracts.js` + `systems/contracts.js`: neue Contract-Typen `research_count`, `location_tier`, `crew_coverage`, `location_shop_items`.
+  - Verifikation:
+    - `node --check` erfolgreich fuer alle geaenderten Dateien.
+    - Runtime-Spotcheck fuer Contract-Generation erfolgreich: Midgame erzeugt nur `easy/medium`, Spaetspiel mischt `medium/hard`.
+  - Cache/Build:
+    - Build-ID auf `20260406v11` angehoben (`index.html`, `version.json`).
+
+- 2026-04-07: Header-UI Hotfix (Statuskarten kompakter).
+  - `css/layout.css` angepasst:
+    - `stat-pill` Basisgroesse reduziert (Padding/Font kleiner).
+    - Mobile-Regeln (`<=700px`): keine gestreckte 50%-Breite mehr, stattdessen kompakte Auto-Breite.
+    - Sehr kleine Screens (`<=420px`): Vollbreitenzwang entfernt.
+    - Header explizit auf linksbuendige, nicht-zentrierte Anordnung gestellt.
+
+- 2026-04-07: Globaler Balance-Pass (Langzeit-Progression, gesamtes Spiel).
+  - Kern-Progression verlangsamt:
+    - `HASH_PER_COIN` von `8000` auf `12000` erhoeht (`js/data/coins.js`).
+    - Rig-Kostenkurve angezogen (`RIG_SCALE` von `1.22` auf `1.245` in `js/data/rigs.js`).
+    - Prestige-Schwelle auf `$3.5M` pro Chip angehoben (`js/core/prestige.js`).
+  - Reward-Economy harmonisiert:
+    - Mission-Cash global reduziert via Multiplikatoren in `main.js` (Challenges/Goals/Story).
+    - Prestige-Missionsbonus von `+4%` auf `+3%` pro Prestige reduziert.
+    - Vertrags-Generator neu ausbalanciert (`js/systems/contracts.js`):
+      - hoehere Zielskalierung, weichere Rewardskalierung, niedrigeres Reward-Basisniveau.
+      - Hard-Vertraege erst spaeter im Progressionsfenster.
+    - Daily-Cash reduziert (Basisfaktor `0.78`).
+  - Exploit-/Spike-Fix:
+    - Kreditaufnahme erhoeht nicht mehr `totalEarned` (`js/main.js`), damit Umsatzziele nicht kuenstlich uebersprungen werden.
+  - Event-/Trader-Spikes entschaerft:
+    - Event-Multiplikatoren und Cash/Airdrop-Werte reduziert (`js/data/events.js`).
+    - Event-Cash/Coins in `fireRandomEvent()` zusaetzlich progressionsabhaengig skaliert (`js/core/gameLoop.js`).
+    - NPC-Wildcard-Cash sowie Coin-Deal-Spannen/Bulk-Chip-Deals reduziert (`js/data/npcTraders.js`).
+  - Story-Mission-Pacing angezogen:
+    - Missionstargets `sm1..sm18` deutlich hochgesetzt, speziell Early/Midgame (`js/systems/features.js`).
+    - Tutorial-Endreward reduziert auf `+$3.500, +2 Chips, +6 Mod-Parts`.
+  - Verifikation:
+    - `node --check` fuer alle geaenderten Kernfiles erfolgreich.
+    - Runtime-Spotcheck fuer Contract-Generation erfolgreich.
+  - Cache/Build:
+    - Build-ID auf `20260407v12` gesetzt (`index.html`, `version.json`).
+
+- 2026-04-07: Hard-Balance-Patch V1 (Goal-Gates, Crew, Shop, Chip-Nerf).
+  - Zielsystem geschaerft (`js/data/goals.js`):
+    - Hohe Goal-Rewards breit reduziert (Cash + Chips) fuer Midgame/Endgame-Ziele.
+    - Neue Gate-Bedingungen fuer kritische Ziele:
+      - `g_crew_85`: mind. 80 Rigs + Standort Tier 5.
+      - `g_crew_95`: mind. 180 Rigs + Standort Tier 7.
+      - `g_shop_10`: mind. Standort Tier 5.
+      - `g_shop_18`: mind. Standort Tier 7.
+  - Goal-Gate-Logik/UI (`js/systems/features.js`, `js/main.js`):
+    - `getGoalGateStatus()` hinzugefuegt (Min-Rigs/Min-Tier/Min-Prestige).
+    - Goal-Karten zeigen blockierende Voraussetzungen direkt an.
+    - `claimGoal()` blockiert Claim sauber mit konkreter Fehlmeldung, wenn Gate nicht erfuellt ist.
+  - Rig-Crew rebalanced (`js/data/rigCrew.js`):
+    - `rigsPerUnit` deutlich reduziert, Lohn/Hire-Costs und Cost-Mults angezogen.
+    - Ziel: Crew-Abdeckung weniger trivial und laufende Kosten relevanter.
+  - Standort-Shop-Kostenkurve verschaerft (`js/data/locationShop.js`):
+    - `getLocationShopItemCost()` ergaenzt um globale + lokale Inflation pro gekauftem Item.
+    - Fruehspiel-Items (Tier 1-3) mit staerkerem Early-Multiplier.
+  - Chip-Shop Nerf (`js/data/coins.js`):
+    - `cb7` von `-20%` (max 4) auf `-8%` (max 3) geaendert.
+  - Verifikation:
+    - `node --check` fuer alle geaenderten Dateien erfolgreich.
+    - Laufzeittest via Node-VM erfolgreich:
+      - Goal-Gates greifen korrekt (gesperrt/freigeschaltet je nach Tier/Rigs).
+      - `claimGoal()` blockiert/erlaubt korrekt.
+      - Standort-Shop-Kosten steigen dynamisch mit gekauften Items.
+  - Hinweis:
+    - Playwright-Client konnte auf diesem Android-Node nicht genutzt werden (`playwright-core`: "Unsupported platform: android").
+
+- 2026-04-07: Debug-Money-Cheat fuer Bugsuche eingebaut.
+  - `js/core/state.js`: neuer UI-State `debugCheatUsd` (Default `$1,000,000`).
+  - `js/core/save.js`: `debugCheatUsd` in Save-Felder aufgenommen.
+  - `js/main.js`:
+    - feste Cheat-Stufen (`$10k` bis `$1b`) definiert.
+    - Funktionen `getDebugCheatUsdSafe`, `getDebugCheatUsdStepIndex`, `setDebugCheatUsdByIndex`, `applyDebugMoneyCheat` hinzugefuegt.
+    - Aktionen: `Add`, `Set`, `INF`.
+  - `js/ui/render.js`: Debug-Overlay um Money-Cheat-Block mit Slider + Buttons erweitert.
+  - Verifikation:
+    - `node --check` fuer `state.js`, `save.js`, `main.js`, `render.js` erfolgreich.
+    - Node-VM-Test erfolgreich: Slider-HTML wird gerendert; `Add`, `Set`, `INF` wirken korrekt auf `usd`.
+  - Playwright-Skilltest erneut versucht, aber weiterhin auf Android blockiert (`playwright-core`: `Unsupported platform: android`).
+  - Cache/Build:
+    - Build-ID auf `20260407v14` gesetzt (`index.html`, `version.json`).
+- 2026-04-07: Power-Infra-Rebalance (Kapazitaetskauf) umgesetzt.
+  - Problem: Ausbaukosten wurden ab mittleren Stufen zu steil und der BTC-Anteil schwankte mit dem Marktpreis.
+  - Fix 1 (`main.js`): `getPowerUpgradeCost()` auf Softcap-Kurve umgestellt.
+    - Fruehe Stufen: `upgradeCostMult=1.22`
+    - Ab Softcap: `upgradeSoftcapLevel=18`, `upgradeSoftcapCostMult=1.08`
+  - Fix 2 (`gameLoop.js`): BTC-Kosten fuer Stromausbau stabilisiert (level-basiert statt marktgekoppelt).
+    - Infra: `0.01 + level*0.0025 BTC`
+    - Battery: `0.008 + level*0.002 BTC`
+    - Ziel: keine sichtbaren Preis-Zitterschwankungen mehr im Power-Ausbau.
+  - Sanity-Check: Kostenpfad bei 73 kW (`L35`) jetzt ca. `$424,455` und `0.0975 BTC`.
+  - Verifikation: `node --check` fuer `js/main.js` und `js/core/gameLoop.js` erfolgreich.
+- 2026-04-07: UX/Power Anpassung nach Feedback.
+  - Stromnetz-Ausbau pro Kauf von `+2.00 kW` auf `+10.00 kW` erhoeht (`POWER_BALANCE.upgradeStepKw = 10.0`).
+  - Rig-Karten: per-Rig `Auto-Repair` Button entfernt, stattdessen `Alle verkaufen` pro Rig-Typ hinzugefuegt.
+  - Mine-Toolbar: globale Auto-Reparatur von Button auf Slider/Toggle umgestellt (`rig-auto-repair-toggle`).
+  - Build angehoben: `index BUILD_ID` + `version.json` auf `20260407v15`.
+  - Verifikation: `node --check` fuer `main.js`, `render.js`, `gameLoop.js` erfolgreich; alte Button-ID entfernt.
+- 2026-04-07: Markt auf "echte" glatte Kurve umgestellt (gegen Sprungverhalten).
+  - `gameLoop.js`:
+    - Neues `MARKET_BALANCE` fuer kontinuierliche Return-Logik (Noise, Momentum, Mean-Reversion, Event-Impulse).
+    - Neue Zustandshelfer `ensureMarketImpulseState()` und `addMarketImpulse()`.
+    - `price1`-Events machen keine Sofort-Multiplikation mehr, sondern verteilen den Effekt als zeitlichen Impuls.
+    - `priceAll`/`allBoost` geben jetzt zusaetzlich sanfte Kursimpulse statt nur harter Effektwahrnehmung.
+    - Preisupdate auf kontinuierliches Modell umgebaut: `nextPrice = price * exp(totalReturnPerSec * dt)` statt Additivspruenge.
+  - Persistenz:
+    - `state.js`: `marketMomentum`, `marketEventDrift`, `marketEventDriftTimer` hinzugefuegt.
+    - `save.js`: Felder in `SAVE_FIELDS` aufgenommen.
+    - `main.js`: alte Saves robust normalisiert (Objekte/coin-keys werden initialisiert).
+  - UI:
+    - `render.js`: Marktpreis mit dynamischer Genauigkeit (`<1000` -> 3 Dezimalen), damit kleine Bewegungen sichtbar sind.
+  - Build/Cache:
+    - `index.html` BUILD_ID -> `20260407v16`
+    - `version.json` -> `20260407v16`
+  - Verifikation:
+    - `node --check` erfolgreich fuer `gameLoop.js`, `state.js`, `save.js`, `main.js`, `render.js`.
+    - No-Cache-Server liefert Build `20260407v16`.
+- 2026-04-07: Hotfix fuer Start-Blocker "Start fehlgeschlagen: Initialisierung abgebrochen".
+  - Root Cause: `render.js` Regression durch falsches Einfuegen von `priceDecimals` in `renderRigs`/`renderUpgrades` statt `renderMarket`.
+  - Effekt: `ReferenceError: price is not defined` waehrend `renderAll()` in `init()` -> Boot-Start brach ab.
+  - Fix: `priceDecimals` nur in `renderMarket` gesetzt; fehlerhafte Referenzen entfernt.
+  - Runtime-Repro/Verifikation mit jsdom-Harness: `INIT_OK`.
+  - Build aktualisiert auf `20260407v17`.
+- 2026-04-07: First-Run-Balancing fuer Rig-Freischaltungen (ohne Prestige) angepasst.
+  - Problem: Vorher war Full-Rig-Unlock im ersten Run praktisch unmoeglich (sehr hohe Unlocks + harte Preisprogression).
+  - `data/rigs.js`:
+    - `RIG_SCALE` von `1.245` auf `1.085` gesenkt.
+    - Unlock-Schwellen reduziert: `0,3,10,22,40,65,95,140,190,240`.
+    - Mid/Endgame-Basispreise reduziert (ASIC1 bis FNX), damit 1x-Kauf je Tier im ersten Run erreichbar bleibt.
+  - `data/locations.js`:
+    - Prestige-Gates bei T7/T8/T9 entfernt (`prestigeCount` Requirement gestrichen).
+    - High-Tier-Standorte sind jetzt bei ausreichendem Progress auch pre-Prestige erreichbar.
+  - Check: `maxRigUnlock=240`, `maxCapNoPrestige=1200` -> Freischaltung aller Rig-Typen im First-Run moeglich.
+  - Build aktualisiert: `20260407v18`.
+
+- 2026-04-11: 7er-Roadmap abgeschlossen (Contracts 2.0, Endgame-Story, Finance-UX, Save-Integritaet, Regression-Checks).
+  - Contracts 2.0 (`js/systems/contracts.js` + `js/data/contracts.js`):
+    - Neues `CONTRACT_BALANCE` + Progress-Profil (`getContractProgressProfile`) fuer sauberere Skalierung.
+    - Gewichtete Difficulty-Auswahl (easy/medium/hard) statt starrem Gate.
+    - Ziel-/Reward-Berechnung neu: progressionsabhaengig, typspezifische Kurven, Mindestbelohnungen.
+    - Typ- und Name-Diversitaet verbessert (Limit pro Contract-Typ + no duplicates im Roll).
+    - Neue Contract-Typen integriert: `power_infra`, `prestige_count` (inkl. Completion-Checks).
+    - Contract-Karten zeigen jetzt Live-Fortschritt + Progressbar (`renderContracts`).
+  - Endgame-Story erweitert (`js/systems/features.js`):
+    - Story-Missionen `sm23..sm26` hinzugefuegt (Shop-Depth, Contract-Pipeline, Umsatz-Langziel, Prestige-Endstufe).
+  - Finance-UX-Pass (`js/core/gameLoop.js`, `js/ui/render.js`):
+    - Neue Vorschaufunktion `getDailyOpsBillPreview()` (prognostische Tageslast, Konto danach, Runway, Risikostufe).
+    - Finanzen-Panel zeigt zusaetzlich `Naechste Tageslast`, `Kontostand danach`, `Liquiditaets-Runway`, `Finanzstatus`.
+    - Tagesabrechnung-Panel zeigt jetzt auch Prognose der naechsten Last.
+    - Kredit-Button-Tooltip zeigt Effekt auf prognostischen Kontostand.
+  - Save-Integritaet/Rettung (`js/core/save.js`, `js/main.js`):
+    - Neue Save-Sanitisierung `sanitizeLoadedSavePayload()` mit Typ-/Range-/Schema-Normalisierung.
+    - Kritische Maps/Arrays (Coins, Preise, Rigs, Crew, Loans, Contracts, Marktstate) werden robust repariert.
+    - Defekte Saves werden beim Laden automatisch bereinigt und zurueckgeschrieben.
+    - Parse-Fehler sichern Rohdaten als `hashvault_corrupt_backup_<ts>` in localStorage.
+    - Import nutzt jetzt ebenfalls Sanitisierung vor dem Schreiben.
+  - Regression-Testgeruest angelegt:
+    - Neu `scripts/check_syntax.js` (zentraler Syntax-Check).
+    - Neu `scripts/regression_smoke.js` (Contracts-Scaling + Save-Sanitizer Smoke).
+    - `package.json` Scripts erweitert: `check:syntax`, `check:smoke`, `test`.
+
+- 2026-04-11: Verifikation dieser Runde.
+  - `npm test` erfolgreich:
+    - Syntax checks: OK fuer alle Kern-Dateien.
+    - Regression smoke: `Regression smoke checks passed.`
+  - Playwright-Workflow gemaess Skill ausgefuehrt, aber auf Android weiterhin blockiert:
+    - `playwright-core`: `Unsupported platform: android`.
+  - Fallback HTTP-Smoketest lokal erfolgreich (`200 OK`):
+    - `/index.html`, `/js/core/gameLoop.js`, `/js/ui/render.js`.
+
+- TODO (naechster Schritt):
+  - Visuelle Feinabstimmung der neuen Finance-Prognose (farbliche Badges + kompakter Mobile-Text).
+  - Optional: Contract-Historie pro Tag (erledigt/abgebrochen) fuer besseres Midgame-Tuning.
+  - Optional: Save-Sanitizer mit Issue-Report im Debug-Overlay sichtbar machen.
+- 2026-04-11: Cache/Build aktualisiert.
+  - `index.html` BUILD_ID -> `20260411v19`
+  - `version.json` buildId -> `20260411v19`
+- 2026-04-11: Missions-/Prestige-/Fixkosten-Pass umgesetzt.
+  - Missionen sortiert: erledigte/claimed Eintraege werden ans Listenende geschoben.
+    - Contracts (`renderContracts`): Reihenfolge jetzt Claimbar -> Aktiv -> Offen -> Erledigt.
+    - Goals (`renderGoals`): Reihenfolge jetzt Claimbar -> In Progress -> Gate-locked -> Eingeloest.
+    - Daily Challenges (`renderChallenges`): Claimbar zuerst, bereits eingeloest zuletzt.
+  - Prestige-Content erweitert:
+    - Neue Upgrades (`upgrades.js`): `ru9`, `mu8`, `sp13`, `sp14`, `mu9`, `ru10` mit `minPrestige` Gates.
+    - Neue Research (`research.js`): `r27..r31` mit `minPrestige` Gates.
+    - Neue Core-Staff Rollen (`staff.js`): `dataeng`, `opsdir`, `cfo` inkl. Prestige-Gates + Tagesloehne.
+    - Story-Missionen erweitert (`features.js`): `sm27..sm30` fuer spaete Prestige-Zyklen.
+  - Prestige-Gating technisch durchverdrahtet:
+    - Kauf-/Start-Checks in `systems/upgrades.js`, `systems/staff.js`, `systems/research.js`.
+    - UI-Locks in `render.js` (Upgrades/Research/Staff) mit klaren Prestige-Hinweisen.
+  - Fixkosten-Balance angezogen:
+    - `gameLoop.js`: hoehere Power-Basis-/Levelgebuehren und Provider-Tagesfees.
+    - `locations.js`: Mieten pro Tier deutlich erhoeht.
+    - `rigCrew.js`: Crew-Loehne pro Tag deutlich erhoeht.
+    - Neu: Core-Staff-Tagesloehne (`getCoreStaffDailyWages`) in Tagesabrechnung + Finanz-Preview integriert.
+  - Save-Integritaet-Migration erweitert:
+    - `save.js` sanitisert jetzt auch dynamische Staff-Keys robust, inklusive Umgebungen ohne geladenes `STAFF`-Modul.
+  - Verifikation:
+    - `npm test` erfolgreich (`check:syntax` + `check:smoke`).
+  - Build angehoben:
+    - `index.html` BUILD_ID -> `20260411v20`
+    - `version.json` buildId -> `20260411v20`

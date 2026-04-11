@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>HashVault Pro</title>
+<script>
+(function() {
+  const BUILD_ID = '20260411v20';
+  const BUILD_KEY = '__hv_build_id';
+  const prevBuild = localStorage.getItem(BUILD_KEY);
+  const isNewBuild = prevBuild !== BUILD_ID;
+  localStorage.setItem(BUILD_KEY, BUILD_ID);
+
+  // Safety net: falls irgendwo noch ein Service Worker existiert.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations()
+      .then((regs) => regs.forEach((reg) => reg.unregister()))
+      .catch(() => {});
+  }
+
+  // Safety net: CacheStorage aktiv leeren (falls genutzt).
+  if (window.caches && caches.keys) {
+    caches.keys()
+      .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+      .catch(() => {});
+  }
+
+  // Bei neuem Build genau einmal "harte" Navigation mit Marker erzwingen.
+  if (isNewBuild) {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('__hvb') !== BUILD_ID) {
+      url.searchParams.set('__hvb', BUILD_ID);
+      url.searchParams.set('__t', String(Date.now()));
+      window.location.replace(url.toString());
+      return;
+    }
+  }
+
+  // Online-Check gegen version.json (GitHub Pages / Webserver).
+  fetch('version.json?v=' + encodeURIComponent(String(Date.now())), { cache: 'no-store' })
+    .then((res) => res.ok ? res.json() : null)
+    .then((meta) => {
+      if (!meta || !meta.buildId) return;
+      if (meta.buildId !== BUILD_ID) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('__hvb', String(meta.buildId));
+        url.searchParams.set('__t', String(Date.now()));
+        window.location.replace(url.toString());
+      }
+    })
+    .catch(() => {});
+
+  const bust = BUILD_ID + '-' + Date.now();
+  const styles = [
+    'css/base.css',
+    'css/layout.css',
+    'css/components.css',
+    'css/animations.css',
+  ];
+  window.__HV_BUST = bust;
+  for (const href of styles) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href + '?v=' + encodeURIComponent(bust);
+    document.head.appendChild(link);
+  }
+})();
+</script>
+</head>
+<body>
+
+<div id="boot-root" class="boot-root">
+  <div class="boot-shell">
+    <div class="boot-brand">HashVault Pro</div>
+
+    <section id="boot-loading-screen" class="boot-screen active">
+      <div class="boot-card">
+        <div class="boot-row">
+          <strong>Systemstart</strong>
+          <span id="boot-progress-text">0%</span>
+        </div>
+        <div class="boot-progress"><div id="boot-progress-fill" class="boot-progress-fill"></div></div>
+        <div id="boot-step-list" class="boot-steps"></div>
+      </div>
+    </section>
+
+    <section id="boot-start-screen" class="boot-screen">
+      <div class="boot-card">
+        <div class="boot-row">
+          <div>
+            <strong>Startbildschirm</strong>
+            <div style="font-size:13px;color:var(--muted);margin-top:4px;">Saves nur im Reiter Save Slots verwalten.</div>
+          </div>
+        </div>
+
+        <div class="boot-tabs">
+          <button id="boot-tab-start" class="boot-tab active" type="button">Start</button>
+          <button id="boot-tab-saves" class="boot-tab" type="button">Save Slots</button>
+        </div>
+
+        <div id="boot-pane-start" class="boot-pane active">
+          <div class="boot-actions">
+            <button id="boot-btn-new" class="buy-btn" type="button">Neues Spiel</button>
+            <button id="boot-btn-load" class="buy-btn" type="button">Spielstand laden</button>
+            <button id="boot-btn-hard-reload" class="buy-btn" type="button">No-Cache Reload</button>
+            <button id="boot-btn-exit" class="buy-btn" style="background:linear-gradient(135deg, #7a2a3d, #3f1a26);" type="button">Verlassen</button>
+          </div>
+        </div>
+
+        <div id="boot-pane-saves" class="boot-pane">
+          <div class="boot-slot-wrap">
+            <div class="boot-row" style="margin-bottom:10px;">
+              <div class="panel-title" style="margin:0;">Save Slots</div>
+              <button id="boot-back-start" class="buy-btn" style="max-width:120px;padding:8px 10px;" type="button">Zurueck</button>
+            </div>
+            <div id="boot-slot-grid" class="boot-slot-grid"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="boot-new-overlay" class="boot-overlay">
+  <div class="boot-modal">
+    <h2>Neues Spiel</h2>
+    <p>Nickname eingeben und Slot waehlen.</p>
+    <label for="boot-nickname-input" style="display:block;margin-bottom:6px;font-size:12px;color:var(--muted);">Nickname</label>
+    <input id="boot-nickname-input" class="boot-input" maxlength="18" placeholder="z. B. Satoshi42">
+    <div class="panel-title" style="margin-bottom:8px;">Slot auswaehlen</div>
+    <div id="boot-new-slot-grid" class="boot-slot-grid"></div>
+    <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+      <button id="boot-new-cancel" class="buy-btn" style="max-width:140px;" type="button">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<div id="boot-toast" class="boot-toast"></div>
+
+<canvas id="bg"></canvas>
+<div id="app" class="boot-hidden">
+
+<!-- HEADER -->
+<div id="header">
+  <div id="logo">⛏️ HashVault Pro</div>
+  <div class="stat-pill">💵 <span id="hd-usd">$0</span></div>
+  <div class="stat-pill">🔸 <span id="hd-hs">0 H/s</span></div>
+  <div class="stat-pill">⚡ <span id="hd-power">0.00 / 3.00 kW</span></div>
+  <div class="stat-pill">🏆 <span id="hd-net">Net: $0</span></div>
+  <div class="stat-pill">🕒 <span id="hd-clock">Tag 1 08:00</span></div>
+  <div class="stat-pill">💎 <span id="hd-chips">0 💎</span></div>
+  <button id="debug-toggle-btn" style="margin-left:6px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px;cursor:pointer;">🧪 Debug</button>
+  <button id="prestige-btn">✨ PRESTIGE</button>
+</div>
+
+<!-- TABS -->
+<div id="tabs">
+  <div class="tab active" data-tab="mine">⛏️ Mine</div>
+  <div class="tab" data-tab="power">⚡ Power</div>
+  <div class="tab" data-tab="location">🏢 Standort</div>
+  <div class="tab" data-tab="upgrades">🔧 Upgrades <span class="badge" id="upg-badge" style="display:none">!</span></div>
+  <div class="tab" data-tab="market">📈 Market</div>
+  <div class="tab" data-tab="research">🔬 Research</div>
+  <div class="tab" data-tab="staff">👥 Staff</div>
+  <div class="tab" data-tab="crew">🛠️ Rig Crew</div>
+  <div class="tab" data-tab="missions">📋 Missionen <span class="badge" id="mission-badge" style="display:none">!</span></div>
+  <div class="tab" data-tab="traders">🤝 Traders</div>
+  <div class="tab" data-tab="achievements">🏆 Achiev. <span class="badge" id="ach-badge" style="display:none">!</span></div>
+  <div class="tab" data-tab="prestige">💎 Prestige</div>
+</div>
+
+<!-- NEWS TICKER -->
+<div id="news-ticker">
+  <span class="ticker-label">📡 LIVE</span>
+  <span id="ticker-text">Willkommen bei HashVault Pro — Crypto-Markt stabil, Zeit zu minen!</span>
+</div>
+
+<!-- MAIN CONTENT -->
+<div id="main">
+
+<!-- MINE PANEL -->
+<div id="mine-panel" class="panel active">
+  <div id="mine-left">
+    <div id="click-area">
+      <button id="mine-btn" title="Klick oder Leertaste">⛏️</button>
+      <div id="combo-display"></div>
+      <div id="click-stats">+<span id="click-power">1</span> H/Klick | <span id="hps-display">0</span> H/s</div>
+    </div>
+    <div id="tutorial-box" class="stats-card" style="display:none;margin-top:10px;"></div>
+    <div id="event-display" style="display:none;"></div>
+    <div id="mine-pools"></div>
+
+    <div id="crypto-selector">
+      <div class="crypto-btn active" data-coin="BTC">₿ BTC</div>
+      <div class="crypto-btn" data-coin="ETH">Ξ ETH</div>
+      <div class="crypto-btn" data-coin="LTC">Ł LTC</div>
+      <div class="crypto-btn" data-coin="BNB">⬡ BNB</div>
+    </div>
+    <div class="stats-card">
+      <h3>📊 Statistiken</h3>
+      <div class="stat-row"><span>Hashes gesamt</span><span class="val" id="s-hashes">0</span></div>
+      <div class="stat-row"><span>BTC Balance</span><span class="val" id="s-btc">0.000000</span></div>
+      <div class="stat-row"><span>ETH Balance</span><span class="val" id="s-eth">0.000000</span></div>
+      <div class="stat-row"><span>LTC Balance</span><span class="val" id="s-ltc">0.000000</span></div>
+      <div class="stat-row"><span>BNB Balance</span><span class="val" id="s-bnb">0.000000</span></div>
+      <div class="stat-row"><span>USD verdient</span><span class="val" id="s-usd">$0</span></div>
+      <div class="stat-row"><span>Rigs gesamt</span><span class="val" id="s-rigs">0</span></div>
+      <div class="stat-row"><span>Spielzeit</span><span class="val" id="s-time">0s</span></div>
+      <div class="stat-row"><span>⚙️ Schwierigkeit</span><span class="val" id="s-diff">1.00×</span></div>
+      <div class="stat-row"><span>🎯 H / Coin</span><span class="val" id="s-conv">8000</span></div>
+      <div class="stat-row"><span>⚡ Last / Kapazitaet</span><span class="val" id="s-power-load">0.00 / 3.00 kW</span></div>
+      <div class="stat-row"><span>💸 Strompreis</span><span class="val" id="s-power-price">$0.200 / kWh</span></div>
+      <div class="stat-row"><span>🧾 Naechste Rechnung</span><span class="val" id="s-power-bill-time">16m 0s</span></div>
+      <div class="stat-row"><span>📌 Aktuelle Rechnung</span><span class="val" id="s-power-bill-open">$0</span></div>
+      <div class="stat-row"><span>🔋 Notstrom-Akku</span><span class="val" id="s-power-battery">0.00 / 0.00 kWh</span></div>
+      <div class="stat-row"><span>🧭 Akku-Modus</span><span class="val" id="s-power-battery-mode">idle</span></div>
+      <div class="stat-row"><span>🏢 Standort</span><span class="val" id="s-location">PC-Zimmer Zuhause</span></div>
+      <div class="stat-row"><span>🏗️ Rig-Kapazitaet</span><span class="val" id="s-rig-capacity">0 / 6</span></div>
+      <div class="stat-row"><span>👷 Crew-Abdeckung</span><span class="val" id="s-staff-coverage">100%</span></div>
+      <div class="stat-row"><span>🕒 Ingame-Zeit</span><span class="val" id="s-clock">Tag 1 08:00</span></div>
+    </div>
+    <div class="stats-card">
+      <h3>⚡ Stromnetz</h3>
+      <div class="stat-row"><span>Infra-Level</span><span class="val" id="s-power-level">0</span></div>
+      <div class="stat-row"><span>Tarif</span><span class="val" id="s-power-tariff">Tag</span></div>
+      <div class="stat-row"><span>Grid-Event</span><span class="val" id="s-power-event">Stabil</span></div>
+      <button id="power-upgrade-btn" class="buy-btn" data-power-action="upgrade" type="button" style="margin-top:8px;">Kapazitaet +10.00 kW</button>
+      <button id="power-battery-upg-btn" class="buy-btn" data-power-action="batteryupg" type="button" style="margin-top:8px;background:linear-gradient(135deg, #3f6cbf, #2f4d8a);">Notstrom-Akku ausbauen</button>
+    </div>
+    <div class="stats-card">
+      <h3>⏰ Offline-Einnahmen</h3>
+      <div id="offline-info" style="font-size:12px;color:var(--muted)">Speichern fuer Offline-Modus</div>
+    </div>
+  </div>
+  <div id="mine-right">
+    <div style="padding:10px 0 6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <select id="rig-sort-select" style="padding:6px 8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);font-size:12px;">
+        <option value="tier">Sort: Tier</option>
+        <option value="owned">Sort: Besitz</option>
+        <option value="cost">Sort: Kosten</option>
+        <option value="hps">Sort: H/s</option>
+      </select>
+      <label style="font-size:12px;color:var(--muted);display:flex;gap:4px;align-items:center;">
+        <input type="checkbox" id="rig-owned-only"> Nur Besitz
+      </label>
+      <button id="rig-repair-all-btn" class="buy-btn" style="max-width:170px;padding:8px 10px;">Alle reparieren</button>
+      <div class="auto-sell-toggle" style="margin-left:auto;">
+        <span id="rig-auto-repair-toggle-label">Auto-Reparatur (12s): AUS</span>
+        <div class="toggle" id="rig-auto-repair-toggle" title="Auto-Reparatur fuer alle Rig-Typen"></div>
+      </div>
+    </div>
+    <div class="section-title">🖥️ Mining Rigs</div>
+    <div class="rig-grid" id="rig-grid"></div>
+  </div>
+</div>
+
+<!-- UPGRADES PANEL -->
+<div id="upgrades-panel" class="panel">
+  <div class="panel-header">
+    <h2>🔧 Upgrades</h2>
+    <span id="upg-count" style="font-size:13px;color:var(--muted)"></span>
+  </div>
+  <br>
+  <div style="padding:0 20px;margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;" id="upg-filter">
+    <button class="buy-btn" style="flex:0;padding:5px 12px;font-size:11px;" data-filter="all">Alle</button>
+    <button class="buy-btn" style="flex:0;padding:5px 12px;font-size:11px;background:var(--panel2);border:1px solid var(--border);" data-filter="click">Klick</button>
+    <button class="buy-btn" style="flex:0;padding:5px 12px;font-size:11px;background:var(--panel2);border:1px solid var(--border);" data-filter="rig">Rigs</button>
+    <button class="buy-btn" style="flex:0;padding:5px 12px;font-size:11px;background:var(--panel2);border:1px solid var(--border);" data-filter="market">Markt</button>
+  </div>
+  <div class="upgrade-grid" style="padding:0 20px 20px;" id="upgrade-grid"></div>
+</div>
+
+<!-- POWER PANEL -->
+<div id="power-panel" class="panel">
+  <div class="panel-header">
+    <h2>⚡ Power Grid</h2>
+    <span id="power-status-chip" style="font-size:13px;color:var(--muted);">Stabil</span>
+  </div>
+  <div class="power-grid" style="padding:0 20px 20px;">
+    <div class="power-card">
+      <h3>Netzstatus</h3>
+      <div class="power-row"><span>Ingame-Zeit</span><strong id="pov-clock">Tag 1 08:00</strong></div>
+      <div class="power-row"><span>Tarif</span><strong id="pov-tariff">Tag</strong></div>
+      <div class="power-row"><span>Last / Kapazitaet</span><strong id="pov-load">0.00 / 3.00 kW</strong></div>
+      <div class="power-row"><span>Strompreis</span><strong id="pov-price">$0.200 / kWh</strong></div>
+      <div class="power-row"><span>Offene Rechnung</span><strong id="pov-open-bill">$0.00</strong></div>
+      <div class="power-row"><span>Naechste Abrechnung</span><strong id="pov-next-bill">16m 0s</strong></div>
+      <div class="power-row"><span>Notstrom-Akku</span><strong id="pov-battery">0.00 / 0.00 kWh</strong></div>
+      <div class="power-row"><span>Akku-Modus</span><strong id="pov-battery-mode">idle</strong></div>
+      <div class="power-actions">
+        <button class="buy-btn" data-power-action="upgrade" type="button">Kapazitaet +10.00 kW</button>
+        <button class="buy-btn" data-power-action="batteryupg" type="button" style="background:linear-gradient(135deg, #3f6cbf, #2f4d8a);">Notstrom-Akku ausbauen</button>
+      </div>
+    </div>
+
+    <div class="power-card">
+      <h3>Tarifzeiten</h3>
+      <div id="power-tariff-list" class="power-list"></div>
+    </div>
+
+    <div class="power-card">
+      <h3>🔌 Stromanbieter</h3>
+      <div id="power-provider-info" class="power-list"></div>
+      <div class="power-actions" style="margin-top:8px;">
+        <select id="power-provider-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);"></select>
+        <button class="buy-btn" data-power-action="provider" type="button">Anbieter wechseln</button>
+      </div>
+    </div>
+
+    <div class="power-card">
+      <h3>🏦 Finanzen</h3>
+      <div id="power-finance-info" class="power-list"></div>
+      <div class="power-actions" style="margin-top:8px;">
+        <select id="loan-plan-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);"></select>
+        <button class="buy-btn" data-power-action="loan" type="button">Kredit aufnehmen</button>
+        <button class="buy-btn" data-power-action="repayloan" type="button">Kredit tilgen</button>
+        <button class="buy-btn" data-power-action="insurance" type="button">Versicherung umschalten</button>
+      </div>
+    </div>
+
+    <div class="power-card">
+      <h3>Mod Tech</h3>
+      <div id="power-mod-unlock-list" class="power-list"></div>
+      <div id="power-mod-workshop" class="power-list" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="power-card">
+      <h3>Tagesabrechnung</h3>
+      <div id="power-last-bill" class="power-list-item">Noch keine Tagesabrechnung gebucht.</div>
+    </div>
+  </div>
+</div>
+
+<!-- LOCATION PANEL -->
+<div id="location-panel" class="panel">
+  <div class="panel-header">
+    <h2>🏢 Standort &amp; Setup</h2>
+  </div>
+  <div class="power-grid" style="padding:0 20px 20px;">
+    <div class="power-card">
+      <h3>Standort</h3>
+      <div id="power-location-info" class="power-list"></div>
+      <div id="power-location-status" class="power-list" style="margin-top:8px;"></div>
+      <div class="power-actions" style="margin-top:8px;">
+        <select id="power-location-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);"></select>
+        <button class="buy-btn" data-power-action="relocate" type="button">Zum Standort umziehen</button>
+      </div>
+    </div>
+
+    <div class="power-card">
+      <h3>Standort-Shop</h3>
+      <div id="power-location-shop-info" class="power-list"></div>
+      <div id="power-location-shop-list" class="power-list" style="margin-top:10px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MARKET PANEL -->
+<div id="market-panel" class="panel">
+  <div class="panel-header">
+    <h2>📈 Crypto Market</h2>
+    <div class="auto-sell-toggle">
+      <span id="auto-sell-label">Auto-Sell pro Coin</span>
+      <div class="toggle" id="auto-sell-toggle"></div>
+    </div>
+  </div>
+  <div style="padding:12px 20px;font-size:12px;color:var(--muted);">
+    💡 Verkaufe Coins fuer USD — kaufe Rigs, Upgrades, Staff &amp; Research!
+  </div>
+  <div class="market-grid" style="padding:0 20px 20px;" id="market-grid"></div>
+</div>
+
+<!-- RESEARCH PANEL -->
+<div id="research-panel" class="panel">
+  <div class="panel-header"><h2>🔬 Research Lab</h2></div>
+  <div class="research-tree" id="research-tree"></div>
+</div>
+
+<!-- STAFF PANEL -->
+<div id="staff-panel" class="panel">
+  <div class="panel-header"><h2>👥 Staff Management</h2></div>
+  <div class="staff-grid" id="staff-grid"></div>
+</div>
+
+<!-- RIG CREW PANEL -->
+<div id="crew-panel" class="panel">
+  <div class="panel-header"><h2>🛠️ Rig Crew</h2></div>
+  <div class="staff-grid" id="crew-grid"></div>
+</div>
+
+<!-- MISSIONS PANEL -->
+<div id="missions-panel" class="panel">
+  <div class="panel-header">
+    <h2>📋 Missionen</h2>
+    <span id="contract-refresh" style="font-size:12px;color:var(--muted);">Refresh in: 30:00</span>
+  </div>
+  <div style="padding:8px 20px 0;font-size:12px;color:var(--muted);">Alle Auftraege und taeglichen Aufgaben in einem Bereich.</div>
+  <div style="padding:12px 20px 0;">
+    <div class="daily-bar" id="daily-bar">
+      <div class="daily-icon">🎁</div>
+      <div class="daily-text">
+        <h4 id="daily-title">Daily Bonus verfuegbar!</h4>
+        <p id="daily-sub">Tag <span id="daily-streak">1</span> Streak</p>
+      </div>
+      <button class="daily-claim-btn" id="daily-claim-btn">Claim</button>
+    </div>
+  </div>
+  <div style="padding:14px 20px 8px;font-size:13px;color:var(--muted);">Contracts</div>
+  <div class="contract-grid" style="padding:0 20px 16px;" id="contract-grid"></div>
+  <div style="padding:0 20px 8px;font-size:13px;color:var(--muted);">📚 Story-Mission</div>
+  <div style="padding:0 20px 14px;" id="story-mission-card"></div>
+  <div style="padding:0 20px 12px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <strong style="font-size:14px;">🎯 Ziele</strong>
+      <span id="goal-count" style="font-size:12px;color:var(--muted);">0/0 abgeschlossen</span>
+    </div>
+    <div class="challenge-grid" id="goal-grid"></div>
+  </div>
+  <div style="padding:0 20px 6px;display:flex;justify-content:space-between;align-items:center;">
+    <div style="font-size:12px;color:var(--muted);">Daily Challenges (rotieren taeglich)</div>
+    <span id="ch-count" style="font-size:12px;color:var(--muted);">0/5 done</span>
+  </div>
+  <div class="challenge-grid" style="padding:0 20px 20px;" id="challenge-grid"></div>
+  <div style="padding:0 20px 8px;font-size:13px;color:var(--muted);">💾 Save-Tools</div>
+  <div style="padding:0 20px 20px;display:flex;gap:8px;flex-wrap:wrap;">
+    <button id="save-export-btn" class="buy-btn" style="max-width:220px;">Backup exportieren</button>
+    <button id="save-import-btn" class="buy-btn" style="max-width:220px;">Backup importieren</button>
+  </div>
+</div>
+
+<!-- NPC TRADERS PANEL -->
+<div id="traders-panel" class="panel">
+  <div class="panel-header">
+    <h2>🤝 NPC Traders</h2>
+    <span id="tr-count" style="font-size:13px;color:var(--muted);">3 Daily Deals</span>
+  </div>
+  <div style="padding:12px 20px;font-size:12px;color:var(--muted);">Taeglich wechselnde Angebote von NPCs — gute oder schlechte Deals!</div>
+  <div class="trader-grid" style="padding:0 20px 20px;" id="trader-grid"></div>
+</div>
+
+<!-- ACHIEVEMENTS PANEL -->
+<div id="achievements-panel" class="panel">
+  <div class="panel-header">
+    <h2>🏆 Achievements</h2>
+    <span id="ach-count" style="font-size:13px;color:var(--muted);"></span>
+  </div>
+  <div class="ach-grid" id="ach-grid"></div>
+</div>
+
+<!-- PRESTIGE PANEL -->
+<div id="prestige-panel" class="panel">
+  <div class="prestige-info">
+    <h2>💎 Prestige System</h2>
+    <p style="color:var(--muted);font-size:14px;">
+      Resette das Spiel fuer permanente Prestige-Chips.<br>
+      Chips kaufen dauerhafte Boni im Chip-Shop.<br>
+      <strong style="color:var(--gold);">$2.000.000 verdient = 1 Chip</strong>
+    </p>
+    <div style="margin:16px 0;font-size:16px;">
+      Du erhaeltst: <strong id="prestige-chips-preview" style="color:var(--gold);">0</strong> Chips
+    </div>
+    <button id="do-prestige-btn" class="buy-btn" style="max-width:200px;padding:12px 24px;font-size:14px;">✨ Prestige!</button>
+  </div>
+  <div style="padding:16px 20px 0;font-size:15px;font-weight:700;">💜 Chip-Shop</div>
+  <div class="chip-shop-grid" style="padding:16px 20px 20px;" id="chip-shop"></div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- NOTIFICATIONS -->
+<div id="notif-container"></div>
+<div id="debug-overlay" style="display:none;position:fixed;right:12px;bottom:12px;z-index:9999;min-width:210px;max-width:260px;padding:10px;border-radius:10px;background:rgba(8,12,18,0.92);border:1px solid var(--border);backdrop-filter:blur(4px);"></div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div id="modal-box">
+    <h2 id="modal-title">Bestaetigen</h2>
+    <p id="modal-text">Bist du sicher?</p>
+    <div class="modal-btns">
+      <button class="modal-btn confirm" id="modal-confirm">Ja</button>
+      <button class="modal-btn cancel" id="modal-cancel">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const bust = window.__HV_BUST || ('ts-' + Date.now());
+  const script = document.createElement('script');
+  script.src = 'js/core/boot.js?v=' + encodeURIComponent(bust);
+  script.async = false;
+  document.body.appendChild(script);
+})();
+</script>
+</body>
+</html>

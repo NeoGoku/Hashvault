@@ -1,0 +1,15 @@
+{
+  "name": "hashvault_pro",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "check:syntax": "node scripts/check_syntax.js",
+    "check:smoke": "node scripts/regression_smoke.js",
+    "test": "npm run check:syntax && npm run check:smoke"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
