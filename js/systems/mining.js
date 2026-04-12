@@ -38,6 +38,29 @@ function resetMiningComboChain() {
 }
 window.resetMiningComboChain = resetMiningComboChain;
 
+function getCurrentClickComboMult() {
+  const combo = Math.max(0, Number(G.comboCount || 0));
+  return 1 + (combo / 20) * (1 + Number(G._comboBonus || 0));
+}
+window.getCurrentClickComboMult = getCurrentClickComboMult;
+
+function getCurrentEffectiveClickPower() {
+  const base = Math.max(1, Number(getClickPower() || 1));
+  return Math.max(1, Math.floor(base * getCurrentClickComboMult()));
+}
+window.getCurrentEffectiveClickPower = getCurrentEffectiveClickPower;
+
+function updateMiningComboDecay() {
+  const now = Date.now();
+  const last = Number(G.lastClickTime || 0);
+  const isHolding = !!G._holdMiningActive;
+  if (isHolding) return;
+  if (Number(G.comboCount || 0) <= 0) return;
+  if (!last) return;
+  if (now - last >= 1200) resetMiningComboChain();
+}
+window.updateMiningComboDecay = updateMiningComboDecay;
+
 function ensureHoldMiningState() {
   if (typeof G._holdMiningActive !== 'boolean') G._holdMiningActive = false;
   if (!Number.isFinite(G._holdMiningElapsed) || G._holdMiningElapsed < 0) G._holdMiningElapsed = 0;
@@ -118,7 +141,7 @@ function applyMineClick(powerMult, eventObj, silentShutdown) {
   G.lastClickTime = now;
   if (G.comboCount > G.maxCombo) G.maxCombo = G.comboCount;
 
-  const comboMult = 1 + (G.comboCount / 20) * (1 + G._comboBonus);
+  const comboMult = getCurrentClickComboMult();
   const pMult = Math.max(0.1, Number(powerMult || 1));
   const power = Math.max(1, Math.floor(getClickPower() * comboMult * pMult));
   G.hashes += power;

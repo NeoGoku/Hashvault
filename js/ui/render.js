@@ -1125,7 +1125,10 @@ function updateMineUI() {
   const rigCap = (typeof getCurrentLocationRigCap === 'function') ? getCurrentLocationRigCap() : Infinity;
   const staffCoverage = Number(G._rigStaffCoverage || 1);
 
-  set('click-power', fmtNum(getClickPower()));
+  const clickPow = (typeof window.getCurrentEffectiveClickPower === 'function')
+    ? getCurrentEffectiveClickPower()
+    : getClickPower();
+  set('click-power', fmtNum(clickPow));
   set('hps-display', fmtNum(getTotalHps()));
   if (typeof window.getHoldMiningStatusText === 'function') set('hold-status', getHoldMiningStatusText());
   set('s-hashes',    fmtNum(G.totalHashes));
