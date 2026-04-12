@@ -686,3 +686,17 @@ Original prompt: Lass uns hier weitermachen am Projekt.
 - 2026-04-12: Verifikation nach Phase 2.
   - `npm test` erfolgreich (`check:syntax` + `check:smoke`).
   - Build angehoben auf `20260412v9` (`index.html`, `version.json`).
+
+- 2026-04-12: Nachhaltiger Deploy-Guard fuer Cloudflare Pages eingerichtet.
+  - Neu: `scripts/setup_deploy_auth.sh`
+    - Speichert GitHub Username + PAT einmalig unter `~/.config/hashvault/` (chmod 600).
+  - Neu: `scripts/deploy_guard.sh`
+    - Erzwingt festen Projektpfad.
+    - Commit/Pull-Flow: `git add -A`, Auto-Commit nur bei Aenderungen, Push auf `origin/main`.
+    - Nutzt gespeicherte Credentials non-interaktiv via `GIT_ASKPASS` (kein Passwortprompt bei Token-Setup).
+    - Deploy-Guard: pollt `https://hashvault.pages.dev/version.json` bis Online-Build-ID == lokale Build-ID.
+    - Klare Fehlercodes bei Timeout/Mismatch.
+  - Neu: Termux-Widget Shortcut
+    - `~/.shortcuts/Deploy-HashVault.sh` startet den Guard-Deploy per One-Click.
+  - Verifikation:
+    - `bash -n` Syntaxcheck erfolgreich fuer beide neuen Scripts.
