@@ -601,3 +601,16 @@ Original prompt: Lass uns hier weitermachen am Projekt.
   - `mining.js`: interne Funktion `applyMineClick()` eingefuehrt; `updateHoldMining()` routed jetzt darueber (inkl. Combo-Progression).
   - Build angehoben: `20260412v4` (`index.html`, `version.json`).
   - Verifikation: `npm test` + `npm run check:syntax` erfolgreich.
+
+- 2026-04-12: Pool-Reset + H/s-Header-Details umgesetzt.
+  - Hash-Pool-Render korrigiert (`updatePoolBars`):
+    - Rig-Pools werden als `pool % convRate` angezeigt (sichtbarer Ruecksprung nach Coin-Konvertierung).
+    - Click-Hashes nicht mehr in Rig-Pool gemischt; eigener `🖱️ Click`-Pool eingefuehrt.
+  - Header-H/s klickbar gemacht (`#hs-breakdown-btn`).
+  - Neues H/s-Detailfenster (`#hs-breakdown-overlay`) mit Aufschluesselung:
+    - pro Rig-Typ: Anzahl, H/s pro Rig, Gesamtanteil
+    - Gesamt-H/s + aktive Multiplikatoren (Global, Power, Standort, Shop)
+  - Event-Verdrahtung in `main.js` (Open/Close/Outside-Click).
+  - CSS fuer klickbare H/s-Pille + Breakdown-Modal hinzugefuegt.
+  - Build angehoben: `20260412v7` (`index.html`, `version.json`).
+  - Verifikation: `npm test` + `npm run check:syntax` erfolgreich.

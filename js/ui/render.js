@@ -973,6 +973,76 @@ function renderDebugOverlay() {
     </div>`;
 }
 
+function renderHsBreakdownModal() {
+  const overlay = document.getElementById('hs-breakdown-overlay');
+  const body = document.getElementById('hs-breakdown-body');
+  if (!overlay || !body) return;
+
+  const rows = [];
+  let rigTotal = 0;
+  (RIGS || []).forEach((rig) => {
+    const owned = Math.max(0, Number((G.rigs || {})[rig.id] || 0));
+    if (owned <= 0) return;
+    const perRig = Number(getRigHps(rig.id) || 0);
+    const subtotal = perRig * owned;
+    rigTotal += subtotal;
+    rows.push({
+      name: rig.name,
+      meta: 'x' + owned + ' · ' + fmtNum(perRig, 2) + ' H/s',
+      val: subtotal,
+    });
+  });
+  rows.sort((a, b) => Number(b.val || 0) - Number(a.val || 0));
+
+  const total = Number(getTotalHps() || 0);
+  const misc = Math.max(0, total - rigTotal);
+  const multRows = [
+    { label: 'Global H/s-Multi', value: Number(G._hpsMult || 1) },
+    { label: 'Power-Effizienz', value: Number(G._powerPerfMult || 1) },
+    { label: 'Standort-Boost', value: Number(G._locationMoveBoostMult || 1) },
+    { label: 'Shop H/s-Multi', value: Number(G._shopHpsMult || 1) },
+  ];
+
+  let html = '<div class="hs-breakdown-total">Gesamt: <span class="v">' + fmtNum(total, 2) + ' H/s</span></div>';
+  if (!rows.length) {
+    html += '<div class="hs-breakdown-row"><span class="name">Keine aktiven Rigs</span><span class="meta">-</span><span class="val">0</span></div>';
+  } else {
+    rows.forEach((row) => {
+      html += '<div class="hs-breakdown-row">' +
+        '<span class="name">' + row.name + '</span>' +
+        '<span class="meta">' + row.meta + '</span>' +
+        '<span class="val">' + fmtNum(row.val, 2) + '</span>' +
+      '</div>';
+    });
+  }
+  if (misc > 0.01) {
+    html += '<div class="hs-breakdown-row">' +
+      '<span class="name">Sonstige Rundung</span>' +
+      '<span class="meta">System</span>' +
+      '<span class="val">' + fmtNum(misc, 2) + '</span>' +
+    '</div>';
+  }
+
+  html += '<div style="margin-top:10px;font-size:11px;color:var(--muted);">Aktive Multiplikatoren</div>';
+  multRows.forEach((m) => {
+    html += '<div class="hs-breakdown-row">' +
+      '<span class="name">' + m.label + '</span>' +
+      '<span class="meta">x</span>' +
+      '<span class="val">' + fmtNum(m.value, 3) + '</span>' +
+    '</div>';
+  });
+
+  body.innerHTML = html;
+  overlay.classList.add('show');
+}
+window.renderHsBreakdownModal = renderHsBreakdownModal;
+
+function closeHsBreakdownModal() {
+  const overlay = document.getElementById('hs-breakdown-overlay');
+  if (overlay) overlay.classList.remove('show');
+}
+window.closeHsBreakdownModal = closeHsBreakdownModal;
+
 function renderTutorialBox() {
   const box = document.getElementById('tutorial-box');
   if (!box) return;
@@ -1638,10 +1708,9 @@ function updatePoolBars() {
   activeCoins.forEach(coin => {
     const cd   = COIN_DATA[coin];
     if (!cd) return;
-    const pool = coin === (G.selectedCoin || 'BTC')
-      ? (pools[coin] || 0) + G.hashes
-      : (pools[coin] || 0);
+    const rawPool = Math.max(0, Number(pools[coin] || 0));
     const convRate = getCoinConv(coin);
+    const pool = rawPool % Math.max(1, convRate);
     const pct  = Math.min(100, (pool / Math.max(1, convRate)) * 100);
 
     html += `<div class="pool-row">
@@ -1652,6 +1721,22 @@ function updatePoolBars() {
       <span class="pool-pct">${pct.toFixed(0)}%</span>
     </div>`;
   });
+
+  const clickCoin = String(G.selectedCoin || 'BTC');
+  const clickPoolRaw = Math.max(0, Number(G.hashes || 0));
+  if (clickPoolRaw > 0 && COIN_DATA[clickCoin]) {
+    const clickCd = COIN_DATA[clickCoin];
+    const convRate = getCoinConv(clickCoin);
+    const clickPool = clickPoolRaw % Math.max(1, convRate);
+    const clickPct = Math.min(100, (clickPool / Math.max(1, convRate)) * 100);
+    html += `<div class="pool-row">
+      <span class="pool-coin" style="color:${clickCd.color}">🖱️ Click ${clickCoin}</span>
+      <div class="pool-bar">
+        <div class="pool-fill" style="width:${clickPct.toFixed(1)}%;background:${clickCd.color};opacity:.82"></div>
+      </div>
+      <span class="pool-pct">${clickPct.toFixed(0)}%</span>
+    </div>`;
+  }
 
   el.innerHTML = '<div class="pool-title">⚗️ Hash-Pools</div>' + html;
 }

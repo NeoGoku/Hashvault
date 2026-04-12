@@ -1376,6 +1376,18 @@ function init() {
   }
   const debugBtn = document.getElementById('debug-toggle-btn');
   if (debugBtn) debugBtn.addEventListener('click', toggleDebugOverlay);
+  const hsBtn = document.getElementById('hs-breakdown-btn');
+  if (hsBtn) hsBtn.addEventListener('click', () => {
+    if (typeof window.renderHsBreakdownModal === 'function') renderHsBreakdownModal();
+  });
+  const hsClose = document.getElementById('hs-breakdown-close');
+  if (hsClose) hsClose.addEventListener('click', () => {
+    if (typeof window.closeHsBreakdownModal === 'function') closeHsBreakdownModal();
+  });
+  const hsOverlay = document.getElementById('hs-breakdown-overlay');
+  if (hsOverlay) hsOverlay.addEventListener('click', (e) => {
+    if (e.target === hsOverlay && typeof window.closeHsBreakdownModal === 'function') closeHsBreakdownModal();
+  });
   const tutorialBtn = document.getElementById('tutorial-toggle-btn');
   if (tutorialBtn) tutorialBtn.addEventListener('click', toggleTutorialMode);
   const saveExportBtn = document.getElementById('save-export-btn');

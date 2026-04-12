@@ -1061,6 +1061,69 @@
 .modal-btn.confirm { background: linear-gradient(135deg, var(--gold), var(--orange)); color: #000; }
 .modal-btn.cancel  { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
 
+/* ── H/s Breakdown Modal ─────────────────────────────────── */
+#hs-breakdown-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .62);
+  z-index: 2100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+}
+#hs-breakdown-overlay.show { display: flex; }
+#hs-breakdown-box {
+  width: min(560px, 100%);
+  max-height: 84vh;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+}
+.hs-breakdown-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.hs-breakdown-head h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--accent);
+}
+#hs-breakdown-close {
+  border: 1px solid var(--border);
+  background: var(--panel2);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.hs-breakdown-total {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.hs-breakdown-total .v {
+  color: var(--gold);
+}
+.hs-breakdown-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid rgba(255,255,255,.05);
+  font-size: 12px;
+}
+.hs-breakdown-row .name { color: var(--text); }
+.hs-breakdown-row .meta { color: var(--muted); text-align: right; }
+.hs-breakdown-row .val { color: var(--accent); font-weight: 700; text-align: right; min-width: 70px; }
+
 /* ── Challenge & Feature Cards ───────────────────────────────── */
 .challenge-card, .trader-card {
   transition: all 0.2s ease;

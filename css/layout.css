@@ -33,6 +33,14 @@
   gap: 6px;
 }
 .stat-pill span { font-weight: 700; color: var(--accent); }
+.hs-pill-clickable {
+  cursor: pointer;
+  transition: border-color .18s ease, transform .12s ease;
+}
+.hs-pill-clickable:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
 
 #prestige-btn {
   margin-left: auto;

@@ -9,7 +9,7 @@
 <title>HashVault Pro</title>
 <script>
 (function() {
-  const BUILD_ID = '20260412v6';
+  const BUILD_ID = '20260412v7';
   const BUILD_KEY = '__hv_build_id';
   const prevBuild = localStorage.getItem(BUILD_KEY);
   const isNewBuild = prevBuild !== BUILD_ID;
@@ -148,7 +148,7 @@
 <div id="header">
   <div id="logo">⛏️ HashVault Pro</div>
   <div class="stat-pill">💵 <span id="hd-usd">$0</span></div>
-  <div class="stat-pill">🔸 <span id="hd-hs">0 H/s</span></div>
+  <div class="stat-pill hs-pill-clickable" id="hs-breakdown-btn" title="H/s-Details anzeigen">🔸 <span id="hd-hs">0 H/s</span></div>
   <div class="stat-pill">⚡ <span id="hd-power">0.00 / 3.00 kW</span></div>
   <div class="stat-pill">🏆 <span id="hd-net">Net: $0</span></div>
   <div class="stat-pill">🕒 <span id="hd-clock">Tag 1 08:00</span></div>
@@ -476,6 +476,16 @@
 <!-- NOTIFICATIONS -->
 <div id="notif-container"></div>
 <div id="debug-overlay" style="display:none;position:fixed;right:12px;bottom:12px;z-index:9999;min-width:210px;max-width:260px;padding:10px;border-radius:10px;background:rgba(8,12,18,0.92);border:1px solid var(--border);backdrop-filter:blur(4px);"></div>
+
+<div id="hs-breakdown-overlay">
+  <div id="hs-breakdown-box">
+    <div class="hs-breakdown-head">
+      <h3>🔎 Hashrate-Aufschluesselung</h3>
+      <button id="hs-breakdown-close" type="button">Schliessen</button>
+    </div>
+    <div id="hs-breakdown-body"></div>
+  </div>
+</div>
 
 <!-- MODAL -->
 <div id="modal-overlay">
