@@ -32,6 +32,15 @@ const CONTRACT_TEMPLATES = [
   { name:'Layout Commander', desc:'Wechsle {t}x das Rig-Layout', type:'layout_switches', diffMult: 4, reward: 15200, difficulty:'medium', fixedTarget: true },
   { name:'Auto Dispatcher',  desc:'Loese {t} Stromausfaelle automatisch', type:'outage_auto_responses', diffMult: 4, reward: 15800, difficulty:'medium', fixedTarget: true },
   { name:'Cooling Discipline',desc:'Wechsle {t}x den Cooling-Modus', type:'cooling_switches', diffMult: 8, reward: 16200, difficulty:'medium', fixedTarget: true },
+  { name:'Grid Operator',    desc:'Wechsle {t}x das Grid-Control-Profil', type:'risk_profile_changes', diffMult: 4, reward: 16600, difficulty:'medium', fixedTarget: true },
+  { name:'Auto Grid Ops',    desc:'Fuehre {t} automatische Grid-Wechsel aus', type:'risk_auto_switches', diffMult: 5, reward: 17200, difficulty:'medium', fixedTarget: true },
+  { name:'Command Link Ops', desc:'Synchronisiere {t}x den Outage-Plan ueber Command-Link', type:'command_syncs', diffMult: 5, reward: 17600, difficulty:'medium', fixedTarget: true },
+  { name:'Guard Duty',       desc:'Aktiviere {t}x den Load Guard', type:'load_guard_actions', diffMult: 4, reward: 18200, difficulty:'medium', fixedTarget: true },
+  { name:'Battery Tactician',desc:'Wechsle {t}x die Akku-Strategie', type:'battery_strategy_changes', diffMult: 4, reward: 18600, difficulty:'medium', fixedTarget: true },
+  { name:'Peak Saver',       desc:'Spare ${t} Stromkosten ueber Akku-Strategien', type:'battery_strategy_savings', diffMult: 6000, reward: 19200, difficulty:'medium', fixedTarget: true },
+  { name:'Tariff Desk',      desc:'Wechsle {t}x die Tarif-Policy', type:'tariff_policy_changes', diffMult: 4, reward: 19800, difficulty:'medium', fixedTarget: true },
+  { name:'Tariff Sync',      desc:'Fuehre {t}x Tarif-Syncs aus', type:'tariff_policy_syncs', diffMult: 8, reward: 20500, difficulty:'medium', fixedTarget: true },
+  { name:'Advisor Loop',     desc:'Nutze {t}x den Power-Advisor', type:'advisor_runs', diffMult: 4, reward: 21200, difficulty:'medium', fixedTarget: true },
   { name:'Meta Drill',       desc:'Fuehre {t} Prestige-Durchlaeufe aus', type:'prestige_count', diffMult: 2, reward: 14200, difficulty:'medium', fixedTarget: true },
 
   // Hard
@@ -49,5 +58,14 @@ const CONTRACT_TEMPLATES = [
   { name:'Thermal Architect',desc:'Erreiche Cooling-Level {t}', type:'cooling_level', diffMult: 6, reward: 79000, difficulty:'hard', fixedTarget: true },
   { name:'Blackout Marshal', desc:'Treffe {t} Netz-Entscheidungen', type:'outage_responses', diffMult: 8, reward: 84000, difficulty:'hard', fixedTarget: true },
   { name:'Crisis Commander', desc:'Loese {t} Stromausfaelle manuell', type:'outage_manual_responses', diffMult: 8, reward: 86000, difficulty:'hard', fixedTarget: true },
+  { name:'Grid Strategist',  desc:'Wechsle {t}x das Grid-Control-Profil', type:'risk_profile_changes', diffMult: 8, reward: 90000, difficulty:'hard', fixedTarget: true },
+  { name:'Autopilot Chief',  desc:'Fuehre {t} automatische Grid-Wechsel aus', type:'risk_auto_switches', diffMult: 10, reward: 94000, difficulty:'hard', fixedTarget: true },
+  { name:'Command Nexus',    desc:'Synchronisiere {t}x den Outage-Plan ueber Command-Link', type:'command_syncs', diffMult: 10, reward: 98000, difficulty:'hard', fixedTarget: true },
+  { name:'Loadmaster',       desc:'Aktiviere {t}x den Load Guard', type:'load_guard_actions', diffMult: 9, reward: 102000, difficulty:'hard', fixedTarget: true },
+  { name:'Battery Marshal',  desc:'Wechsle {t}x die Akku-Strategie', type:'battery_strategy_changes', diffMult: 9, reward: 106000, difficulty:'hard', fixedTarget: true },
+  { name:'Tariff Hunter',    desc:'Spare ${t} Stromkosten ueber Akku-Strategien', type:'battery_strategy_savings', diffMult: 30000, reward: 112000, difficulty:'hard', fixedTarget: true },
+  { name:'Tariff Director',  desc:'Wechsle {t}x die Tarif-Policy', type:'tariff_policy_changes', diffMult: 9, reward: 118000, difficulty:'hard', fixedTarget: true },
+  { name:'Grid Scheduler',   desc:'Fuehre {t}x Tarif-Syncs aus', type:'tariff_policy_syncs', diffMult: 18, reward: 124000, difficulty:'hard', fixedTarget: true },
+  { name:'Advisor Chief',    desc:'Nutze {t}x den Power-Advisor', type:'advisor_runs', diffMult: 9, reward: 132000, difficulty:'hard', fixedTarget: true },
   { name:'Legacy Calibration',desc:'Fuehre {t} Prestige-Durchlaeufe aus', type:'prestige_count', diffMult: 4, reward: 88000, difficulty:'hard', fixedTarget: true }
 ];

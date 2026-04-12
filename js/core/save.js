@@ -44,6 +44,8 @@ const SAVE_FIELDS = [
   'activeResearch','researchProgress','totalRigs',
   'layoutSwitchCount','coolingModeChanges','outageDecisions',
   'outageEventsSeen','outageAutoResolved','outageManualResolved',
+  'powerRiskProfileChanges','powerRiskAutoSwitches','powerCommandSyncs',
+  'powerLoadGuardActions','powerBatteryStrategyChanges','powerTariffPolicyChanges','powerTariffPolicySyncs','powerAdvisorRuns',
   // v5 additions:
   'rigTargets','rigHashPools','rigLayoutByLocation','rigHeat','rigBuildPresetSelected','totalCoinsMined',
   'recentEvents','activeEvent',
@@ -68,8 +70,9 @@ const SAVE_FIELDS = [
   'powerProviderId','powerProviderLockedUntilDay','powerPeakPenaltyAccrued',
   'powerBatteryTier','powerBatteryCapacityKwh','powerBatteryLevelKwh',
   'powerBatteryChargeRateKw','powerBatteryDischargeRateKw','powerBatteryCycleLoss',
-  'powerBatteryMode','powerBatteryGridOffsetKw',
+  'powerBatteryMode','powerBatteryGridOffsetKw','powerBatteryStrategy','_powerBatteryStrategySavingsUsd','powerTariffPolicy','powerTariffPolicyCooldown',
   'coolingInfraLevel','coolingMode','coolingAutoProfile','_coolingAutoSwitchCd','coolingPowerKw',
+  'powerRiskProfile','powerRiskAutoMode','powerRiskAutoCooldown','powerCommandLinkEnabled','powerCommandCooldown','powerLoadGuardEnabled','powerLoadGuardTarget','_powerLoadGuardActive','_powerRiskPerfMult','_powerRiskPriceMult','_powerRiskCrashMult','_powerRiskOutageMult',
   'powerOutage','powerOutageAutoPlan','powerOutageCooldown','_powerOutageSpawnChancePerSec','powerOutageBuffRemaining',
   '_powerOutageBuffPerfMult','_powerOutageBuffPriceMult','_powerOutageBuffCapMult','_powerOutageBuffCrashMult',
   '_powerDecisionPerfMult','_powerDecisionPriceMult','_powerDecisionCapMult','_powerDecisionCrashMult',
@@ -182,6 +185,34 @@ function sanitizeLoadedSavePayload(input) {
   out.powerOutageAutoPlan = outagePlans.includes(String(out.powerOutageAutoPlan || ''))
     ? String(out.powerOutageAutoPlan)
     : 'balanced';
+  const riskProfiles = ['throughput', 'balanced', 'resilience', 'emergency'];
+  out.powerRiskProfile = riskProfiles.includes(String(out.powerRiskProfile || ''))
+    ? String(out.powerRiskProfile)
+    : 'balanced';
+  const riskAutoModes = ['off', 'assist', 'full'];
+  out.powerRiskAutoMode = riskAutoModes.includes(String(out.powerRiskAutoMode || ''))
+    ? String(out.powerRiskAutoMode)
+    : 'off';
+  out.powerRiskAutoCooldown = toNum(out.powerRiskAutoCooldown, 0, 0, 600, false);
+  out.powerCommandLinkEnabled = out.powerCommandLinkEnabled !== false;
+  out.powerCommandCooldown = toNum(out.powerCommandCooldown, 0, 0, 600, false);
+  out.powerLoadGuardEnabled = !!out.powerLoadGuardEnabled;
+  out.powerLoadGuardTarget = toNum(out.powerLoadGuardTarget, 0.85, 0.55, 0.98, false);
+  out._powerLoadGuardActive = !!out._powerLoadGuardActive;
+  const batteryStrategies = ['balanced', 'peak_guard', 'arbitrage', 'reserve'];
+  out.powerBatteryStrategy = batteryStrategies.includes(String(out.powerBatteryStrategy || ''))
+    ? String(out.powerBatteryStrategy)
+    : 'balanced';
+  out._powerBatteryStrategySavingsUsd = toNum(out._powerBatteryStrategySavingsUsd, 0, 0, 1e12, false);
+  const tariffPolicies = ['off', 'cost_focus', 'balanced', 'rush'];
+  out.powerTariffPolicy = tariffPolicies.includes(String(out.powerTariffPolicy || ''))
+    ? String(out.powerTariffPolicy)
+    : 'off';
+  out.powerTariffPolicyCooldown = toNum(out.powerTariffPolicyCooldown, 0, 0, 1800, false);
+  out._powerRiskPerfMult = toNum(out._powerRiskPerfMult, 1, 0.2, 2.5, false);
+  out._powerRiskPriceMult = toNum(out._powerRiskPriceMult, 1, 0.2, 2.5, false);
+  out._powerRiskCrashMult = toNum(out._powerRiskCrashMult, 1, 0.2, 2.5, false);
+  out._powerRiskOutageMult = toNum(out._powerRiskOutageMult, 1, 0.2, 2.5, false);
   out.powerOutageCooldown = toNum(out.powerOutageCooldown, 0, 0, 7200, false);
   out._powerOutageSpawnChancePerSec = toNum(out._powerOutageSpawnChancePerSec, 0, 0, 0.08, false);
   out.powerOutageBuffRemaining = toNum(out.powerOutageBuffRemaining, 0, 0, 7200, false);
@@ -204,6 +235,14 @@ function sanitizeLoadedSavePayload(input) {
   out.outageEventsSeen = toNum(out.outageEventsSeen, 0, 0, 1e8, true);
   out.outageAutoResolved = toNum(out.outageAutoResolved, 0, 0, 1e8, true);
   out.outageManualResolved = toNum(out.outageManualResolved, 0, 0, 1e8, true);
+  out.powerRiskProfileChanges = toNum(out.powerRiskProfileChanges, 0, 0, 1e8, true);
+  out.powerRiskAutoSwitches = toNum(out.powerRiskAutoSwitches, 0, 0, 1e8, true);
+  out.powerCommandSyncs = toNum(out.powerCommandSyncs, 0, 0, 1e8, true);
+  out.powerLoadGuardActions = toNum(out.powerLoadGuardActions, 0, 0, 1e8, true);
+  out.powerBatteryStrategyChanges = toNum(out.powerBatteryStrategyChanges, 0, 0, 1e8, true);
+  out.powerTariffPolicyChanges = toNum(out.powerTariffPolicyChanges, 0, 0, 1e8, true);
+  out.powerTariffPolicySyncs = toNum(out.powerTariffPolicySyncs, 0, 0, 1e8, true);
+  out.powerAdvisorRuns = toNum(out.powerAdvisorRuns, 0, 0, 1e8, true);
 
   const coinKeys = Object.keys(COIN_DATA || template.coins || { BTC:1, ETH:1, LTC:1, BNB:1 });
   out.coins = ensureObject(out.coins);

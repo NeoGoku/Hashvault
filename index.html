@@ -9,7 +9,7 @@
 <title>HashVault Pro</title>
 <script>
 (function() {
-  const BUILD_ID = '20260412v10';
+  const BUILD_ID = '20260412v17';
   const BUILD_KEY = '__hv_build_id';
   const prevBuild = localStorage.getItem(BUILD_KEY);
   const isNewBuild = prevBuild !== BUILD_ID;
@@ -340,6 +340,60 @@
     <div class="power-card">
       <h3>📊 Forecast &amp; Risk</h3>
       <div id="power-forecast-info" class="power-list"></div>
+      <div class="power-actions" style="margin-top:8px;">
+        <button class="buy-btn" data-power-action="advisor" type="button">Advisor anwenden</button>
+      </div>
+    </div>
+
+    <div class="power-card">
+      <h3>🧭 Grid Control</h3>
+      <div id="power-risk-info" class="power-list"></div>
+      <div class="power-actions" style="margin-top:8px;">
+        <select id="power-risk-profile-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);">
+          <option value="throughput">Profil: Durchsatz</option>
+          <option value="balanced">Profil: Balanced</option>
+          <option value="resilience">Profil: Resilienz</option>
+          <option value="emergency">Profil: Emergency</option>
+        </select>
+        <select id="power-risk-auto-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);">
+          <option value="off">Grid-Auto: Aus</option>
+          <option value="assist">Grid-Auto: Assist</option>
+          <option value="full">Grid-Auto: Full</option>
+        </select>
+        <select id="power-command-link-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);">
+          <option value="on">Command-Link: EIN</option>
+          <option value="off">Command-Link: AUS</option>
+        </select>
+        <select id="power-load-guard-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);">
+          <option value="off">Load Guard: AUS</option>
+          <option value="on">Load Guard: EIN</option>
+        </select>
+        <select id="power-load-guard-target-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);">
+          <option value="0.70">Load-Ziel: 70%</option>
+          <option value="0.80">Load-Ziel: 80%</option>
+          <option value="0.85">Load-Ziel: 85%</option>
+          <option value="0.90">Load-Ziel: 90%</option>
+          <option value="0.95">Load-Ziel: 95%</option>
+        </select>
+        <select id="power-battery-strategy-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);">
+          <option value="balanced">Akku-Strategie: Balanced</option>
+          <option value="peak_guard">Akku-Strategie: Peak Guard</option>
+          <option value="arbitrage">Akku-Strategie: Tarif-Arbitrage</option>
+          <option value="reserve">Akku-Strategie: Reserve</option>
+        </select>
+        <select id="power-tariff-policy-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);">
+          <option value="off">Tarif-Policy: Aus</option>
+          <option value="cost_focus">Tarif-Policy: Kostenfokus</option>
+          <option value="balanced">Tarif-Policy: Balanced</option>
+          <option value="rush">Tarif-Policy: Rush Hour</option>
+        </select>
+        <button class="buy-btn" data-power-action="riskprofile" type="button">Profil uebernehmen</button>
+        <button class="buy-btn" data-power-action="riskauto" type="button">Auto uebernehmen</button>
+        <button class="buy-btn" data-power-action="commandlink" type="button">Link uebernehmen</button>
+        <button class="buy-btn" data-power-action="loadguard" type="button">Guard uebernehmen</button>
+        <button class="buy-btn" data-power-action="batterystrategy" type="button">Akku-Strategie uebernehmen</button>
+        <button class="buy-btn" data-power-action="tariffpolicy" type="button">Tarif-Policy uebernehmen</button>
+      </div>
     </div>
 
     <div class="power-card">
@@ -530,6 +584,8 @@
 <!-- NOTIFICATIONS -->
 <div id="notif-container"></div>
 <div id="debug-overlay" style="display:none;position:fixed;right:12px;bottom:12px;z-index:9999;min-width:210px;max-width:260px;padding:10px;border-radius:10px;background:rgba(8,12,18,0.92);border:1px solid var(--border);backdrop-filter:blur(4px);"></div>
+<div id="tutorial-spotlight"></div>
+<div id="tutorial-guide"></div>
 
 <div id="hs-breakdown-overlay">
   <div id="hs-breakdown-box">

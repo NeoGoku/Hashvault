@@ -151,6 +151,33 @@ function buildContractFromTemplate(template, profile, difficulty) {
     } else if (t.type === 'cooling_switches') {
       const bump = Math.floor(Number(profile.progress || 0) * 10);
       target = Math.max(3, Math.floor(baseTarget + bump));
+    } else if (t.type === 'risk_profile_changes') {
+      const bump = Math.floor(Number(profile.progress || 0) * 7);
+      target = Math.max(2, Math.floor(baseTarget + bump));
+    } else if (t.type === 'risk_auto_switches') {
+      const bump = Math.floor(Number(profile.progress || 0) * 9);
+      target = Math.max(2, Math.floor(baseTarget + bump));
+    } else if (t.type === 'command_syncs') {
+      const bump = Math.floor(Number(profile.progress || 0) * 9);
+      target = Math.max(2, Math.floor(baseTarget + bump));
+    } else if (t.type === 'load_guard_actions') {
+      const bump = Math.floor(Number(profile.progress || 0) * 8);
+      target = Math.max(2, Math.floor(baseTarget + bump));
+    } else if (t.type === 'battery_strategy_changes') {
+      const bump = Math.floor(Number(profile.progress || 0) * 8);
+      target = Math.max(2, Math.floor(baseTarget + bump));
+    } else if (t.type === 'battery_strategy_savings') {
+      const bump = Math.floor(Number(profile.progress || 0) * 26000);
+      target = Math.max(1500, Math.floor(baseTarget + bump));
+    } else if (t.type === 'tariff_policy_changes') {
+      const bump = Math.floor(Number(profile.progress || 0) * 8);
+      target = Math.max(2, Math.floor(baseTarget + bump));
+    } else if (t.type === 'tariff_policy_syncs') {
+      const bump = Math.floor(Number(profile.progress || 0) * 16);
+      target = Math.max(4, Math.floor(baseTarget + bump));
+    } else if (t.type === 'advisor_runs') {
+      const bump = Math.floor(Number(profile.progress || 0) * 8);
+      target = Math.max(2, Math.floor(baseTarget + bump));
     } else {
       target = Math.max(1, Math.floor(baseTarget));
     }
@@ -291,6 +318,15 @@ function getContractCurrentValue(c) {
   if (c.type === 'outage_auto_responses') return Number(G.outageAutoResolved || 0);
   if (c.type === 'outage_manual_responses') return Number(G.outageManualResolved || 0);
   if (c.type === 'cooling_switches') return Number(G.coolingModeChanges || 0);
+  if (c.type === 'risk_profile_changes') return Number(G.powerRiskProfileChanges || 0);
+  if (c.type === 'risk_auto_switches') return Number(G.powerRiskAutoSwitches || 0);
+  if (c.type === 'command_syncs') return Number(G.powerCommandSyncs || 0);
+  if (c.type === 'load_guard_actions') return Number(G.powerLoadGuardActions || 0);
+  if (c.type === 'battery_strategy_changes') return Number(G.powerBatteryStrategyChanges || 0);
+  if (c.type === 'battery_strategy_savings') return Number(G._powerBatteryStrategySavingsUsd || 0);
+  if (c.type === 'tariff_policy_changes') return Number(G.powerTariffPolicyChanges || 0);
+  if (c.type === 'tariff_policy_syncs') return Number(G.powerTariffPolicySyncs || 0);
+  if (c.type === 'advisor_runs') return Number(G.powerAdvisorRuns || 0);
   if (c.type === 'prestige_count') return Number(G.prestigeCount || 0);
   return 0;
 }

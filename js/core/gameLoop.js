@@ -228,6 +228,124 @@ const POWER_AUTOMATION_BALANCE = {
 };
 window.HV_POWER_AUTOMATION_BALANCE = POWER_AUTOMATION_BALANCE;
 
+const POWER_RISK_PROFILES = {
+  throughput: {
+    id: 'throughput',
+    label: 'Durchsatz',
+    desc: 'Mehr H/s, dafuer teurer und stoeranfaelliger.',
+    perfMult: 1.08,
+    priceMult: 1.07,
+    crashMult: 1.16,
+    outageMult: 1.22,
+  },
+  balanced: {
+    id: 'balanced',
+    label: 'Balanced',
+    desc: 'Ausgewogener Standardbetrieb.',
+    perfMult: 1.00,
+    priceMult: 1.00,
+    crashMult: 1.00,
+    outageMult: 1.00,
+  },
+  resilience: {
+    id: 'resilience',
+    label: 'Resilienz',
+    desc: 'Weniger Risiko und Ausfaelle, leicht weniger H/s.',
+    perfMult: 0.96,
+    priceMult: 0.97,
+    crashMult: 0.82,
+    outageMult: 0.74,
+  },
+  emergency: {
+    id: 'emergency',
+    label: 'Emergency',
+    desc: 'Krisenmodus: sehr sicher, aber deutlich weniger Durchsatz.',
+    perfMult: 0.90,
+    priceMult: 0.94,
+    crashMult: 0.68,
+    outageMult: 0.58,
+  },
+};
+window.HV_POWER_RISK_PROFILES = POWER_RISK_PROFILES;
+
+const POWER_BATTERY_STRATEGIES = {
+  balanced: {
+    id: 'balanced',
+    label: 'Balanced',
+    desc: 'Solides Laden und Peak-Shaving bei Ueberlast.',
+    chargeHeadroom: 0.85,
+    reserveFrac: 0.0,
+    peakDischargeLoad: 0.0,
+  },
+  peak_guard: {
+    id: 'peak_guard',
+    label: 'Peak Guard',
+    desc: 'Haelt Lastspitzen aus dem roten Bereich.',
+    chargeHeadroom: 0.78,
+    reserveFrac: 0.16,
+    peakDischargeLoad: 0.72,
+  },
+  arbitrage: {
+    id: 'arbitrage',
+    label: 'Tarif-Arbitrage',
+    desc: 'Laedt guenstig und entlaedt in teuren Tariffen.',
+    chargeHeadroom: 0.95,
+    reserveFrac: 0.10,
+    peakDischargeLoad: 0.58,
+  },
+  reserve: {
+    id: 'reserve',
+    label: 'Reserve',
+    desc: 'Bewahrt Akku fuer echte Notfaelle.',
+    chargeHeadroom: 0.70,
+    reserveFrac: 0.60,
+    peakDischargeLoad: 0.0,
+  },
+};
+window.HV_POWER_BATTERY_STRATEGIES = POWER_BATTERY_STRATEGIES;
+
+const POWER_TARIFF_POLICIES = {
+  off: {
+    id: 'off',
+    label: 'Aus',
+    desc: 'Keine tarifbasierte Automatik.',
+  },
+  cost_focus: {
+    id: 'cost_focus',
+    label: 'Kostenfokus',
+    desc: 'Spart in Peak-Zeiten aggressiv Stromkosten.',
+    byTariff: {
+      Nacht: { riskProfile: 'throughput', batteryStrategy: 'arbitrage' },
+      Tag: { riskProfile: 'balanced', batteryStrategy: 'balanced' },
+      Peak: { riskProfile: 'resilience', batteryStrategy: 'peak_guard' },
+      Spaet: { riskProfile: 'balanced', batteryStrategy: 'arbitrage' },
+    },
+  },
+  balanced: {
+    id: 'balanced',
+    label: 'Balanced',
+    desc: 'Mischt stabile Tagesproduktion mit Peak-Schutz.',
+    byTariff: {
+      Nacht: { riskProfile: 'throughput', batteryStrategy: 'balanced' },
+      Tag: { riskProfile: 'balanced', batteryStrategy: 'balanced' },
+      Peak: { riskProfile: 'balanced', batteryStrategy: 'peak_guard' },
+      Spaet: { riskProfile: 'balanced', batteryStrategy: 'reserve' },
+    },
+  },
+  rush: {
+    id: 'rush',
+    label: 'Rush Hour',
+    desc: 'Zieht nachts und tags ueber hohe Produktion an.',
+    byTariff: {
+      Nacht: { riskProfile: 'throughput', batteryStrategy: 'balanced' },
+      Tag: { riskProfile: 'throughput', batteryStrategy: 'balanced' },
+      Peak: { riskProfile: 'balanced', batteryStrategy: 'peak_guard' },
+      Spaet: { riskProfile: 'throughput', batteryStrategy: 'arbitrage' },
+    },
+  },
+};
+window.HV_POWER_TARIFF_POLICIES = POWER_TARIFF_POLICIES;
+
 const POWER_OUTAGE_EVENTS = [
   {
     id: 'transformer_trip',
@@ -870,6 +988,24 @@ function getCoolingModeMeta(modeId) {
 }
 window.getCoolingModeMeta = getCoolingModeMeta;
 
+function getPowerRiskProfileMeta(profileId) {
+  const id = String(profileId || (G && G.powerRiskProfile) || 'balanced');
+  return POWER_RISK_PROFILES[id] || POWER_RISK_PROFILES.balanced;
+}
+window.getPowerRiskProfileMeta = getPowerRiskProfileMeta;
+
+function getPowerBatteryStrategyMeta(strategyId) {
+  const id = String(strategyId || (G && G.powerBatteryStrategy) || 'balanced');
+  return POWER_BATTERY_STRATEGIES[id] || POWER_BATTERY_STRATEGIES.balanced;
+}
+window.getPowerBatteryStrategyMeta = getPowerBatteryStrategyMeta;
+
+function getPowerTariffPolicyMeta(policyId) {
+  const id = String(policyId || (G && G.powerTariffPolicy) || 'off');
+  return POWER_TARIFF_POLICIES[id] || POWER_TARIFF_POLICIES.off;
+}
+window.getPowerTariffPolicyMeta = getPowerTariffPolicyMeta;
+
 function getCoolingUpgradeCost() {
   const level = Math.max(0, Math.floor(Number(G.coolingInfraLevel || 0)));
   const base = Math.max(100, Number(COOLING_BALANCE.upgradeBaseCost || 2100));
@@ -1004,12 +1140,41 @@ function ensurePowerOutageState() {
   if (typeof G.powerOutageAutoPlan !== 'string' || !plans.includes(G.powerOutageAutoPlan)) {
     G.powerOutageAutoPlan = 'balanced';
   }
+  if (typeof G.powerRiskProfile !== 'string' || !POWER_RISK_PROFILES[G.powerRiskProfile]) {
+    G.powerRiskProfile = 'balanced';
+  }
+  const autoModes = ['off', 'assist', 'full'];
+  if (typeof G.powerRiskAutoMode !== 'string' || !autoModes.includes(G.powerRiskAutoMode)) {
+    G.powerRiskAutoMode = 'off';
+  }
+  const tariffPolicies = ['off', 'cost_focus', 'balanced', 'rush'];
+  if (typeof G.powerTariffPolicy !== 'string' || !tariffPolicies.includes(G.powerTariffPolicy)) {
+    G.powerTariffPolicy = 'off';
+  }
+  if (typeof G.powerCommandLinkEnabled !== 'boolean') G.powerCommandLinkEnabled = true;
+  if (typeof G.powerLoadGuardEnabled !== 'boolean') G.powerLoadGuardEnabled = false;
   if (!Number.isFinite(G.outageDecisions) || Number(G.outageDecisions) < 0) G.outageDecisions = 0;
   if (!Number.isFinite(G.outageEventsSeen) || Number(G.outageEventsSeen) < 0) G.outageEventsSeen = 0;
   if (!Number.isFinite(G.outageAutoResolved) || Number(G.outageAutoResolved) < 0) G.outageAutoResolved = 0;
   if (!Number.isFinite(G.outageManualResolved) || Number(G.outageManualResolved) < 0) G.outageManualResolved = 0;
+  if (!Number.isFinite(G.powerRiskProfileChanges) || Number(G.powerRiskProfileChanges) < 0) G.powerRiskProfileChanges = 0;
+  if (!Number.isFinite(G.powerRiskAutoSwitches) || Number(G.powerRiskAutoSwitches) < 0) G.powerRiskAutoSwitches = 0;
+  if (!Number.isFinite(G.powerCommandSyncs) || Number(G.powerCommandSyncs) < 0) G.powerCommandSyncs = 0;
+  if (!Number.isFinite(G.powerLoadGuardActions) || Number(G.powerLoadGuardActions) < 0) G.powerLoadGuardActions = 0;
+  if (!Number.isFinite(G.powerTariffPolicyChanges) || Number(G.powerTariffPolicyChanges) < 0) G.powerTariffPolicyChanges = 0;
+  if (!Number.isFinite(G.powerTariffPolicySyncs) || Number(G.powerTariffPolicySyncs) < 0) G.powerTariffPolicySyncs = 0;
+  if (!Number.isFinite(G.powerRiskAutoCooldown) || Number(G.powerRiskAutoCooldown) < 0) G.powerRiskAutoCooldown = 0;
+  if (!Number.isFinite(G.powerCommandCooldown) || Number(G.powerCommandCooldown) < 0) G.powerCommandCooldown = 0;
+  if (!Number.isFinite(G.powerTariffPolicyCooldown) || Number(G.powerTariffPolicyCooldown) < 0) G.powerTariffPolicyCooldown = 0;
+  if (!Number.isFinite(G.powerLoadGuardTarget) || Number(G.powerLoadGuardTarget) <= 0) G.powerLoadGuardTarget = 0.85;
+  G.powerLoadGuardTarget = Math.max(0.55, Math.min(0.98, Number(G.powerLoadGuardTarget || 0.85)));
+  if (typeof G._powerLoadGuardActive !== 'boolean') G._powerLoadGuardActive = false;
   if (!Number.isFinite(G.powerOutageCooldown) || Number(G.powerOutageCooldown) < 0) G.powerOutageCooldown = 0;
   if (!Number.isFinite(G._powerOutageSpawnChancePerSec) || Number(G._powerOutageSpawnChancePerSec) < 0) G._powerOutageSpawnChancePerSec = 0;
+  if (!Number.isFinite(G._powerRiskPerfMult) || Number(G._powerRiskPerfMult) <= 0) G._powerRiskPerfMult = 1;
+  if (!Number.isFinite(G._powerRiskPriceMult) || Number(G._powerRiskPriceMult) <= 0) G._powerRiskPriceMult = 1;
+  if (!Number.isFinite(G._powerRiskCrashMult) || Number(G._powerRiskCrashMult) <= 0) G._powerRiskCrashMult = 1;
+  if (!Number.isFinite(G._powerRiskOutageMult) || Number(G._powerRiskOutageMult) <= 0) G._powerRiskOutageMult = 1;
   if (!Number.isFinite(G.powerOutageBuffRemaining) || Number(G.powerOutageBuffRemaining) < 0) G.powerOutageBuffRemaining = 0;
   if (!Number.isFinite(G._powerOutageBuffPerfMult) || Number(G._powerOutageBuffPerfMult) <= 0) G._powerOutageBuffPerfMult = 1;
   if (!Number.isFinite(G._powerOutageBuffPriceMult) || Number(G._powerOutageBuffPriceMult) <= 0) G._powerOutageBuffPriceMult = 1;
@@ -1226,6 +1391,7 @@ function updatePowerOutageDecision(dt) {
       G.powerOutage = null;
     }
   } else if (!G._opsShutdown && getTotalRigCount() > 0 && Number(G.powerOutageCooldown || 0) <= 0) {
+    const riskMeta = getPowerRiskProfileMeta(G.powerRiskProfile);
     const loadRatio = Math.max(0, Number(G._powerLoadRatio || 0));
     const loadExcess = Math.max(0, loadRatio - 0.9);
     const heat = getRigHeatSummary();
@@ -1236,7 +1402,7 @@ function updatePowerOutageDecision(dt) {
     const heatExcess = Math.max(0, maxHeat - 72) / 28;
     const avgHeatExcess = Math.max(0, avgHeat - 62) / 38;
     const hotspotPressure = Math.min(6, dangerCount) * 0.00015 + Math.min(4, criticalCount) * 0.00055;
-    const spawnChancePerSec = Math.max(
+    const baseSpawnChancePerSec = Math.max(
       0.00035,
       Math.min(
         0.028,
@@ -1247,6 +1413,8 @@ function updatePowerOutageDecision(dt) {
           hotspotPressure
       )
     );
+    const riskOutageMult = Math.max(0.25, Number((riskMeta && riskMeta.outageMult) || 1));
+    const spawnChancePerSec = Math.max(0.0002, Math.min(0.04, baseSpawnChancePerSec * riskOutageMult));
     G._powerOutageSpawnChancePerSec = spawnChancePerSec;
     if (Math.random() < spawnChancePerSec * safeDt) {
       spawnPowerOutageEvent();
@@ -1277,6 +1445,8 @@ function updatePowerOutageDecision(dt) {
 
 function getPowerForecastSnapshot() {
   ensurePowerOutageState();
+  const riskMeta = getPowerRiskProfileMeta(G.powerRiskProfile);
+  const batteryMeta = getPowerBatteryStrategyMeta(G.powerBatteryStrategy);
   const usageKw = Math.max(0, Number(G.powerUsageKw || 0));
   const capKw = Math.max(0.01, Number(G._powerEffectiveCapKw || G.powerCapacityKw || 0.01));
   const loadRatio = Math.max(0, usageKw / capKw);
@@ -1324,6 +1494,23 @@ function getPowerForecastSnapshot() {
   }
 
   return {
+    riskProfileId: String((riskMeta && riskMeta.id) || 'balanced'),
+    riskProfileLabel: String((riskMeta && riskMeta.label) || 'Balanced'),
+    riskProfileDesc: String((riskMeta && riskMeta.desc) || ''),
+    riskAutoMode: String(G.powerRiskAutoMode || 'off'),
+    riskAutoCooldown: Math.max(0, Number(G.powerRiskAutoCooldown || 0)),
+    commandLinkEnabled: !!G.powerCommandLinkEnabled,
+    commandCooldown: Math.max(0, Number(G.powerCommandCooldown || 0)),
+    linkedOutagePlan: getOutagePlanForRiskProfile(G.powerRiskProfile),
+    loadGuardEnabled: !!G.powerLoadGuardEnabled,
+    loadGuardTarget: Math.max(0.55, Math.min(0.98, Number(G.powerLoadGuardTarget || 0.85))),
+    loadGuardActive: !!G._powerLoadGuardActive,
+    batteryStrategyId: String((batteryMeta && batteryMeta.id) || 'balanced'),
+    batteryStrategyLabel: String((batteryMeta && batteryMeta.label) || 'Balanced'),
+    batteryStrategyDesc: String((batteryMeta && batteryMeta.desc) || ''),
+    tariffPolicyId: String((getPowerTariffPolicyMeta(G.powerTariffPolicy).id) || 'off'),
+    tariffPolicyLabel: String((getPowerTariffPolicyMeta(G.powerTariffPolicy).label) || 'Aus'),
+    tariffPolicyDesc: String((getPowerTariffPolicyMeta(G.powerTariffPolicy).desc) || ''),
     usageKw,
     capKw,
     spareKw,
@@ -1345,10 +1532,162 @@ function getPowerForecastSnapshot() {
     outagesSeen: Math.max(0, Number(G.outageEventsSeen || 0)),
     outagesAuto: Math.max(0, Number(G.outageAutoResolved || 0)),
     outagesManual: Math.max(0, Number(G.outageManualResolved || 0)),
+    riskProfileChanges: Math.max(0, Number(G.powerRiskProfileChanges || 0)),
+    riskAutoSwitches: Math.max(0, Number(G.powerRiskAutoSwitches || 0)),
+    commandSyncs: Math.max(0, Number(G.powerCommandSyncs || 0)),
+    loadGuardActions: Math.max(0, Number(G.powerLoadGuardActions || 0)),
+    batteryStrategyChanges: Math.max(0, Number(G.powerBatteryStrategyChanges || 0)),
+    batteryStrategySavingsUsd: Math.max(0, Number(G._powerBatteryStrategySavingsUsd || 0)),
+    tariffPolicyChanges: Math.max(0, Number(G.powerTariffPolicyChanges || 0)),
+    tariffPolicySyncs: Math.max(0, Number(G.powerTariffPolicySyncs || 0)),
     recommendation,
   };
 }
 window.getPowerForecastSnapshot = getPowerForecastSnapshot;
+
+function getRecommendedPowerSetup() {
+  const forecast = getPowerForecastSnapshot();
+  const tariff = String(G.powerTariffLabel || 'Tag');
+  const risk = Number(forecast.riskScore || 0);
+  const load = Number(forecast.loadRatio || 0);
+  const maxHeat = Number(forecast.maxHeat || 0);
+  const spareKw = Number(forecast.spareKw || 0);
+
+  const setup = {
+    riskProfile: 'balanced',
+    batteryStrategy: 'balanced',
+    tariffPolicy: 'balanced',
+    loadGuardEnabled: false,
+    loadGuardTarget: 0.85,
+    note: 'Stabiler Standardmix fuer gleichmaessige Produktion.',
+  };
+
+  if (tariff === 'Peak') {
+    setup.tariffPolicy = 'cost_focus';
+    setup.batteryStrategy = 'peak_guard';
+    setup.loadGuardEnabled = true;
+    setup.loadGuardTarget = 0.80;
+    setup.note = 'Peak-Fenster: Kosten druecken und Spitzen mit Akku glätten.';
+  }
+  if (risk >= 72 || maxHeat >= 88 || load >= 0.98) {
+    setup.riskProfile = 'emergency';
+    setup.batteryStrategy = 'reserve';
+    setup.tariffPolicy = 'cost_focus';
+    setup.loadGuardEnabled = true;
+    setup.loadGuardTarget = 0.75;
+    setup.note = 'Kritische Lage: Netz schuetzen und Hardware stabilisieren.';
+  } else if (risk >= 54 || maxHeat >= 78 || load >= 0.88) {
+    setup.riskProfile = 'resilience';
+    setup.batteryStrategy = tariff === 'Peak' ? 'peak_guard' : 'balanced';
+    setup.tariffPolicy = tariff === 'Peak' ? 'cost_focus' : 'balanced';
+    setup.loadGuardEnabled = true;
+    setup.loadGuardTarget = 0.82;
+    setup.note = 'Erhoehtes Risiko: auf Stabilitaet und Peak-Schutz umstellen.';
+  } else if ((tariff === 'Nacht' || tariff === 'Spaet') && spareKw >= 2.5 && load <= 0.72) {
+    setup.riskProfile = 'throughput';
+    setup.batteryStrategy = tariff === 'Nacht' ? 'balanced' : 'arbitrage';
+    setup.tariffPolicy = 'rush';
+    setup.loadGuardEnabled = false;
+    setup.loadGuardTarget = 0.90;
+    setup.note = 'Guenstiges Zeitfenster: Durchsatz hochfahren und Akku fuer spaeter laden.';
+  }
+
+  return setup;
+}
+window.getRecommendedPowerSetup = getRecommendedPowerSetup;
+
+function updatePowerTariffPolicy(dt) {
+  ensurePowerOutageState();
+  const policy = getPowerTariffPolicyMeta(G.powerTariffPolicy);
+  if (!policy || policy.id === 'off') return;
+  const safeDt = Math.max(0, Number(dt || 0));
+  if (safeDt <= 0) return;
+  G.powerTariffPolicyCooldown = Math.max(0, Number(G.powerTariffPolicyCooldown || 0) - safeDt);
+  if (Number(G.powerTariffPolicyCooldown || 0) > 0) return;
+
+  const tariffLabel = String(G.powerTariffLabel || 'Tag');
+  const target = (policy.byTariff && policy.byTariff[tariffLabel]) || null;
+  if (!target) return;
+
+  let changed = false;
+  if (String(G.powerBatteryStrategy || 'balanced') !== String(target.batteryStrategy || 'balanced')) {
+    G.powerBatteryStrategy = String(target.batteryStrategy || 'balanced');
+    G.powerBatteryStrategyChanges = Math.max(0, Number(G.powerBatteryStrategyChanges || 0)) + 1;
+    changed = true;
+  }
+  if (String(G.powerRiskAutoMode || 'off') === 'off' && String(G.powerRiskProfile || 'balanced') !== String(target.riskProfile || 'balanced')) {
+    G.powerRiskProfile = String(target.riskProfile || 'balanced');
+    G.powerRiskProfileChanges = Math.max(0, Number(G.powerRiskProfileChanges || 0)) + 1;
+    changed = true;
+  }
+  if (!changed) return;
+
+  G.powerTariffPolicySyncs = Math.max(0, Number(G.powerTariffPolicySyncs || 0)) + 1;
+  G.powerTariffPolicyCooldown = 45;
+  notify('⏱️ Tarif-Policy: ' + (policy.label || policy.id) + ' auf ' + tariffLabel + ' synchronisiert.', 'success');
+}
+
+function updatePowerRiskAutomation(dt) {
+  ensurePowerOutageState();
+  const mode = String(G.powerRiskAutoMode || 'off');
+  if (mode === 'off') return;
+  const safeDt = Math.max(0, Number(dt || 0));
+  if (safeDt <= 0) return;
+
+  G.powerRiskAutoCooldown = Math.max(0, Number(G.powerRiskAutoCooldown || 0) - safeDt);
+  if (Number(G.powerRiskAutoCooldown || 0) > 0) return;
+
+  const forecast = getPowerForecastSnapshot();
+  const current = String(G.powerRiskProfile || 'balanced');
+  const unresolvedOutage = !!(G.powerOutage && !G.powerOutage.resolved);
+  let target = current;
+
+  if (mode === 'assist') {
+    if (unresolvedOutage || Number(forecast.riskScore || 0) >= 76) target = 'emergency';
+    else if (Number(forecast.riskScore || 0) >= 56) target = 'resilience';
+    else if (Number(forecast.riskScore || 0) <= 36 && Number(forecast.loadRatio || 0) < 0.78) target = 'balanced';
+  } else {
+    if (unresolvedOutage || Number(forecast.riskScore || 0) >= 72 || Number(forecast.maxHeat || 0) >= 92) target = 'emergency';
+    else if (Number(forecast.riskScore || 0) >= 52 || Number(forecast.outageChancePerMin || 0) >= 0.12) target = 'resilience';
+    else if (Number(forecast.riskScore || 0) <= 32 && Number(forecast.loadRatio || 0) < 0.74 && Number(forecast.outageChancePerMin || 0) < 0.04) target = 'throughput';
+    else target = 'balanced';
+  }
+
+  if (target === current) return;
+  if (!POWER_RISK_PROFILES[target]) return;
+  G.powerRiskProfile = target;
+  G.powerRiskProfileChanges = Math.max(0, Number(G.powerRiskProfileChanges || 0)) + 1;
+  G.powerRiskAutoSwitches = Math.max(0, Number(G.powerRiskAutoSwitches || 0)) + 1;
+  G.powerRiskAutoCooldown = (mode === 'assist') ? 80 : 60;
+  const label = String((POWER_RISK_PROFILES[target] || {}).label || target);
+  notify('🤖 Grid-Auto schaltet auf ' + label + '.', 'success');
+}
+
+function getOutagePlanForRiskProfile(riskProfileId) {
+  const id = String(riskProfileId || 'balanced');
+  if (id === 'throughput') return 'greedy';
+  if (id === 'resilience' || id === 'emergency') return 'safe';
+  return 'balanced';
+}
+window.getOutagePlanForRiskProfile = getOutagePlanForRiskProfile;
+
+function updatePowerCommandLink(dt) {
+  ensurePowerOutageState();
+  if (!G.powerCommandLinkEnabled) return;
+  const safeDt = Math.max(0, Number(dt || 0));
+  if (safeDt <= 0) return;
+
+  G.powerCommandCooldown = Math.max(0, Number(G.powerCommandCooldown || 0) - safeDt);
+  if (Number(G.powerCommandCooldown || 0) > 0) return;
+
+  const desiredPlan = getOutagePlanForRiskProfile(G.powerRiskProfile);
+  const currentPlan = String(G.powerOutageAutoPlan || 'balanced');
+  if (desiredPlan === currentPlan) return;
+
+  G.powerOutageAutoPlan = desiredPlan;
+  G.powerCommandSyncs = Math.max(0, Number(G.powerCommandSyncs || 0)) + 1;
+  G.powerCommandCooldown = 18;
+}
 
 function updateThermalSystem(dt) {
   ensureRigHeatState();
@@ -2215,10 +2554,19 @@ function updatePowerSystem(dt) {
   const decisionCapMult = Math.max(0.2, Number(G._powerDecisionCapMult || 1));
   const decisionCrashMult = Math.max(0.2, Number(G._powerDecisionCrashMult || 1));
   const decisionPerfMult = Math.max(0.2, Number(G._powerDecisionPerfMult || 1));
+  const riskMeta = getPowerRiskProfileMeta(G.powerRiskProfile);
+  const riskPerfMult = Math.max(0.2, Number((riskMeta && riskMeta.perfMult) || 1));
+  const riskPriceMult = Math.max(0.2, Number((riskMeta && riskMeta.priceMult) || 1));
+  const riskCrashMult = Math.max(0.2, Number((riskMeta && riskMeta.crashMult) || 1));
+  const riskOutageMult = Math.max(0.2, Number((riskMeta && riskMeta.outageMult) || 1));
+  G._powerRiskPerfMult = riskPerfMult;
+  G._powerRiskPriceMult = riskPriceMult;
+  G._powerRiskCrashMult = riskCrashMult;
+  G._powerRiskOutageMult = riskOutageMult;
 
-  const priceMult = applyPenaltyToHigh(Number(G._powerEventPriceMult || 1)) * decisionPriceMult;
+  const priceMult = applyPenaltyToHigh(Number(G._powerEventPriceMult || 1)) * decisionPriceMult * riskPriceMult;
   const capMult = applyPenaltyToLow(Number(G._powerEventCapMult || 1)) * decisionCapMult;
-  const crashMult = applyPenaltyToHigh(Number(G._powerEventCrashMult || 1)) * decisionCrashMult;
+  const crashMult = applyPenaltyToHigh(Number(G._powerEventCrashMult || 1)) * decisionCrashMult * riskCrashMult;
   const provider = getPowerProviderById(G.powerProviderId);
 
   const rawUsageKw = getTotalPowerUsageKw();
@@ -2240,23 +2588,55 @@ function updatePowerSystem(dt) {
   let batteryMode = 'idle';
   let batteryFlowKw = 0;
   let gridUsageKw = rawUsageKw;
+  let dischargedKwhForSavings = 0;
+  const batteryStrategy = getPowerBatteryStrategyMeta(G.powerBatteryStrategy);
 
   if (batteryCap > 0) {
     batteryLevel = Math.min(batteryCap, batteryLevel);
     const chargeRateKw = Math.max(0.1, Number(G.powerBatteryChargeRateKw || 1.2)) * Math.max(0.5, Number(G._locBatteryChargeMult || 1));
     const dischargeRateKw = Math.max(0.1, Number(G.powerBatteryDischargeRateKw || 1.5));
     const cycleLoss = Math.max(0, Math.min(0.15, Number(G.powerBatteryCycleLoss || 0.03)));
+    const reserveFrac = Math.max(0, Math.min(0.9, Number((batteryStrategy && batteryStrategy.reserveFrac) || 0)));
+    const reserveKwh = batteryCap * reserveFrac;
+    const chargeHeadroom = Math.max(0.55, Math.min(0.98, Number((batteryStrategy && batteryStrategy.chargeHeadroom) || 0.85)));
+    const isCheapTariff = tariff.label === 'Nacht' || tariff.label === 'Spaet';
+    const isExpensiveTariff = tariff.label === 'Peak' || tariff.label === 'Tag';
+    const adaptiveChargeHeadroom = (batteryStrategy.id === 'arbitrage')
+      ? (isCheapTariff ? 0.97 : 0.72)
+      : chargeHeadroom;
+    const peakDischargeLoad = Math.max(0, Math.min(1, Number((batteryStrategy && batteryStrategy.peakDischargeLoad) || 0)));
 
     const overloadKw = Math.max(0, rawUsageKw - effectiveCapKw);
-    if (overloadKw > 0.001 && batteryLevel > 0.001) {
-      const maxKwByStorage = batteryLevel / hours;
+    const canUseStored = Math.max(0, batteryLevel - reserveKwh);
+
+    if (overloadKw > 0.001 && canUseStored > 0.001) {
+      const maxKwByStorage = canUseStored / hours;
       const dischargeKw = Math.min(overloadKw, dischargeRateKw, maxKwByStorage);
-      batteryLevel = Math.max(0, batteryLevel - dischargeKw * hours);
+      const dischargedKwh = dischargeKw * hours;
+      batteryLevel = Math.max(0, batteryLevel - dischargedKwh);
+      dischargedKwhForSavings += dischargedKwh;
       gridUsageKw = Math.max(0, rawUsageKw - dischargeKw);
       batteryMode = 'entlaedt';
       batteryFlowKw = -dischargeKw;
-    } else if (rawUsageKw < effectiveCapKw * 0.85 && batteryLevel < batteryCap - 0.001) {
-      const spareKw = Math.max(0, effectiveCapKw * 0.85 - rawUsageKw);
+    } else if (
+      peakDischargeLoad > 0 &&
+      isExpensiveTariff &&
+      canUseStored > 0.001 &&
+      rawUsageKw > effectiveCapKw * peakDischargeLoad
+    ) {
+      const desiredKw = rawUsageKw - effectiveCapKw * Math.max(0.45, peakDischargeLoad - 0.16);
+      const maxKwByStorage = canUseStored / hours;
+      const dischargeKw = Math.max(0, Math.min(desiredKw, dischargeRateKw, maxKwByStorage));
+      if (dischargeKw > 0.001) {
+        const dischargedKwh = dischargeKw * hours;
+        batteryLevel = Math.max(0, batteryLevel - dischargedKwh);
+        dischargedKwhForSavings += dischargedKwh;
+        gridUsageKw = Math.max(0, rawUsageKw - dischargeKw);
+        batteryMode = 'entlaedt';
+        batteryFlowKw = -dischargeKw;
+      }
+    } else if (rawUsageKw < effectiveCapKw * adaptiveChargeHeadroom && batteryLevel < batteryCap - 0.001) {
+      const spareKw = Math.max(0, effectiveCapKw * adaptiveChargeHeadroom - rawUsageKw);
       const maxKwBySpace = (batteryCap - batteryLevel) / hours;
       const chargeKw = Math.min(spareKw, chargeRateKw, maxKwBySpace);
       const storedKwh = chargeKw * hours * (1 - cycleLoss);
@@ -2280,6 +2660,25 @@ function updatePowerSystem(dt) {
 
   let usageKw = Math.max(0, gridUsageKw);
   let loadRatio = usageKw / effectiveCapKw;
+  const guardTarget = Math.max(0.55, Math.min(0.98, Number(G.powerLoadGuardTarget || 0.85)));
+  const guardEnabled = !!G.powerLoadGuardEnabled;
+  const guardCapKw = effectiveCapKw * guardTarget;
+  let guardPerfMult = 1;
+
+  if (guardEnabled && usageKw > guardCapKw + 1e-9) {
+    const oldUsageKw = usageKw;
+    usageKw = guardCapKw;
+    loadRatio = usageKw / effectiveCapKw;
+    guardPerfMult = Math.max(0.45, usageKw / Math.max(0.000001, oldUsageKw));
+    if (!G._powerLoadGuardActive) {
+      G._powerLoadGuardActive = true;
+      G.powerLoadGuardActions = Math.max(0, Number(G.powerLoadGuardActions || 0)) + 1;
+      notify('🧯 Load Guard aktiv: Last automatisch gedrosselt.', 'warning');
+    }
+  } else if (G._powerLoadGuardActive) {
+    G._powerLoadGuardActive = false;
+    notify('✅ Load Guard: Last wieder innerhalb Zielbereich.', 'success');
+  }
 
   let perfMult = 1;
   let overloadMult = 1;
@@ -2297,7 +2696,7 @@ function updatePowerSystem(dt) {
     perfMult *= (1 - debtPenalty);
     crashRiskMult *= (1 + debtPenalty);
   }
-  perfMult *= decisionPerfMult;
+  perfMult *= decisionPerfMult * riskPerfMult * guardPerfMult;
   const debtStageInfo = applyOpsDebtStage(debt);
   perfMult *= Number(debtStageInfo.perfMult || 1);
   crashRiskMult *= Number(debtStageInfo.crashMult || 1);
@@ -2323,6 +2722,12 @@ function updatePowerSystem(dt) {
   } else {
     const providerPriceMult = Math.max(0.6, Number(provider.priceMult || 1));
     G.powerPriceCurrent = basePrice * (tariff.price / POWER_BALANCE.basePricePerKwh) * priceMult * providerPriceMult;
+  }
+  if (dischargedKwhForSavings > 0.000001) {
+    G._powerBatteryStrategySavingsUsd = Math.max(
+      0,
+      Number(G._powerBatteryStrategySavingsUsd || 0) + dischargedKwhForSavings * Math.max(0.01, Number(G.powerPriceCurrent || 0))
+    );
   }
   G._powerProviderName = provider.name;
   G.powerUsageKw = usageKw;
@@ -2817,6 +3222,9 @@ function gameTick() {
   
   // ── Neue Systeme pro Tick ────────────────────────────────────
   updatePowerSystem(dt);
+  updatePowerTariffPolicy(dt);
+  updatePowerRiskAutomation(dt);
+  updatePowerCommandLink(dt);
   checkDailyReset();
   updateRigEnergy(dt);
   checkRigExplosions();

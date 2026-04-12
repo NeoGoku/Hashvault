@@ -1069,11 +1069,18 @@ window.closeHsBreakdownModal = closeHsBreakdownModal;
 
 function renderTutorialBox() {
   const box = document.getElementById('tutorial-box');
+  const guideBox = document.getElementById('tutorial-guide');
+  const spotlight = document.getElementById('tutorial-spotlight');
   if (!box) return;
   const steps = window.TUTORIAL_STEPS || [];
   if (!steps.length || G.tutorialEnabled === false || G.tutorialCompleted) {
     box.style.display = 'none';
     box.innerHTML = '';
+    if (guideBox) {
+      guideBox.classList.remove('show');
+      guideBox.innerHTML = '';
+    }
+    if (spotlight) spotlight.classList.remove('show');
     return;
   }
   const idx = Math.max(0, Number(G.tutorialStep || 0));
@@ -1081,15 +1088,186 @@ function renderTutorialBox() {
   if (!step) {
     box.style.display = 'none';
     box.innerHTML = '';
+    if (guideBox) {
+      guideBox.classList.remove('show');
+      guideBox.innerHTML = '';
+    }
+    if (spotlight) spotlight.classList.remove('show');
     return;
   }
-  box.style.display = 'block';
-  box.innerHTML = `
-    <h3>📘 Onboarding</h3>
-    <div style="font-size:12px;color:var(--muted);margin-top:4px;">Schritt ${idx + 1}/${steps.length}</div>
-    <div style="margin-top:6px;font-weight:700;">${step.title}</div>
-    <div style="font-size:12px;color:var(--muted);margin-top:2px;">${step.desc}</div>`;
+  box.style.display = 'none';
+  box.innerHTML = '';
+  const guide = getTutorialGuide(step.id);
+  const target = resolveTutorialTarget(guide);
+  const targetReady = !!(target && target.kind === 'target' && target.el);
+  const targetLabel = guide.focusLabel || (target && target.label) || 'Naechster Bereich';
+  const areaLabel = guide.area || formatTutorialTab(guide.tab);
+  const actionText = targetReady
+    ? ('Jetzt hier arbeiten: ' + targetLabel)
+    : ('Wechsle zuerst in den Bereich ' + areaLabel + '.');
+  if (guideBox) {
+    guideBox.classList.add('show');
+    guideBox.innerHTML = `
+      <div class="tutorial-guide-top">
+        <div class="tutorial-chip">📘 Tutorial ${idx + 1}/${steps.length}</div>
+        <div class="tutorial-chip">${areaLabel}</div>
+      </div>
+      <div class="tutorial-guide-title">${step.title}</div>
+      <div class="tutorial-guide-desc">${step.desc}</div>
+      <div class="tutorial-guide-action">${guide.cta || actionText}</div>
+      <div class="tutorial-guide-meta">
+        <div>Ziel: <strong>${targetLabel}</strong></div>
+        <div>Status: <strong>${targetReady ? 'markiert' : 'Bereich wechseln'}</strong></div>
+      </div>
+      <div class="tutorial-guide-actions">
+        <button class="tutorial-mini-btn primary" type="button" onclick="jumpToTutorialTarget()">${targetReady ? 'Zum Ziel scrollen' : 'Zum Bereich springen'}</button>
+        <button class="tutorial-mini-btn" type="button" onclick="pulseTutorialTarget()">Markierung zeigen</button>
+      </div>`;
+  }
+  positionTutorialSpotlight(target);
 }
+window.renderTutorialBox = renderTutorialBox;
+
+const TUTORIAL_GUIDE_MAP = {
+  t01: { tab: 'mine', selector: '#mine-btn', area: 'Mine', focusLabel: 'Mining-Button', cta: 'Tippe auf den grossen Mining-Button. Drei Klicks reichen fuer den Start.' },
+  t02: { tab: 'mine', selector: '#mine-btn', area: 'Mine', focusLabel: 'Mining-Button', cta: 'Bleib im Mine-Reiter und sammle deine ersten 15 Klicks.' },
+  t03: { tab: 'mine', selector: '#s-hashes, #hs-breakdown-btn', area: 'Mine', focusLabel: 'Hash-Anzeige', cta: 'Beobachte oben deine Hash-Werte. Du brauchst 250 Gesamt-Hashes.' },
+  t04: { tab: 'market', selector: '#market-grid', area: 'Market', focusLabel: 'Crypto Market', cta: 'Verkaufe Coins im Market, bis mindestens $120 in der Kasse liegen.' },
+  t05: { tab: 'mine', selector: '#rig-grid .rig-card .buy-btn', area: 'Rigs', focusLabel: 'Rig-Kaufbutton', cta: 'Kaufe jetzt deinen ersten Rig. Ohne Rig kein passives Einkommen.' },
+  t06: { tab: 'mine', selector: '#rig-grid .rig-card .rig-coin-btn', area: 'Rigs', focusLabel: 'Coin-Zuweisung', cta: 'Waehle bei deinem Rig einen Coin aus, den er minen soll.' },
+  t07: { tab: 'market', selector: '#market-grid', area: 'Market', focusLabel: 'Coin-Karten', cta: 'Sobald ein Rig arbeitet, tauchen hier deine ersten geminten Coins auf.' },
+  t08: { tab: 'market', selector: '#market-grid .sell-btn.all', area: 'Market', focusLabel: 'Sell Button', cta: 'Verkaufe Coins regelmaessig, um Umsatz aufzubauen.' },
+  t09: { tab: 'market', selector: '.coin-auto-row .toggle', area: 'Market', focusLabel: 'Auto-Sell Toggle', cta: 'Aktiviere Auto-Sell bei mindestens einem Coin fuer Grundautomation.' },
+  t10: { tab: 'mine', selector: '#rig-grid .rig-card .buy-btn', area: 'Rigs', focusLabel: 'Rig-Kaufbutton', cta: 'Baue auf zwei Rigs aus. Ab hier startet dein erster kleiner Multiplikator.' },
+  t11: { tab: 'upgrades', selector: '#upgrade-grid .buy-btn', area: 'Upgrades', focusLabel: 'Upgrade-Kauf', cta: 'Oeffne Upgrades und kauf dein erstes dauerhaftes Upgrade.' },
+  t12: { tab: 'upgrades', selector: '#upgrade-grid .upgrade-card', area: 'Upgrades', focusLabel: 'Upgrade-Auswahl', cta: 'Kombiniere mehrere Upgrades. Drei Stueck reichen fuer diesen Schritt.' },
+  t13: { tab: 'research', selector: '#research-tree .research-card .buy-btn, #research-tree .research-card button', area: 'Research', focusLabel: 'Research-Start', cta: 'Starte im Research-Reiter deine erste Forschung.' },
+  t14: { tab: 'staff', selector: '#staff-grid .buy-btn, #staff-grid .hire-btn', area: 'Staff', focusLabel: 'Staff-Hiring', cta: 'Stelle dein erstes Kern-Teammitglied ein.' },
+  t15: { tab: 'staff', selector: '#staff-grid .buy-btn, #staff-grid .hire-btn', area: 'Staff', focusLabel: 'Staff-Hiring', cta: 'Erweitere dein Kernteam auf drei Leute.' },
+  t16: { tab: 'crew', selector: '#crew-grid .buy-btn, #crew-grid .hire-btn', area: 'Rig Crew', focusLabel: 'Crew-Hiring', cta: 'Im Rig-Crew-Reiter stellst du technische Teams fuer deine Rigs ein.' },
+  t17: { tab: 'crew', selector: '#crew-grid select, #crew-grid .buy-btn', area: 'Rig Crew', focusLabel: 'Crew-Zuweisung', cta: 'Weise deine Crew einem Rig-Typ zu, damit Wartung und Performance greifen.' },
+  t18: { tab: 'crew', selector: '#crew-grid .focus-btn, #crew-grid select', area: 'Rig Crew', focusLabel: 'Crew-Fokus', cta: 'Aendere den Fokus eines Rig-Typs auf etwas anderes als Balanced.' },
+  t19: { tab: 'crew', selector: '#crew-grid .spec-btn, #crew-grid select', area: 'Rig Crew', focusLabel: 'Crew-Spezialisierung', cta: 'Jedes Crew-Tier kann spezialisiert werden. Setze eine bewusste Rolle.' },
+  t20: { tab: 'missions', selector: '#missions-panel .mission-card button, #missions-panel .contract-card button', area: 'Missionen', focusLabel: 'Contract-Claim', cta: 'Claim jetzt deinen ersten abgeschlossenen Contract.' },
+  t21: { tab: 'missions', selector: '#missions-panel', area: 'Missionen', focusLabel: 'Contract-Liste', cta: 'Arbeite mehrere Contracts parallel ab. Drei Abschluesse genuegen.' },
+  t22: { tab: 'missions', selector: '#missions-panel .challenge-card button, #missions-panel button', area: 'Missionen', focusLabel: 'Daily-Challenge', cta: 'Loese eine Daily Challenge ein. Das ist dein taeglicher Routine-Boost.' },
+  t23: { tab: 'missions', selector: '#achievements-panel, #missions-panel', area: 'Meta-Ziele', focusLabel: 'Achievements/Goals', cta: 'Erfolge und Ziele geben dir fruehe Struktur. Sammle die ersten fuenf.' },
+  t24: { tab: 'missions', selector: '#achievements-panel, #missions-panel', area: 'Meta-Ziele', focusLabel: 'Achievement-Fortschritt', cta: 'Halte deine Ziele im Blick. Bei 12 Achievements oeffnet sich das Spiel weiter.' },
+  t25: { tab: 'power', selector: '#power-panel [data-power-action=\"upgrade\"]', area: 'Power', focusLabel: 'Power-Upgrade', cta: 'Baue jetzt dein Stromnetz aus. Ohne kW kannst du spaeter keine Farm tragen.' },
+  t26: { tab: 'power', selector: '#power-panel [data-power-action=\"upgrade\"]', area: 'Power', focusLabel: 'Power-Upgrade', cta: 'Ziehe dein Stromnetz auf Level 3. Das ist dein erster echter Infrastruktur-Meilenstein.' },
+  t27: { tab: 'power', selector: '#power-provider-select', area: 'Power', focusLabel: 'Stromanbieter', cta: 'Waehle einen anderen Stromanbieter und uebernimm den Wechsel.' },
+  t28: { tab: 'location', selector: '#power-location-select', area: 'Standort', focusLabel: 'Standort-Auswahl', cta: 'Zieh in einen besseren Standort um, sobald der Platz knapp wird.' },
+  t29: { tab: 'location', selector: '#location-shop-grid .buy-btn, #location-panel .buy-btn', area: 'Standort', focusLabel: 'Standort-Shop', cta: 'Kaufe dein erstes Standort-Item. Die Boni helfen Crew und Betrieb.' },
+  t30: { tab: 'location', selector: '#location-shop-grid, #location-panel', area: 'Standort', focusLabel: 'Standort-Shop', cta: 'Baue deinen Standort weiter aus. Vier Items genuegen fuer diesen Schritt.' },
+  t31: { tab: 'mine', selector: '#rig-grid .rig-card .buy-btn', area: 'Rigs', focusLabel: 'Rig-Kaufbutton', cta: 'Ab hier beginnt echter Ausbau. Arbeite dich auf sechs Rigs hoch.' },
+  t32: { tab: 'mine', selector: '#rig-grid .rig-card .buy-btn', area: 'Rigs', focusLabel: 'Rig-Kaufbutton', cta: 'Zwischen 6 und 12 Rigs fuehlt sich das Spiel erstmals wie eine kleine Farm an.' },
+  t33: { tab: 'mine', selector: '#rig-grid .rig-card', area: 'Rigs', focusLabel: 'GPU Miner Mk1', cta: 'Suche den GPU Miner Mk1 und bring ihn auf acht Exemplare.' },
+  t34: { tab: 'mine', selector: '#rig-grid .rig-card', area: 'Rigs', focusLabel: 'ASIC Nano', cta: 'Teste deinen ersten ASIC. Er oeffnet den naechsten Technikpfad.' },
+  t35: { tab: 'market', selector: '#market-grid', area: 'Market', focusLabel: 'Coin-Produktion', cta: '120 Coins insgesamt zeigen, dass dein Routing und Verkauf funktionieren.' },
+  t36: { tab: 'power', selector: '#power-mod-workshop .buy-btn, #power-mod-workshop button', area: 'Power Mods', focusLabel: 'Mod-Workshop', cta: 'Schalte im Mod-Workshop deinen ersten Rig-Mod frei.' },
+  t37: { tab: 'power', selector: '#power-mod-workshop .buy-btn, #power-mod-workshop button', area: 'Power Mods', focusLabel: 'Mod-Upgrade', cta: 'Verbessere einen bereits freigeschalteten Mod auf Level 1+.' },
+  t38: { tab: 'power', selector: '#power-mod-workshop', area: 'Power Mods', focusLabel: 'Mod-Parts', cta: 'Sammle oder halte 25 Mod-Parts fuer den spaeteren Ausbau.' },
+  t39: { tab: 'missions', selector: '#missions-panel', area: 'Missionen', focusLabel: 'Goals', cta: 'Claim regelmaessig Goals. Drei Claims genuegen fuer diesen Schritt.' },
+  t40: { tab: 'missions', selector: '#missions-panel', area: 'Missionen', focusLabel: 'Goals', cta: 'Arbeite langfristige Ziele systematisch ab. Acht Claims sind das Zwischenziel.' },
+  t41: { tab: 'missions', selector: '#missions-panel', area: 'Missionen', focusLabel: 'Story-Missionen', cta: 'Die Story-Missionen fuehren dich durch die wichtigsten Systeme. Claime vier.' },
+  t42: { tab: 'missions', selector: '#missions-panel', area: 'Missionen', focusLabel: 'Story-Missionen', cta: 'Bleib bei der Storyline. Acht Claims fuehren dich tief in die Midgame-Schleife.' },
+  t43: { tab: 'market', selector: '#market-grid', area: 'Economy', focusLabel: 'Umsatz', cta: 'Dein naechstes Ziel ist $200.000 Gesamtumsatz. Skaliere Verkauf, Rigs und Upgrades zusammen.' },
+  t44: { tab: 'mine', selector: '#s-hashes, #hs-breakdown-btn', area: 'Mine', focusLabel: 'Hash-Leistung', cta: '5.000.000 Gesamt-Hashes markieren den Sprung zur industriellen Skala.' },
+  t45: { tab: 'location', selector: '#power-location-select', area: 'Standort', focusLabel: 'Standort Tier 3', cta: 'Ziehe in einen Tier-3-Standort um. Mehr Platz und bessere Boni.' },
+  t46: { tab: 'prestige', selector: '#do-prestige-btn, #prestige-panel', area: 'Prestige', focusLabel: 'Prestige-Chips', cta: 'Sammle zuerst Chips. Dann lohnt sich dein erster Reset deutlich mehr.' },
+  t47: { tab: 'prestige', selector: '#do-prestige-btn', area: 'Prestige', focusLabel: 'Prestige-Button', cta: 'Wenn du bereit bist, fuehre dein erstes Prestige aus und starte staerker neu.' },
+  t48: { tab: 'mine', selector: '#rig-grid .rig-card .buy-btn', area: 'Post-Prestige', focusLabel: 'Rig-Neustart', cta: 'Nach Prestige geht es schneller. Baue direkt wieder mindestens fuenf Rigs auf.' },
+};
+
+function formatTutorialTab(tab) {
+  const map = {
+    mine: 'Mine',
+    power: 'Power',
+    market: 'Market',
+    upgrades: 'Upgrades',
+    research: 'Research',
+    staff: 'Staff',
+    crew: 'Rig Crew',
+    missions: 'Missionen',
+    location: 'Standort',
+    prestige: 'Prestige',
+  };
+  return map[String(tab || '')] || 'Spielbereich';
+}
+
+function getTutorialGuide(stepId) {
+  return TUTORIAL_GUIDE_MAP[String(stepId || '')] || { tab: 'mine', selector: '#mine-btn', area: 'Mine', focusLabel: 'Mine', cta: 'Arbeite den aktuellen Tutorial-Schritt im markierten Bereich ab.' };
+}
+
+function resolveTutorialTarget(guide) {
+  if (!guide) return null;
+  const activeTab = document.querySelector('.tab.active');
+  const activeTabId = activeTab ? String(activeTab.dataset.tab || '') : '';
+  if (guide.tab && guide.tab !== activeTabId) {
+    const tabBtn = document.querySelector('.tab[data-tab="' + guide.tab + '"]');
+    return tabBtn ? { kind: 'tab', el: tabBtn, label: formatTutorialTab(guide.tab) } : null;
+  }
+  const selectors = String(guide.selector || '').split(',').map((x) => x.trim()).filter(Boolean);
+  for (const selector of selectors) {
+    const el = document.querySelector(selector);
+    if (el) return { kind: 'target', el, label: guide.focusLabel || selector };
+  }
+  if (guide.tab) {
+    const tabBtn = document.querySelector('.tab[data-tab="' + guide.tab + '"]');
+    if (tabBtn) return { kind: 'tab', el: tabBtn, label: formatTutorialTab(guide.tab) };
+  }
+  return null;
+}
+
+function positionTutorialSpotlight(target) {
+  const spotlight = document.getElementById('tutorial-spotlight');
+  if (!spotlight) return;
+  if (!target || !target.el) {
+    spotlight.classList.remove('show');
+    return;
+  }
+  const rect = target.el.getBoundingClientRect();
+  if (!rect || rect.width <= 0 || rect.height <= 0) {
+    spotlight.classList.remove('show');
+    return;
+  }
+  spotlight.style.left = Math.max(6, rect.left - 6) + 'px';
+  spotlight.style.top = Math.max(6, rect.top - 6) + 'px';
+  spotlight.style.width = Math.max(24, rect.width + 12) + 'px';
+  spotlight.style.height = Math.max(24, rect.height + 12) + 'px';
+  spotlight.classList.add('show');
+}
+
+function pulseTutorialTarget() {
+  const steps = window.TUTORIAL_STEPS || [];
+  const step = steps[Math.max(0, Number(G.tutorialStep || 0))];
+  if (!step) return;
+  const target = resolveTutorialTarget(getTutorialGuide(step.id));
+  if (!target || !target.el) return;
+  if (typeof target.el.scrollIntoView === 'function') {
+    target.el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+  }
+  target.el.classList.remove('tutorial-pulse');
+  void target.el.offsetWidth;
+  target.el.classList.add('tutorial-pulse');
+  positionTutorialSpotlight(target);
+}
+window.pulseTutorialTarget = pulseTutorialTarget;
+
+function jumpToTutorialTarget() {
+  const steps = window.TUTORIAL_STEPS || [];
+  const step = steps[Math.max(0, Number(G.tutorialStep || 0))];
+  if (!step) return;
+  const guide = getTutorialGuide(step.id);
+  if (guide.tab) {
+    if (typeof switchTab === 'function') switchTab(guide.tab);
+    if (typeof renderApp === 'function') renderApp();
+  }
+  setTimeout(() => {
+    pulseTutorialTarget();
+  }, 80);
+}
+window.jumpToTutorialTarget = jumpToTutorialTarget;
 
 function getPowerUpgradeStepKw() {
   const cfg = window.HV_POWER_BALANCE || {};
@@ -1163,6 +1341,60 @@ function updatePowerActionButtons() {
     btn.textContent = 'Autoplan uebernehmen';
     btn.title = 'Safety priorisiert Stabilitaet, Durchsatz priorisiert H/s.';
     btn.disabled = !outagePlan || String(outagePlan) === String(G.powerOutageAutoPlan || 'balanced');
+  });
+  const riskProfileSelect = document.getElementById('power-risk-profile-select');
+  const riskProfile = riskProfileSelect ? riskProfileSelect.value : String(G.powerRiskProfile || 'balanced');
+  document.querySelectorAll('[data-power-action="riskprofile"]').forEach((btn) => {
+    btn.textContent = 'Profil uebernehmen';
+    btn.title = 'Grid Control steuert Risiko, H/s und Stromkosten.';
+    btn.disabled = !riskProfile || String(riskProfile) === String(G.powerRiskProfile || 'balanced');
+  });
+  const riskAutoSelect = document.getElementById('power-risk-auto-select');
+  const riskAutoMode = riskAutoSelect ? riskAutoSelect.value : String(G.powerRiskAutoMode || 'off');
+  document.querySelectorAll('[data-power-action="riskauto"]').forEach((btn) => {
+    btn.textContent = 'Auto uebernehmen';
+    btn.title = 'Assist stabilisiert, Full schaltet komplett dynamisch.';
+    btn.disabled = !riskAutoMode || String(riskAutoMode) === String(G.powerRiskAutoMode || 'off');
+  });
+  const commandLinkSelect = document.getElementById('power-command-link-select');
+  const commandLink = commandLinkSelect ? commandLinkSelect.value : (G.powerCommandLinkEnabled ? 'on' : 'off');
+  document.querySelectorAll('[data-power-action="commandlink"]').forEach((btn) => {
+    btn.textContent = 'Link uebernehmen';
+    btn.title = 'Synchronisiert Outage-Autoplan mit dem aktiven Grid-Profil.';
+    const current = G.powerCommandLinkEnabled ? 'on' : 'off';
+    btn.disabled = !commandLink || String(commandLink) === current;
+  });
+  const guardSelect = document.getElementById('power-load-guard-select');
+  const guardTargetSelect = document.getElementById('power-load-guard-target-select');
+  const guardMode = guardSelect ? guardSelect.value : (G.powerLoadGuardEnabled ? 'on' : 'off');
+  const currentGuardMode = G.powerLoadGuardEnabled ? 'on' : 'off';
+  const currentGuardTarget = Math.max(0.55, Math.min(0.98, Number(G.powerLoadGuardTarget || 0.85)));
+  const selectedGuardTarget = guardTargetSelect ? Number(guardTargetSelect.value || currentGuardTarget) : currentGuardTarget;
+  document.querySelectorAll('[data-power-action="loadguard"]').forEach((btn) => {
+    btn.textContent = 'Guard uebernehmen';
+    btn.title = 'Begrenzt Last auf ein Ziel, um Ausfaelle zu vermeiden.';
+    const changed = (String(guardMode) !== String(currentGuardMode))
+      || (Math.abs(Number(selectedGuardTarget || 0) - Number(currentGuardTarget || 0)) > 1e-6);
+    btn.disabled = !changed;
+  });
+  const batteryStrategySelect = document.getElementById('power-battery-strategy-select');
+  const batteryStrategy = batteryStrategySelect ? batteryStrategySelect.value : String(G.powerBatteryStrategy || 'balanced');
+  document.querySelectorAll('[data-power-action="batterystrategy"]').forEach((btn) => {
+    btn.textContent = 'Akku-Strategie uebernehmen';
+    btn.title = 'Steuert, ob dein Akku fuer Peaks, Tarife oder Notfaelle priorisiert wird.';
+    btn.disabled = !batteryStrategy || String(batteryStrategy) === String(G.powerBatteryStrategy || 'balanced');
+  });
+  const tariffPolicySelect = document.getElementById('power-tariff-policy-select');
+  const tariffPolicy = tariffPolicySelect ? tariffPolicySelect.value : String(G.powerTariffPolicy || 'off');
+  document.querySelectorAll('[data-power-action="tariffpolicy"]').forEach((btn) => {
+    btn.textContent = 'Tarif-Policy uebernehmen';
+    btn.title = 'Schaltet Akku und Grid-Profil passend zum aktuellen Tariffenster.';
+    btn.disabled = !tariffPolicy || String(tariffPolicy) === String(G.powerTariffPolicy || 'off');
+  });
+  document.querySelectorAll('[data-power-action="advisor"]').forEach((btn) => {
+    btn.textContent = 'Advisor anwenden';
+    btn.title = 'Setzt Risk-Profil, Akku-Strategie, Tarif-Policy und Lastschutz auf das empfohlene Setup.';
+    btn.disabled = false;
   });
 
   const locSelect = document.getElementById('power-location-select');
@@ -1516,11 +1748,120 @@ function renderPowerPanel() {
       outagePlanSelect.value = fallback;
     }
   }
+  const riskProfileSelect = document.getElementById('power-risk-profile-select');
+  if (riskProfileSelect) {
+    const isEditingRisk = document.activeElement === riskProfileSelect;
+    if (!isEditingRisk) {
+      const prev = riskProfileSelect.value || String(G.powerRiskProfile || 'balanced');
+      const opts = [
+        { id: 'throughput', label: 'Profil: Durchsatz' },
+        { id: 'balanced', label: 'Profil: Balanced' },
+        { id: 'resilience', label: 'Profil: Resilienz' },
+        { id: 'emergency', label: 'Profil: Emergency' },
+      ];
+      riskProfileSelect.innerHTML = opts.map((opt) => (
+        '<option value="' + opt.id + '">' + opt.label + '</option>'
+      )).join('');
+      const fallback = opts.some((x) => x.id === prev) ? prev : String(G.powerRiskProfile || 'balanced');
+      riskProfileSelect.value = fallback;
+    }
+  }
+  const riskAutoSelect = document.getElementById('power-risk-auto-select');
+  if (riskAutoSelect) {
+    const isEditingRiskAuto = document.activeElement === riskAutoSelect;
+    if (!isEditingRiskAuto) {
+      const prev = riskAutoSelect.value || String(G.powerRiskAutoMode || 'off');
+      const opts = [
+        { id: 'off', label: 'Grid-Auto: Aus' },
+        { id: 'assist', label: 'Grid-Auto: Assist' },
+        { id: 'full', label: 'Grid-Auto: Full' },
+      ];
+      riskAutoSelect.innerHTML = opts.map((opt) => (
+        '<option value="' + opt.id + '">' + opt.label + '</option>'
+      )).join('');
+      const fallback = opts.some((x) => x.id === prev) ? prev : String(G.powerRiskAutoMode || 'off');
+      riskAutoSelect.value = fallback;
+    }
+  }
+  const commandLinkSelect = document.getElementById('power-command-link-select');
+  if (commandLinkSelect) {
+    const isEditingLink = document.activeElement === commandLinkSelect;
+    if (!isEditingLink) {
+      const current = G.powerCommandLinkEnabled ? 'on' : 'off';
+      commandLinkSelect.innerHTML = `
+        <option value="on">Command-Link: EIN</option>
+        <option value="off">Command-Link: AUS</option>`;
+      commandLinkSelect.value = current;
+    }
+  }
+  const guardSelect = document.getElementById('power-load-guard-select');
+  if (guardSelect) {
+    const isEditingGuard = document.activeElement === guardSelect;
+    if (!isEditingGuard) {
+      const current = G.powerLoadGuardEnabled ? 'on' : 'off';
+      guardSelect.innerHTML = `
+        <option value="off">Load Guard: AUS</option>
+        <option value="on">Load Guard: EIN</option>`;
+      guardSelect.value = current;
+    }
+  }
+  const guardTargetSelect = document.getElementById('power-load-guard-target-select');
+  if (guardTargetSelect) {
+    const isEditingGuardTarget = document.activeElement === guardTargetSelect;
+    if (!isEditingGuardTarget) {
+      const opts = [0.70, 0.80, 0.85, 0.90, 0.95];
+      guardTargetSelect.innerHTML = opts.map((v) => (
+        '<option value="' + v.toFixed(2) + '">Load-Ziel: ' + fmtNum(v * 100, 0) + '%</option>'
+      )).join('');
+      const current = Math.max(0.55, Math.min(0.98, Number(G.powerLoadGuardTarget || 0.85)));
+      const nearest = opts.reduce((best, val) => (Math.abs(val - current) < Math.abs(best - current) ? val : best), opts[0]);
+      guardTargetSelect.value = nearest.toFixed(2);
+    }
+  }
+  const batteryStrategySelect = document.getElementById('power-battery-strategy-select');
+  if (batteryStrategySelect) {
+    const isEditingBatteryStrategy = document.activeElement === batteryStrategySelect;
+    if (!isEditingBatteryStrategy) {
+      const prev = batteryStrategySelect.value || String(G.powerBatteryStrategy || 'balanced');
+      const opts = [
+        { id: 'balanced', label: 'Akku-Strategie: Balanced' },
+        { id: 'peak_guard', label: 'Akku-Strategie: Peak Guard' },
+        { id: 'arbitrage', label: 'Akku-Strategie: Tarif-Arbitrage' },
+        { id: 'reserve', label: 'Akku-Strategie: Reserve' },
+      ];
+      batteryStrategySelect.innerHTML = opts.map((opt) => (
+        '<option value="' + opt.id + '">' + opt.label + '</option>'
+      )).join('');
+      const fallback = opts.some((x) => x.id === prev) ? prev : String(G.powerBatteryStrategy || 'balanced');
+      batteryStrategySelect.value = fallback;
+    }
+  }
+  const tariffPolicySelect = document.getElementById('power-tariff-policy-select');
+  if (tariffPolicySelect) {
+    const isEditingTariffPolicy = document.activeElement === tariffPolicySelect;
+    if (!isEditingTariffPolicy) {
+      const prev = tariffPolicySelect.value || String(G.powerTariffPolicy || 'off');
+      const opts = [
+        { id: 'off', label: 'Tarif-Policy: Aus' },
+        { id: 'cost_focus', label: 'Tarif-Policy: Kostenfokus' },
+        { id: 'balanced', label: 'Tarif-Policy: Balanced' },
+        { id: 'rush', label: 'Tarif-Policy: Rush Hour' },
+      ];
+      tariffPolicySelect.innerHTML = opts.map((opt) => (
+        '<option value="' + opt.id + '">' + opt.label + '</option>'
+      )).join('');
+      const fallback = opts.some((x) => x.id === prev) ? prev : String(G.powerTariffPolicy || 'off');
+      tariffPolicySelect.value = fallback;
+    }
+  }
 
   const forecastInfo = document.getElementById('power-forecast-info');
   if (forecastInfo) {
     const forecast = (typeof window.getPowerForecastSnapshot === 'function')
       ? getPowerForecastSnapshot()
+      : null;
+    const recommended = (typeof window.getRecommendedPowerSetup === 'function')
+      ? getRecommendedPowerSetup()
       : null;
     if (!forecast) {
       forecastInfo.innerHTML = '<div class="power-list-item">Forecast wird geladen…</div>';
@@ -1532,14 +1873,54 @@ function renderPowerPanel() {
         ? ('+' + fmtNum(spare, 2) + ' kW')
         : ('-' + fmtNum(Math.abs(spare), 2) + ' kW');
       forecastInfo.innerHTML = `
+        <div class="power-row"><span>Profil</span><strong>${forecast.riskProfileLabel || 'Balanced'}</strong></div>
         <div class="power-row"><span>Risiko-Score</span><strong style="color:${riskColor};">${fmtNum(forecast.riskScore || 0, 1)} / 100</strong></div>
         <div class="power-row"><span>Ausfall-Chance / Min</span><strong>${fmtNum(outagePct, 2)}%</strong></div>
         <div class="power-row"><span>Lastpuffer</span><strong>${spareLabel}</strong></div>
         <div class="power-row"><span>Heat (Avg / Max)</span><strong>${fmtNum(forecast.avgHeat || 0, 1)}% / ${fmtNum(forecast.maxHeat || 0, 1)}%</strong></div>
+        <div class="power-row"><span>Akku-Strategie</span><strong>${forecast.batteryStrategyLabel || 'Balanced'}</strong></div>
+        <div class="power-row"><span>Tarif-Policy</span><strong>${forecast.tariffPolicyLabel || 'Aus'}</strong></div>
+        <div class="power-row"><span>Advisor Setup</span><strong>${recommended ? [recommended.riskProfile, recommended.batteryStrategy, recommended.tariffPolicy].join(' / ') : '—'}</strong></div>
         <div class="power-row"><span>Stromkosten / Tag (Forecast)</span><strong>$${fmtNum(forecast.projectedPowerDayCost || 0, 2)}</strong></div>
+        <div class="power-row"><span>Akku-Savings gesamt</span><strong>$${fmtNum(forecast.batteryStrategySavingsUsd || 0, 2)}</strong></div>
         <div class="power-row"><span>Outages (Total / Auto / Manuell)</span><strong>${fmtNum(forecast.outagesSeen || 0, 0)} / ${fmtNum(forecast.outagesAuto || 0, 0)} / ${fmtNum(forecast.outagesManual || 0, 0)}</strong></div>
+        <div class="power-row"><span>Advisor Runs</span><strong>${fmtNum(Number(G.powerAdvisorRuns || 0), 0)}</strong></div>
         <div class="power-row"><span>Empfehlung</span><strong>${forecast.recommendation || '—'}</strong></div>`;
     }
+  }
+  const riskInfo = document.getElementById('power-risk-info');
+  if (riskInfo) {
+    const meta = (typeof window.getPowerRiskProfileMeta === 'function')
+      ? getPowerRiskProfileMeta(G.powerRiskProfile)
+      : null;
+    const batteryMeta = (typeof window.getPowerBatteryStrategyMeta === 'function')
+      ? getPowerBatteryStrategyMeta(G.powerBatteryStrategy)
+      : null;
+    const perfPct = (Math.max(0, Number((meta && meta.perfMult) || 1)) - 1) * 100;
+    const pricePct = (Math.max(0, Number((meta && meta.priceMult) || 1)) - 1) * 100;
+    const crashPct = (Math.max(0, Number((meta && meta.crashMult) || 1)) - 1) * 100;
+    const outagePct = (Math.max(0, Number((meta && meta.outageMult) || 1)) - 1) * 100;
+    riskInfo.innerHTML = `
+      <div class="power-row"><span>Aktives Profil</span><strong>${(meta && meta.label) || 'Balanced'}</strong></div>
+      <div class="power-row"><span>Grid-Auto</span><strong>${String((G.powerRiskAutoMode || 'off')).toUpperCase()} ${Number(G.powerRiskAutoCooldown || 0) > 0 ? ('(' + fmtTime(G.powerRiskAutoCooldown) + ')') : ''}</strong></div>
+      <div class="power-row"><span>Command-Link</span><strong>${(G.powerCommandLinkEnabled ? 'EIN' : 'AUS')} ${Number(G.powerCommandCooldown || 0) > 0 ? ('(' + fmtTime(G.powerCommandCooldown) + ')') : ''}</strong></div>
+      <div class="power-row"><span>Load Guard</span><strong>${(G.powerLoadGuardEnabled ? 'EIN' : 'AUS')} @ ${fmtNum(Number(G.powerLoadGuardTarget || 0.85) * 100, 0)}% ${G._powerLoadGuardActive ? '(aktiv)' : ''}</strong></div>
+      <div class="power-row"><span>Akku-Strategie</span><strong>${(batteryMeta && batteryMeta.label) || 'Balanced'}</strong></div>
+      <div class="power-row"><span>Tarif-Policy</span><strong>${((typeof window.getPowerTariffPolicyMeta === 'function' ? getPowerTariffPolicyMeta(G.powerTariffPolicy).label : String(G.powerTariffPolicy || 'off')))} ${Number(G.powerTariffPolicyCooldown || 0) > 0 ? ('(' + fmtTime(G.powerTariffPolicyCooldown) + ')') : ''}</strong></div>
+      <div class="power-row"><span>Outage-Plan Ziel</span><strong>${String((G.powerOutageAutoPlan || 'balanced')).toUpperCase()}</strong></div>
+      <div class="power-row"><span>H/s Effekt</span><strong>${perfPct >= 0 ? '+' : ''}${fmtNum(perfPct, 1)}%</strong></div>
+      <div class="power-row"><span>Strompreis Effekt</span><strong>${pricePct >= 0 ? '+' : ''}${fmtNum(pricePct, 1)}%</strong></div>
+      <div class="power-row"><span>Crash-Risiko Effekt</span><strong>${crashPct >= 0 ? '+' : ''}${fmtNum(crashPct, 1)}%</strong></div>
+      <div class="power-row"><span>Ausfallrate Effekt</span><strong>${outagePct >= 0 ? '+' : ''}${fmtNum(outagePct, 1)}%</strong></div>
+      <div class="power-row"><span>Profilwechsel gesamt</span><strong>${fmtNum(G.powerRiskProfileChanges || 0, 0)}</strong></div>
+      <div class="power-row"><span>Auto-Wechsel gesamt</span><strong>${fmtNum(G.powerRiskAutoSwitches || 0, 0)}</strong></div>
+      <div class="power-row"><span>Link-Syncs gesamt</span><strong>${fmtNum(G.powerCommandSyncs || 0, 0)}</strong></div>
+      <div class="power-row"><span>Guard-Aktionen gesamt</span><strong>${fmtNum(G.powerLoadGuardActions || 0, 0)}</strong></div>
+      <div class="power-row"><span>Akku-Wechsel gesamt</span><strong>${fmtNum(G.powerBatteryStrategyChanges || 0, 0)}</strong></div>
+      <div class="power-row"><span>Akku-Savings gesamt</span><strong>$${fmtNum(G._powerBatteryStrategySavingsUsd || 0, 2)}</strong></div>
+      <div class="power-row"><span>Tarif-Wechsel gesamt</span><strong>${fmtNum(G.powerTariffPolicyChanges || 0, 0)}</strong></div>
+      <div class="power-row"><span>Tarif-Syncs gesamt</span><strong>${fmtNum(G.powerTariffPolicySyncs || 0, 0)}</strong></div>
+      <div class="power-row"><span>Beschreibung</span><strong>${(meta && meta.desc) || '—'}</strong></div>`;
   }
 
   const outageInfo = document.getElementById('power-outage-info');

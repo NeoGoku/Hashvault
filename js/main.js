@@ -803,6 +803,111 @@ function setPowerOutageAutoPlan(planId) {
   if (typeof renderPowerPanel === 'function') renderPowerPanel();
 }
 
+function setPowerRiskProfile(profileId) {
+  const allowed = ['throughput', 'balanced', 'resilience', 'emergency'];
+  const next = String(profileId || 'balanced');
+  if (!allowed.includes(next)) return;
+  if (String(G.powerRiskProfile || 'balanced') === next) return;
+  G.powerRiskProfile = next;
+  G.powerRiskProfileChanges = Math.max(0, Number(G.powerRiskProfileChanges || 0)) + 1;
+  const labels = {
+    throughput: 'Durchsatz',
+    balanced: 'Balanced',
+    resilience: 'Resilienz',
+    emergency: 'Emergency',
+  };
+  notify('🧭 Grid Control: ' + (labels[next] || next), 'success');
+  if (typeof renderPowerPanel === 'function') renderPowerPanel();
+}
+
+function setPowerRiskAutoMode(modeId) {
+  const allowed = ['off', 'assist', 'full'];
+  const next = String(modeId || 'off');
+  if (!allowed.includes(next)) return;
+  if (String(G.powerRiskAutoMode || 'off') === next) return;
+  G.powerRiskAutoMode = next;
+  G.powerRiskAutoCooldown = 0;
+  const labels = { off: 'Aus', assist: 'Assist', full: 'Full' };
+  notify('🤖 Grid-Auto: ' + (labels[next] || next), 'success');
+  if (typeof renderPowerPanel === 'function') renderPowerPanel();
+}
+
+function setPowerCommandLink(enabled) {
+  const next = !!enabled;
+  if (!!G.powerCommandLinkEnabled === next) return;
+  G.powerCommandLinkEnabled = next;
+  G.powerCommandCooldown = 0;
+  notify(next ? '🔗 Command-Link aktiviert.' : '⛔ Command-Link deaktiviert.', 'success');
+  if (typeof renderPowerPanel === 'function') renderPowerPanel();
+}
+
+function setPowerLoadGuard(enabled, targetRaw) {
+  const nextEnabled = !!enabled;
+  const target = Math.max(0.55, Math.min(0.98, Number(targetRaw || 0.85)));
+  const changed = (!!G.powerLoadGuardEnabled !== nextEnabled) || (Math.abs(Number(G.powerLoadGuardTarget || 0.85) - target) > 1e-9);
+  if (!changed) return;
+  G.powerLoadGuardEnabled = nextEnabled;
+  G.powerLoadGuardTarget = target;
+  if (!nextEnabled) G._powerLoadGuardActive = false;
+  notify('🧯 Load Guard: ' + (nextEnabled ? ('EIN @ ' + fmtNum(target * 100, 0) + '%') : 'AUS'), 'success');
+  if (typeof renderPowerPanel === 'function') renderPowerPanel();
+}
+
+function setPowerBatteryStrategy(strategyId) {
+  const allowed = ['balanced', 'peak_guard', 'arbitrage', 'reserve'];
+  const next = String(strategyId || 'balanced');
+  if (!allowed.includes(next)) return;
+  if (String(G.powerBatteryStrategy || 'balanced') === next) return;
+  G.powerBatteryStrategy = next;
+  G.powerBatteryStrategyChanges = Math.max(0, Number(G.powerBatteryStrategyChanges || 0)) + 1;
+  const labels = {
+    balanced: 'Balanced',
+    peak_guard: 'Peak Guard',
+    arbitrage: 'Tarif-Arbitrage',
+    reserve: 'Reserve',
+  };
+  notify('🔋 Akku-Strategie: ' + (labels[next] || next), 'success');
+  if (typeof renderPowerPanel === 'function') renderPowerPanel();
+}
+
+function setPowerTariffPolicy(policyId) {
+  const allowed = ['off', 'cost_focus', 'balanced', 'rush'];
+  const next = String(policyId || 'off');
+  if (!allowed.includes(next)) return;
+  if (String(G.powerTariffPolicy || 'off') === next) return;
+  G.powerTariffPolicy = next;
+  G.powerTariffPolicyChanges = Math.max(0, Number(G.powerTariffPolicyChanges || 0)) + 1;
+  G.powerTariffPolicyCooldown = 0;
+  const labels = {
+    off: 'Aus',
+    cost_focus: 'Kostenfokus',
+    balanced: 'Balanced',
+    rush: 'Rush Hour',
+  };
+  notify('🕒 Tarif-Policy: ' + (labels[next] || next), 'success');
+  if (typeof renderPowerPanel === 'function') renderPowerPanel();
+}
+
+function applyRecommendedPowerSetup() {
+  const setup = (typeof window.getRecommendedPowerSetup === 'function')
+    ? getRecommendedPowerSetup()
+    : null;
+  if (!setup) return;
+  G.powerRiskProfile = String(setup.riskProfile || 'balanced');
+  G.powerBatteryStrategy = String(setup.batteryStrategy || 'balanced');
+  G.powerTariffPolicy = String(setup.tariffPolicy || 'balanced');
+  G.powerLoadGuardEnabled = !!setup.loadGuardEnabled;
+  G.powerLoadGuardTarget = Math.max(0.55, Math.min(0.98, Number(setup.loadGuardTarget || 0.85)));
+  G.powerRiskProfileChanges = Math.max(0, Number(G.powerRiskProfileChanges || 0)) + 1;
+  G.powerBatteryStrategyChanges = Math.max(0, Number(G.powerBatteryStrategyChanges || 0)) + 1;
+  G.powerTariffPolicyChanges = Math.max(0, Number(G.powerTariffPolicyChanges || 0)) + 1;
+  G.powerAdvisorRuns = Math.max(0, Number(G.powerAdvisorRuns || 0)) + 1;
+  G.powerTariffPolicyCooldown = 0;
+  notify('🧠 Power-Advisor: ' + String(setup.note || 'Setup angewendet.'), 'success');
+  if (typeof renderPowerPanel === 'function') renderPowerPanel();
+  if (typeof updateMineUI === 'function') updateMineUI();
+}
+
 function applyRigBuildPreset(presetId) {
   const preset = (typeof window.getRigBuildPresetById === 'function') ? getRigBuildPresetById(presetId) : null;
   if (!preset) {
@@ -1173,6 +1278,49 @@ function handlePowerAction(action) {
     setPowerOutageAutoPlan(select.value);
     return;
   }
+  if (action === 'riskprofile') {
+    const select = document.getElementById('power-risk-profile-select');
+    if (!select) return;
+    setPowerRiskProfile(select.value);
+    return;
+  }
+  if (action === 'riskauto') {
+    const select = document.getElementById('power-risk-auto-select');
+    if (!select) return;
+    setPowerRiskAutoMode(select.value);
+    return;
+  }
+  if (action === 'commandlink') {
+    const select = document.getElementById('power-command-link-select');
+    if (!select) return;
+    setPowerCommandLink(String(select.value) === 'on');
+    return;
+  }
+  if (action === 'loadguard') {
+    const modeEl = document.getElementById('power-load-guard-select');
+    const targetEl = document.getElementById('power-load-guard-target-select');
+    if (!modeEl || !targetEl) return;
+    const enabled = String(modeEl.value) === 'on';
+    const target = Number(targetEl.value || 0.85);
+    setPowerLoadGuard(enabled, target);
+    return;
+  }
+  if (action === 'batterystrategy') {
+    const select = document.getElementById('power-battery-strategy-select');
+    if (!select) return;
+    setPowerBatteryStrategy(select.value);
+    return;
+  }
+  if (action === 'tariffpolicy') {
+    const select = document.getElementById('power-tariff-policy-select');
+    if (!select) return;
+    setPowerTariffPolicy(select.value);
+    return;
+  }
+  if (action === 'advisor') {
+    applyRecommendedPowerSetup();
+    return;
+  }
   if (action === 'layout') {
     const select = document.getElementById('power-layout-select');
     if (!select) return;
@@ -1394,14 +1542,47 @@ function init() {
   if (typeof G.powerOutageAutoPlan !== 'string' || !['off', 'safe', 'balanced', 'greedy'].includes(G.powerOutageAutoPlan)) {
     G.powerOutageAutoPlan = 'balanced';
   }
+  if (typeof G.powerRiskProfile !== 'string' || !['throughput', 'balanced', 'resilience', 'emergency'].includes(G.powerRiskProfile)) {
+    G.powerRiskProfile = 'balanced';
+  }
+  if (typeof G.powerRiskAutoMode !== 'string' || !['off', 'assist', 'full'].includes(G.powerRiskAutoMode)) {
+    G.powerRiskAutoMode = 'off';
+  }
+  if (!Number.isFinite(G.powerRiskAutoCooldown) || G.powerRiskAutoCooldown < 0) G.powerRiskAutoCooldown = 0;
+  if (typeof G.powerCommandLinkEnabled !== 'boolean') G.powerCommandLinkEnabled = true;
+  if (!Number.isFinite(G.powerCommandCooldown) || G.powerCommandCooldown < 0) G.powerCommandCooldown = 0;
+  if (typeof G.powerLoadGuardEnabled !== 'boolean') G.powerLoadGuardEnabled = false;
+  if (!Number.isFinite(G.powerLoadGuardTarget) || G.powerLoadGuardTarget <= 0) G.powerLoadGuardTarget = 0.85;
+  G.powerLoadGuardTarget = Math.max(0.55, Math.min(0.98, Number(G.powerLoadGuardTarget || 0.85)));
+  if (typeof G._powerLoadGuardActive !== 'boolean') G._powerLoadGuardActive = false;
+  if (typeof G.powerBatteryStrategy !== 'string' || !['balanced', 'peak_guard', 'arbitrage', 'reserve'].includes(G.powerBatteryStrategy)) {
+    G.powerBatteryStrategy = 'balanced';
+  }
+  if (typeof G.powerTariffPolicy !== 'string' || !['off', 'cost_focus', 'balanced', 'rush'].includes(G.powerTariffPolicy)) {
+    G.powerTariffPolicy = 'off';
+  }
+  if (!Number.isFinite(G._powerBatteryStrategySavingsUsd) || G._powerBatteryStrategySavingsUsd < 0) G._powerBatteryStrategySavingsUsd = 0;
+  if (!Number.isFinite(G.powerTariffPolicyCooldown) || G.powerTariffPolicyCooldown < 0) G.powerTariffPolicyCooldown = 0;
   if (!Number.isFinite(G.layoutSwitchCount) || G.layoutSwitchCount < 0) G.layoutSwitchCount = 0;
   if (!Number.isFinite(G.coolingModeChanges) || G.coolingModeChanges < 0) G.coolingModeChanges = 0;
   if (!Number.isFinite(G.outageDecisions) || G.outageDecisions < 0) G.outageDecisions = 0;
   if (!Number.isFinite(G.outageEventsSeen) || G.outageEventsSeen < 0) G.outageEventsSeen = 0;
   if (!Number.isFinite(G.outageAutoResolved) || G.outageAutoResolved < 0) G.outageAutoResolved = 0;
   if (!Number.isFinite(G.outageManualResolved) || G.outageManualResolved < 0) G.outageManualResolved = 0;
+  if (!Number.isFinite(G.powerRiskProfileChanges) || G.powerRiskProfileChanges < 0) G.powerRiskProfileChanges = 0;
+  if (!Number.isFinite(G.powerRiskAutoSwitches) || G.powerRiskAutoSwitches < 0) G.powerRiskAutoSwitches = 0;
+  if (!Number.isFinite(G.powerCommandSyncs) || G.powerCommandSyncs < 0) G.powerCommandSyncs = 0;
+  if (!Number.isFinite(G.powerLoadGuardActions) || G.powerLoadGuardActions < 0) G.powerLoadGuardActions = 0;
+  if (!Number.isFinite(G.powerBatteryStrategyChanges) || G.powerBatteryStrategyChanges < 0) G.powerBatteryStrategyChanges = 0;
+  if (!Number.isFinite(G.powerTariffPolicyChanges) || G.powerTariffPolicyChanges < 0) G.powerTariffPolicyChanges = 0;
+  if (!Number.isFinite(G.powerTariffPolicySyncs) || G.powerTariffPolicySyncs < 0) G.powerTariffPolicySyncs = 0;
+  if (!Number.isFinite(G.powerAdvisorRuns) || G.powerAdvisorRuns < 0) G.powerAdvisorRuns = 0;
   if (!Number.isFinite(G.powerOutageCooldown) || G.powerOutageCooldown < 0) G.powerOutageCooldown = 0;
   if (!Number.isFinite(G._powerOutageSpawnChancePerSec) || G._powerOutageSpawnChancePerSec < 0) G._powerOutageSpawnChancePerSec = 0;
+  if (!Number.isFinite(G._powerRiskPerfMult) || G._powerRiskPerfMult <= 0) G._powerRiskPerfMult = 1;
+  if (!Number.isFinite(G._powerRiskPriceMult) || G._powerRiskPriceMult <= 0) G._powerRiskPriceMult = 1;
+  if (!Number.isFinite(G._powerRiskCrashMult) || G._powerRiskCrashMult <= 0) G._powerRiskCrashMult = 1;
+  if (!Number.isFinite(G._powerRiskOutageMult) || G._powerRiskOutageMult <= 0) G._powerRiskOutageMult = 1;
   if (!Number.isFinite(G.powerOutageBuffRemaining) || G.powerOutageBuffRemaining < 0) G.powerOutageBuffRemaining = 0;
   if (!Number.isFinite(G._powerOutageBuffPerfMult) || G._powerOutageBuffPerfMult <= 0) G._powerOutageBuffPerfMult = 1;
   if (!Number.isFinite(G._powerOutageBuffPriceMult) || G._powerOutageBuffPriceMult <= 0) G._powerOutageBuffPriceMult = 1;
@@ -1648,6 +1829,12 @@ function init() {
   });
   const tutorialBtn = document.getElementById('tutorial-toggle-btn');
   if (tutorialBtn) tutorialBtn.addEventListener('click', toggleTutorialMode);
+  window.addEventListener('resize', () => {
+    if (typeof renderTutorialBox === 'function') renderTutorialBox();
+  });
+  document.addEventListener('scroll', () => {
+    if (typeof renderTutorialBox === 'function') renderTutorialBox();
+  }, true);
   const saveExportBtn = document.getElementById('save-export-btn');
   if (saveExportBtn) saveExportBtn.addEventListener('click', exportSaveSnapshot);
   const saveImportBtn = document.getElementById('save-import-btn');

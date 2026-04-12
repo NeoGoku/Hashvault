@@ -728,3 +728,137 @@ Original prompt: Lass uns hier weitermachen am Projekt.
   - Build angehoben:
     - `index.html` BUILD_ID -> `20260412v10`
     - `version.json` buildId -> `20260412v10`
+
+- 2026-04-12: Phase 4 umgesetzt (Grid Control + Risiko-Strategien).
+  - Neues System `Grid Control` eingefuehrt:
+    - Profile: `Durchsatz`, `Balanced`, `Resilienz`, `Emergency`.
+    - Jedes Profil veraendert H/s, Strompreis, Crash-Risiko und Ausfallrate.
+  - Neue Power-UI:
+    - Neue Karte `🧭 Grid Control` im Power-Tab.
+    - Profil-Select + Apply-Button.
+    - Live-Infos zu Profil-Effekten und Gesamtanzahl der Profilwechsel.
+  - Engine-Integration:
+    - Profil-Effekte wirken direkt in `updatePowerSystem()` auf `perf/price/crash`.
+    - Profil-Effekte wirken in `updatePowerOutageDecision()` auf Ausfall-Spawn-Chance.
+    - Forecast zeigt aktives Profil mit an.
+  - Neue persistente Felder:
+    - `powerRiskProfile`
+    - `powerRiskProfileChanges`
+    - `_powerRiskPerfMult`, `_powerRiskPriceMult`, `_powerRiskCrashMult`, `_powerRiskOutageMult`
+  - Contracts erweitert:
+    - Neuer Typ `risk_profile_changes` inkl. medium/hard Templates.
+  - Save/Init-Migration:
+    - Neue Felder in `DEFAULT_STATE`, `SAVE_FIELDS`, Save-Sanitizer und Init-Normalisierung verdrahtet.
+  - Build angehoben:
+    - `index.html` BUILD_ID -> `20260412v11`
+    - `version.json` buildId -> `20260412v11`
+
+- 2026-04-12: Phase 5 umgesetzt (Grid-Autopilot + Risk-Orchestrierung).
+  - Grid-Autopilot eingefuehrt:
+    - Neue Modi: `off`, `assist`, `full`.
+    - `assist`: schaltet nur defensiv zur Stabilisierung.
+    - `full`: schaltet dynamisch zwischen Durchsatz/Balanced/Resilienz/Emergency.
+    - Automatische Wechsel nutzen Risiko-Score, Heat, Load und aktive Outages.
+  - Neue persistente States:
+    - `powerRiskAutoMode`, `powerRiskAutoCooldown`, `powerRiskAutoSwitches`.
+    - Save/Sanitize/Init voll verdrahtet.
+  - UI erweitert:
+    - In `🧭 Grid Control` neuer Auto-Select + Apply-Button.
+    - Anzeige fuer Auto-Status, Cooldown und Auto-Wechselzähler.
+  - Engine-Integration:
+    - `updatePowerRiskAutomation(dt)` im Tick nach `updatePowerSystem(dt)` eingebunden.
+    - Profilwechsel durch Auto erhoehen `powerRiskProfileChanges` + `powerRiskAutoSwitches`.
+  - Contracts erweitert:
+    - Neuer Typ `risk_auto_switches` inkl. medium/hard Templates.
+  - Build angehoben:
+    - `index.html` BUILD_ID -> `20260412v12`
+    - `version.json` buildId -> `20260412v12`
+
+- 2026-04-12: Phase 6 umgesetzt (Command-Link zwischen Grid-Profil und Outage-Autoplan).
+  - Neues Command-Link-System:
+    - Option `EIN/AUS` im Grid-Control-Reiter.
+    - Wenn aktiv: Outage-Autoplan folgt automatisch dem aktiven Grid-Profil.
+      - Durchsatz -> greedy
+      - Balanced -> balanced
+      - Resilienz/Emergency -> safe
+    - Synchronisierung laeuft mit Cooldown (keine Tick-Spam-Umschaltung).
+  - Neue persistente Felder:
+    - `powerCommandLinkEnabled`
+    - `powerCommandCooldown`
+    - `powerCommandSyncs`
+  - UI erweitert:
+    - Neuer Select `Command-Link: EIN/AUS` + Apply-Button.
+    - Live-Anzeige fuer Link-Status, Cooldown und Sync-Zaehler.
+  - Contracts erweitert:
+    - Neuer Typ `command_syncs` (medium/hard Templates).
+  - Save/Init-Migration:
+    - Neue Felder in State/Save/Sanitizer/Init durchverdrahtet.
+  - Build angehoben:
+    - `index.html` BUILD_ID -> `20260412v13`
+    - `version.json` buildId -> `20260412v13`
+
+- 2026-04-12: Phase 7 umgesetzt (Load Guard + Guard-Progression).
+  - Neues Load-Guard-System:
+    - Schaltbar `AUS/EIN` plus Zielwert (70/80/85/90/95% Last).
+    - Wenn aktiv, begrenzt der Loop die effektive Last auf das Ziel und drosselt Leistung kontrolliert.
+    - Rising-Edge Erfassung (`_powerLoadGuardActive`) zaehlt echte Guard-Eingriffe statt Tick-Spam.
+  - Grid-Control UI erweitert:
+    - Neue Selects fuer Guard-Mode und Guard-Ziel.
+    - Neuer Button `Guard uebernehmen`.
+    - Live-Info zeigt Guard-Status, Ziel und Gesamtaktionen.
+  - Neue persistente Felder:
+    - `powerLoadGuardEnabled`, `powerLoadGuardTarget`, `_powerLoadGuardActive`, `powerLoadGuardActions`.
+  - Contracts erweitert:
+    - Neuer Typ `load_guard_actions` (medium/hard Templates).
+  - Save/Init-Migration:
+    - Neue Felder in State/Save/Sanitizer/Init durchverdrahtet.
+  - Build angehoben:
+    - `index.html` BUILD_ID -> `20260412v14`
+    - `version.json` buildId -> `20260412v14`
+
+- 2026-04-12: Phase 8 umgesetzt (Akku-Strategien + Akku-Progression).
+  - Grid-Control erweitert:
+    - Neue Auswahl `Akku-Strategie` mit `Balanced`, `Peak Guard`, `Tarif-Arbitrage`, `Reserve`.
+    - Neuer Button `Akku-Strategie uebernehmen`.
+  - Forecast/Grid-Control erweitert:
+    - Zeigt aktive Akku-Strategie, Akku-Wechsel und kumulierte Akku-Savings.
+  - Contracts erweitert:
+    - Neue Typen `battery_strategy_changes` und `battery_strategy_savings`.
+    - Neue Missionen `Battery Tactician`, `Peak Saver`, `Battery Marshal`, `Tariff Hunter`.
+  - Build angehoben:
+    - `index.html` BUILD_ID -> `20260412v15`
+    - `version.json` buildId -> `20260412v15`
+
+- 2026-04-12: Phase 9 umgesetzt (Tarif-Policy + Tarif-Scheduler).
+  - Grid-Control erweitert:
+    - Neue Auswahl `Tarif-Policy` mit `Aus`, `Kostenfokus`, `Balanced`, `Rush Hour`.
+    - Neuer Button `Tarif-Policy uebernehmen`.
+  - Tarif-Scheduler im Loop:
+    - Synchronisiert Akku-Strategie immer an das aktuelle Tariffenster.
+    - Synchronisiert Grid-Profil nur dann, wenn `Grid-Auto` auf `off` steht, damit sich die Automatiken nicht gegenseitig bekämpfen.
+    - Zaehlt Policy-Wechsel und echte Tarif-Syncs.
+  - Forecast/Grid-Control erweitert:
+    - Zeigt aktive Tarif-Policy, Policy-Cooldown, Gesamtwechsel und Syncs.
+  - Contracts erweitert:
+    - Neue Typen `tariff_policy_changes` und `tariff_policy_syncs`.
+    - Neue Missionen `Tariff Desk`, `Tariff Sync`, `Tariff Director`, `Grid Scheduler`.
+
+- 2026-04-12: Phase 10 umgesetzt (Power-Advisor + gefuehrtes Tutorial-Overlay).
+  - Forecast & Risk erweitert:
+    - Neuer Button `Advisor anwenden`.
+    - Zeigt empfohlenes Setup aus Risk-Profil, Akku-Strategie und Tarif-Policy.
+    - Zaehlt `Advisor Runs`.
+  - Power-Advisor:
+    - Nutzt Last, Heat, Risiko, Tarif-Fenster und Lastpuffer fuer ein empfohlendes Gesamtsetup.
+    - Uebernimmt mit einem Klick Risk-Profil, Akku-Strategie, Tarif-Policy und Load-Guard.
+  - Tutorial-UX ueberarbeitet:
+    - Globale Guide-Karte statt passiver Textbox.
+    - Spotlight-Markierung auf konkrete Buttons/Reiter.
+    - Sprungbutton fuehrt direkt zum relevanten Bereich.
+    - 48 Schritte zeigen jetzt nicht nur Ziele, sondern den naechsten Bedienort.
+  - Contracts erweitert:
+    - Neuer Typ `advisor_runs`.
+    - Neue Missionen `Advisor Loop`, `Advisor Chief`.
+  - Build angehoben:
+    - `index.html` BUILD_ID -> `20260412v17`
+    - `version.json` buildId -> `20260412v17`
