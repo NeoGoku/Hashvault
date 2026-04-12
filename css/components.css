@@ -14,6 +14,10 @@
   font-size: 48px;
   box-shadow: 0 0 30px rgba(0,212,255,.3);
   transition: transform .1s, box-shadow .1s;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 #mine-btn:hover  { box-shadow: 0 0 50px rgba(0,212,255,.5); }
 #mine-btn:active { transform: scale(.93); }

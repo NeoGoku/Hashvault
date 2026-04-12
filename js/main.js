@@ -1107,6 +1107,7 @@ function init() {
   if (!Number.isFinite(G.tutorialStep) || G.tutorialStep < 0) G.tutorialStep = 0;
   if (typeof G.tutorialEnabled !== 'boolean') G.tutorialEnabled = true;
   if (typeof G.tutorialCompleted !== 'boolean') G.tutorialCompleted = false;
+  if (typeof window.ensureHoldMiningState === 'function') ensureHoldMiningState();
   if (!G.miningStreaks) {
     G.miningStreaks = { BTC:0, ETH:0, LTC:0, BNB:0 };
   }
@@ -1244,7 +1245,46 @@ function init() {
   saveGame();
 
   // ── Mine-Button ───────────────────────────────────────────
-  document.getElementById('mine-btn').addEventListener('click', e => doClick(e));
+  const mineBtn = document.getElementById('mine-btn');
+  if (mineBtn) {
+    mineBtn.addEventListener('click', (e) => doClick(e));
+
+    mineBtn.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      startHoldMining(e.pointerId);
+    }, { passive: false });
+
+    const stopPointerHold = (e) => {
+      e.preventDefault();
+      stopHoldMining(e.pointerId);
+    };
+    mineBtn.addEventListener('pointerup', stopPointerHold, { passive: false });
+    mineBtn.addEventListener('pointercancel', stopPointerHold, { passive: false });
+    mineBtn.addEventListener('pointerleave', stopPointerHold, { passive: false });
+
+    mineBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      startHoldMining(1);
+    }, { passive: false });
+    mineBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      stopHoldMining(1);
+    }, { passive: false });
+    mineBtn.addEventListener('touchcancel', (e) => {
+      e.preventDefault();
+      stopHoldMining(1);
+    }, { passive: false });
+  }
+
+  // iOS double-tap/gesture zoom im Spielbereich unterbinden
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 320) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+  document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
 
   // ── Crypto-Selektor ───────────────────────────────────────
   document.querySelectorAll('.crypto-btn').forEach(btn => {

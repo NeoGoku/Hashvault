@@ -88,6 +88,12 @@ const DEFAULT_STATE = {
 
   // Auto-Klicker-Akkumulator (intern, wird nicht gespeichert)
   _autoClickAccum: 0,
+  _holdMiningActive: false,
+  _holdMiningElapsed: 0,
+  _holdMiningCooldown: 0,
+  _holdMiningAccum: 0,
+  _holdMiningSuppressTapUntil: 0,
+  _holdMiningPointerId: null,
 
   // Berechnete Multiplikatoren (gesetzt von computeMultipliers())
   _hpsMult:          1,

@@ -19,7 +19,105 @@ const RIG_LEASE_BALANCE = {
   buyoutRate: 0.72,
 };
 
+const HOLD_MINING_BALANCE = {
+  maxHoldSec: 60,
+  rearmCooldownSec: 2.5,
+  clicksPerSec: 6,
+  clickPowerMult: 0.85,
+};
+window.HV_HOLD_MINING_BALANCE = HOLD_MINING_BALANCE;
+
+function ensureHoldMiningState() {
+  if (typeof G._holdMiningActive !== 'boolean') G._holdMiningActive = false;
+  if (!Number.isFinite(G._holdMiningElapsed) || G._holdMiningElapsed < 0) G._holdMiningElapsed = 0;
+  if (!Number.isFinite(G._holdMiningCooldown) || G._holdMiningCooldown < 0) G._holdMiningCooldown = 0;
+  if (!Number.isFinite(G._holdMiningAccum) || G._holdMiningAccum < 0) G._holdMiningAccum = 0;
+  if (!Number.isFinite(G._holdMiningSuppressTapUntil) || G._holdMiningSuppressTapUntil < 0) G._holdMiningSuppressTapUntil = 0;
+  if (typeof G._holdMiningPointerId !== 'number') G._holdMiningPointerId = null;
+}
+window.ensureHoldMiningState = ensureHoldMiningState;
+
+function isHoldMiningTapSuppressed() {
+  ensureHoldMiningState();
+  return Date.now() < Number(G._holdMiningSuppressTapUntil || 0);
+}
+window.isHoldMiningTapSuppressed = isHoldMiningTapSuppressed;
+
+function startHoldMining(pointerId) {
+  ensureHoldMiningState();
+  if (G._opsShutdown) return false;
+  if (G._holdMiningCooldown > 0) return false;
+  G._holdMiningActive = true;
+  G._holdMiningElapsed = 0;
+  G._holdMiningAccum = 0;
+  G._holdMiningPointerId = Number.isFinite(pointerId) ? Number(pointerId) : null;
+  return true;
+}
+window.startHoldMining = startHoldMining;
+
+function stopHoldMining(pointerId) {
+  ensureHoldMiningState();
+  if (!G._holdMiningActive) return;
+  if (Number.isFinite(G._holdMiningPointerId) && Number.isFinite(pointerId) && Number(pointerId) !== Number(G._holdMiningPointerId)) return;
+  G._holdMiningActive = false;
+  G._holdMiningPointerId = null;
+  if (Number(G._holdMiningElapsed || 0) >= Number(HOLD_MINING_BALANCE.maxHoldSec || 60)) {
+    G._holdMiningCooldown = Math.max(Number(G._holdMiningCooldown || 0), Number(HOLD_MINING_BALANCE.rearmCooldownSec || 2.5));
+  }
+  G._holdMiningElapsed = 0;
+  G._holdMiningAccum = 0;
+  G._holdMiningSuppressTapUntil = Date.now() + 220;
+}
+window.stopHoldMining = stopHoldMining;
+
+function getHoldMiningStatusText() {
+  ensureHoldMiningState();
+  if (G._holdMiningActive) {
+    const left = Math.max(0, Number(HOLD_MINING_BALANCE.maxHoldSec || 60) - Number(G._holdMiningElapsed || 0));
+    return 'Hold ' + fmtNum(left, 1) + 's';
+  }
+  if (Number(G._holdMiningCooldown || 0) > 0) {
+    return 'Hold CD ' + fmtNum(G._holdMiningCooldown, 1) + 's';
+  }
+  return 'Hold bereit';
+}
+window.getHoldMiningStatusText = getHoldMiningStatusText;
+
+function updateHoldMining(dt) {
+  ensureHoldMiningState();
+  const safeDt = Math.max(0, Number(dt || 0));
+  if (safeDt <= 0) return;
+
+  G._holdMiningCooldown = Math.max(0, Number(G._holdMiningCooldown || 0) - safeDt);
+  if (!G._holdMiningActive || G._opsShutdown) return;
+
+  G._holdMiningElapsed += safeDt;
+  if (G._holdMiningElapsed >= Number(HOLD_MINING_BALANCE.maxHoldSec || 60)) {
+    G._holdMiningElapsed = Number(HOLD_MINING_BALANCE.maxHoldSec || 60);
+    G._holdMiningActive = false;
+    G._holdMiningPointerId = null;
+    G._holdMiningCooldown = Math.max(Number(G._holdMiningCooldown || 0), Number(HOLD_MINING_BALANCE.rearmCooldownSec || 2.5));
+    G._holdMiningElapsed = 0;
+    G._holdMiningAccum = 0;
+    G._holdMiningSuppressTapUntil = Date.now() + 220;
+    notify('⏱️ Hold-Mining pausiert. Kurz loslassen und nach Cooldown wieder halten.', 'warning');
+    return;
+  }
+
+  const cps = Math.max(0.5, Number(HOLD_MINING_BALANCE.clicksPerSec || 6));
+  G._holdMiningAccum += safeDt * cps;
+  while (G._holdMiningAccum >= 1) {
+    G._holdMiningAccum -= 1;
+    const power = Math.max(1, Math.floor(getClickPower() * Math.max(0.2, Number(HOLD_MINING_BALANCE.clickPowerMult || 0.85))));
+    G.hashes += power;
+    G.totalHashes += power;
+    G.totalClicks += 1;
+  }
+}
+window.updateHoldMining = updateHoldMining;
+
 function doClick(e) {
+  if (typeof isHoldMiningTapSuppressed === 'function' && isHoldMiningTapSuppressed()) return;
   if (G._opsShutdown) {
     const nowWarn = Date.now();
     const lastWarn = Number(G._lastOpsShutdownWarnAt || 0);

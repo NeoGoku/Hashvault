@@ -1127,6 +1127,7 @@ function updateMineUI() {
 
   set('click-power', fmtNum(getClickPower()));
   set('hps-display', fmtNum(getTotalHps()));
+  if (typeof window.getHoldMiningStatusText === 'function') set('hold-status', getHoldMiningStatusText());
   set('s-hashes',    fmtNum(G.totalHashes));
   set('s-btc',       fmtNum(G.coins.BTC, 6));
   set('s-eth',       fmtNum(G.coins.ETH, 6));

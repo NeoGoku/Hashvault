@@ -573,3 +573,23 @@ Original prompt: Lass uns hier weitermachen am Projekt.
   - `getRigHps()` erweitert um progression multipliers (frues Spiel + USB-Cluster).
   - Verifikation: `npm test` erfolgreich (Syntax + Regression Smoke).
   - Build angehoben: `20260412v2` (`index.html`, `version.json`).
+
+- 2026-04-12: Hold-to-Mine + iOS-Zoom-Fix umgesetzt.
+  - Hold-Mining System in `mining.js`:
+    - `HOLD_MINING_BALANCE`: 60s max Hold, 2.5s Rearm-Cooldown, 6 Klicks/s, 85% Klick-Power.
+    - Neue Funktionen: `startHoldMining`, `stopHoldMining`, `updateHoldMining`, `getHoldMiningStatusText`, `isHoldMiningTapSuppressed`.
+    - Schutz gegen Ghost-Tap nach Hold-Ende (`_holdMiningSuppressTapUntil`).
+    - Hold-State sauber resetet pro neuer Hold-Session.
+  - GameLoop-Integration: `updateHoldMining(dt)` in `gameTick()` verdrahtet.
+  - UI:
+    - Mine-Stats erweitert um `hold-status` (zeigt `Hold bereit`, Restzeit oder Cooldown).
+    - `updateMineUI()` rendert Hold-Status live.
+  - Input-Verdrahtung in `main.js`:
+    - Mine-Button nutzt jetzt `pointerdown/up/cancel/leave` und Touch-Fallbacks fuer Hold.
+    - `click` bleibt fuer normalen Tap erhalten.
+  - iOS Zoom-Fix:
+    - Viewport auf `maximum-scale=1.0, user-scalable=no, viewport-fit=cover` gesetzt.
+    - Double-Tap/Pinch-Gesture-Preventer (`touchend` + `gesturestart`) im Spiel.
+    - `#mine-btn` mit `touch-action: manipulation` + iOS user-select/callout Disable.
+  - Build angehoben: `20260412v3` (`index.html`, `version.json`).
+  - Verifikation: `npm test` erfolgreich (Syntax + Regression Smoke).

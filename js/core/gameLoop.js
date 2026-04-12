@@ -1992,6 +1992,7 @@ function gameTick() {
   }
   if (typeof window.updateStoryMissionState === 'function') window.updateStoryMissionState();
   if (typeof window.updateTutorialState === 'function') window.updateTutorialState();
+  if (typeof window.updateHoldMining === 'function') window.updateHoldMining(dt);
 
   // ── Auto-Klicker (cu1 Unlock) ────────────────────────────
   if (G.chipShop['cu1'] && !G._opsShutdown) {
