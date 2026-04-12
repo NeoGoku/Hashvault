@@ -43,6 +43,7 @@ const SAVE_FIELDS = [
   'dailyStreak','lastDaily','playTime','maxCombo',
   'activeResearch','researchProgress','totalRigs',
   'layoutSwitchCount','coolingModeChanges','outageDecisions',
+  'outageEventsSeen','outageAutoResolved','outageManualResolved',
   // v5 additions:
   'rigTargets','rigHashPools','rigLayoutByLocation','rigHeat','rigBuildPresetSelected','totalCoinsMined',
   'recentEvents','activeEvent',
@@ -69,7 +70,7 @@ const SAVE_FIELDS = [
   'powerBatteryChargeRateKw','powerBatteryDischargeRateKw','powerBatteryCycleLoss',
   'powerBatteryMode','powerBatteryGridOffsetKw',
   'coolingInfraLevel','coolingMode','coolingAutoProfile','_coolingAutoSwitchCd','coolingPowerKw',
-  'powerOutage','powerOutageAutoPlan','powerOutageCooldown','powerOutageBuffRemaining',
+  'powerOutage','powerOutageAutoPlan','powerOutageCooldown','_powerOutageSpawnChancePerSec','powerOutageBuffRemaining',
   '_powerOutageBuffPerfMult','_powerOutageBuffPriceMult','_powerOutageBuffCapMult','_powerOutageBuffCrashMult',
   '_powerDecisionPerfMult','_powerDecisionPriceMult','_powerDecisionCapMult','_powerDecisionCrashMult',
   'dailyBillHistory','dailyLastBilledDay','dailyOpsDebt','lastDailyBill',
@@ -182,6 +183,7 @@ function sanitizeLoadedSavePayload(input) {
     ? String(out.powerOutageAutoPlan)
     : 'balanced';
   out.powerOutageCooldown = toNum(out.powerOutageCooldown, 0, 0, 7200, false);
+  out._powerOutageSpawnChancePerSec = toNum(out._powerOutageSpawnChancePerSec, 0, 0, 0.08, false);
   out.powerOutageBuffRemaining = toNum(out.powerOutageBuffRemaining, 0, 0, 7200, false);
   out._powerOutageBuffPerfMult = toNum(out._powerOutageBuffPerfMult, 1, 0.2, 2.5, false);
   out._powerOutageBuffPriceMult = toNum(out._powerOutageBuffPriceMult, 1, 0.2, 2.5, false);
@@ -199,6 +201,9 @@ function sanitizeLoadedSavePayload(input) {
   out.layoutSwitchCount = toNum(out.layoutSwitchCount, 0, 0, 1e8, true);
   out.coolingModeChanges = toNum(out.coolingModeChanges, 0, 0, 1e8, true);
   out.outageDecisions = toNum(out.outageDecisions, 0, 0, 1e8, true);
+  out.outageEventsSeen = toNum(out.outageEventsSeen, 0, 0, 1e8, true);
+  out.outageAutoResolved = toNum(out.outageAutoResolved, 0, 0, 1e8, true);
+  out.outageManualResolved = toNum(out.outageManualResolved, 0, 0, 1e8, true);
 
   const coinKeys = Object.keys(COIN_DATA || template.coins || { BTC:1, ETH:1, LTC:1, BNB:1 });
   out.coins = ensureObject(out.coins);

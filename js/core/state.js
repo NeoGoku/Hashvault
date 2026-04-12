@@ -70,6 +70,9 @@ const DEFAULT_STATE = {
   layoutSwitchCount: 0,
   coolingModeChanges: 0,
   outageDecisions: 0,
+  outageEventsSeen: 0,
+  outageAutoResolved: 0,
+  outageManualResolved: 0,
 
   // Research — Slot 1
   activeResearch:   null,
@@ -176,6 +179,7 @@ const DEFAULT_STATE = {
   powerOutage: null,
   powerOutageAutoPlan: 'balanced',
   powerOutageCooldown: 0,
+  _powerOutageSpawnChancePerSec: 0,
   powerOutageBuffRemaining: 0,
   _powerOutageBuffPerfMult: 1,
   _powerOutageBuffPriceMult: 1,

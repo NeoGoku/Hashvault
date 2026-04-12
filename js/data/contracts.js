@@ -15,6 +15,7 @@ const CONTRACT_TEMPLATES = [
   { name:'Research Brief',   desc:'Schliesse {t} Forschungen ab', type:'research_count', diffMult: 3, reward: 2200, difficulty:'easy', fixedTarget: true },
   { name:'Cooling Basics',   desc:'Erreiche Cooling-Level {t}', type:'cooling_level', diffMult: 1, reward: 2400, difficulty:'easy', fixedTarget: true },
   { name:'Ops Drill',        desc:'Treffe {t} Netz-Entscheidungen', type:'outage_responses', diffMult: 2, reward: 2500, difficulty:'easy', fixedTarget: true },
+  { name:'Grid Watch',       desc:'Erlebe {t} Stromausfaelle', type:'outage_events', diffMult: 2, reward: 2700, difficulty:'easy', fixedTarget: true },
 
   // Medium
   { name:'Hash Tsunami',     desc:'Sammle {t} Hashes',      type:'hashes', diffMult: 200000,  reward: 2000,  difficulty:'medium' },
@@ -29,6 +30,8 @@ const CONTRACT_TEMPLATES = [
   { name:'Grid Discipline',  desc:'Erreiche Power-Infra Level {t}', type:'power_infra', diffMult: 5, reward: 13800, difficulty:'medium', fixedTarget: true },
   { name:'Cooling Ladder',   desc:'Erreiche Cooling-Level {t}', type:'cooling_level', diffMult: 3, reward: 14600, difficulty:'medium', fixedTarget: true },
   { name:'Layout Commander', desc:'Wechsle {t}x das Rig-Layout', type:'layout_switches', diffMult: 4, reward: 15200, difficulty:'medium', fixedTarget: true },
+  { name:'Auto Dispatcher',  desc:'Loese {t} Stromausfaelle automatisch', type:'outage_auto_responses', diffMult: 4, reward: 15800, difficulty:'medium', fixedTarget: true },
+  { name:'Cooling Discipline',desc:'Wechsle {t}x den Cooling-Modus', type:'cooling_switches', diffMult: 8, reward: 16200, difficulty:'medium', fixedTarget: true },
   { name:'Meta Drill',       desc:'Fuehre {t} Prestige-Durchlaeufe aus', type:'prestige_count', diffMult: 2, reward: 14200, difficulty:'medium', fixedTarget: true },
 
   // Hard
@@ -45,5 +48,6 @@ const CONTRACT_TEMPLATES = [
   { name:'Grid Sovereign',   desc:'Erreiche Power-Infra Level {t}', type:'power_infra', diffMult: 8, reward: 76000, difficulty:'hard', fixedTarget: true },
   { name:'Thermal Architect',desc:'Erreiche Cooling-Level {t}', type:'cooling_level', diffMult: 6, reward: 79000, difficulty:'hard', fixedTarget: true },
   { name:'Blackout Marshal', desc:'Treffe {t} Netz-Entscheidungen', type:'outage_responses', diffMult: 8, reward: 84000, difficulty:'hard', fixedTarget: true },
+  { name:'Crisis Commander', desc:'Loese {t} Stromausfaelle manuell', type:'outage_manual_responses', diffMult: 8, reward: 86000, difficulty:'hard', fixedTarget: true },
   { name:'Legacy Calibration',desc:'Fuehre {t} Prestige-Durchlaeufe aus', type:'prestige_count', diffMult: 4, reward: 88000, difficulty:'hard', fixedTarget: true }
 ];

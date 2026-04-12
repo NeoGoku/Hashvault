@@ -139,6 +139,18 @@ function buildContractFromTemplate(template, profile, difficulty) {
     } else if (t.type === 'outage_responses') {
       const bump = Math.floor(Number(profile.progress || 0) * 5);
       target = Math.max(2, Math.floor(baseTarget + bump));
+    } else if (t.type === 'outage_events') {
+      const bump = Math.floor(Number(profile.progress || 0) * 5);
+      target = Math.max(2, Math.floor(baseTarget + bump));
+    } else if (t.type === 'outage_auto_responses') {
+      const bump = Math.floor(Number(profile.progress || 0) * 4);
+      target = Math.max(2, Math.floor(baseTarget + bump));
+    } else if (t.type === 'outage_manual_responses') {
+      const bump = Math.floor(Number(profile.progress || 0) * 4);
+      target = Math.max(2, Math.floor(baseTarget + bump));
+    } else if (t.type === 'cooling_switches') {
+      const bump = Math.floor(Number(profile.progress || 0) * 10);
+      target = Math.max(3, Math.floor(baseTarget + bump));
     } else {
       target = Math.max(1, Math.floor(baseTarget));
     }
@@ -275,6 +287,10 @@ function getContractCurrentValue(c) {
   if (c.type === 'cooling_level') return Number(G.coolingInfraLevel || 0);
   if (c.type === 'layout_switches') return Number(G.layoutSwitchCount || 0);
   if (c.type === 'outage_responses') return Number(G.outageDecisions || 0);
+  if (c.type === 'outage_events') return Number(G.outageEventsSeen || 0);
+  if (c.type === 'outage_auto_responses') return Number(G.outageAutoResolved || 0);
+  if (c.type === 'outage_manual_responses') return Number(G.outageManualResolved || 0);
+  if (c.type === 'cooling_switches') return Number(G.coolingModeChanges || 0);
   if (c.type === 'prestige_count') return Number(G.prestigeCount || 0);
   return 0;
 }

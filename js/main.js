@@ -1397,7 +1397,11 @@ function init() {
   if (!Number.isFinite(G.layoutSwitchCount) || G.layoutSwitchCount < 0) G.layoutSwitchCount = 0;
   if (!Number.isFinite(G.coolingModeChanges) || G.coolingModeChanges < 0) G.coolingModeChanges = 0;
   if (!Number.isFinite(G.outageDecisions) || G.outageDecisions < 0) G.outageDecisions = 0;
+  if (!Number.isFinite(G.outageEventsSeen) || G.outageEventsSeen < 0) G.outageEventsSeen = 0;
+  if (!Number.isFinite(G.outageAutoResolved) || G.outageAutoResolved < 0) G.outageAutoResolved = 0;
+  if (!Number.isFinite(G.outageManualResolved) || G.outageManualResolved < 0) G.outageManualResolved = 0;
   if (!Number.isFinite(G.powerOutageCooldown) || G.powerOutageCooldown < 0) G.powerOutageCooldown = 0;
+  if (!Number.isFinite(G._powerOutageSpawnChancePerSec) || G._powerOutageSpawnChancePerSec < 0) G._powerOutageSpawnChancePerSec = 0;
   if (!Number.isFinite(G.powerOutageBuffRemaining) || G.powerOutageBuffRemaining < 0) G.powerOutageBuffRemaining = 0;
   if (!Number.isFinite(G._powerOutageBuffPerfMult) || G._powerOutageBuffPerfMult <= 0) G._powerOutageBuffPerfMult = 1;
   if (!Number.isFinite(G._powerOutageBuffPriceMult) || G._powerOutageBuffPriceMult <= 0) G._powerOutageBuffPriceMult = 1;

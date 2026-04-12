@@ -700,3 +700,31 @@ Original prompt: Lass uns hier weitermachen am Projekt.
     - `~/.shortcuts/Deploy-HashVault.sh` startet den Guard-Deploy per One-Click.
   - Verifikation:
     - `bash -n` Syntaxcheck erfolgreich fuer beide neuen Scripts.
+
+- 2026-04-12: Phase 3 umgesetzt (Power Forecast + Risk-Integration + neue Missionstypen).
+  - Power Forecast & Risk (sichtbar im Power-Tab):
+    - Neue Karte `Forecast & Risk` mit:
+      - Risiko-Score (0-100)
+      - Ausfall-Chance pro Minute
+      - Lastpuffer in kW
+      - Heat Avg/Max
+      - prognostizierte Stromkosten pro Tag
+      - Outage-Stats (Total/Auto/Manuell)
+      - Handlungsempfehlung
+    - Datenquelle: neue Engine-Funktion `getPowerForecastSnapshot()` in `gameLoop.js`.
+  - Outage-Risiko in der Engine vertieft:
+    - Spawn-Wahrscheinlichkeit fuer Stromausfaelle nutzt jetzt nicht nur Last, sondern auch Heat-/Hotspot-Druck.
+    - Laufzeitwert `_powerOutageSpawnChancePerSec` wird pro Tick berechnet und fuer Forecast genutzt.
+  - Neue persistente Outage-Metriken:
+    - `outageEventsSeen`
+    - `outageAutoResolved`
+    - `outageManualResolved`
+    - Werden bei Event-Spawn und bei Entscheidung (auto/manuell) aktualisiert.
+  - Missionen/Contracts erweitert:
+    - Neue Typen: `outage_events`, `outage_auto_responses`, `outage_manual_responses`, `cooling_switches`.
+    - Neue Templates in easy/medium/hard hinzugefuegt.
+  - Save/State erweitert:
+    - Neue Zaehler in `DEFAULT_STATE`, `SAVE_FIELDS`, Save-Sanitizer und Init-Normalisierung verdrahtet.
+  - Build angehoben:
+    - `index.html` BUILD_ID -> `20260412v10`
+    - `version.json` buildId -> `20260412v10`

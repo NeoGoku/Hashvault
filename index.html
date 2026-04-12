@@ -9,7 +9,7 @@
 <title>HashVault Pro</title>
 <script>
 (function() {
-  const BUILD_ID = '20260412v9';
+  const BUILD_ID = '20260412v10';
   const BUILD_KEY = '__hv_build_id';
   const prevBuild = localStorage.getItem(BUILD_KEY);
   const isNewBuild = prevBuild !== BUILD_ID;
@@ -335,6 +335,11 @@
         <button class="buy-btn" data-power-action="coolauto" type="button">Cooling-Auto uebernehmen</button>
         <button class="buy-btn" data-power-action="coolingupg" type="button" style="background:linear-gradient(135deg,#2f86c9,#21588b);">Cooling-Ausbau</button>
       </div>
+    </div>
+
+    <div class="power-card">
+      <h3>📊 Forecast &amp; Risk</h3>
+      <div id="power-forecast-info" class="power-list"></div>
     </div>
 
     <div class="power-card">

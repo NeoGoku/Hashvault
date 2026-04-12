@@ -1005,7 +1005,11 @@ function ensurePowerOutageState() {
     G.powerOutageAutoPlan = 'balanced';
   }
   if (!Number.isFinite(G.outageDecisions) || Number(G.outageDecisions) < 0) G.outageDecisions = 0;
+  if (!Number.isFinite(G.outageEventsSeen) || Number(G.outageEventsSeen) < 0) G.outageEventsSeen = 0;
+  if (!Number.isFinite(G.outageAutoResolved) || Number(G.outageAutoResolved) < 0) G.outageAutoResolved = 0;
+  if (!Number.isFinite(G.outageManualResolved) || Number(G.outageManualResolved) < 0) G.outageManualResolved = 0;
   if (!Number.isFinite(G.powerOutageCooldown) || Number(G.powerOutageCooldown) < 0) G.powerOutageCooldown = 0;
+  if (!Number.isFinite(G._powerOutageSpawnChancePerSec) || Number(G._powerOutageSpawnChancePerSec) < 0) G._powerOutageSpawnChancePerSec = 0;
   if (!Number.isFinite(G.powerOutageBuffRemaining) || Number(G.powerOutageBuffRemaining) < 0) G.powerOutageBuffRemaining = 0;
   if (!Number.isFinite(G._powerOutageBuffPerfMult) || Number(G._powerOutageBuffPerfMult) <= 0) G._powerOutageBuffPerfMult = 1;
   if (!Number.isFinite(G._powerOutageBuffPriceMult) || Number(G._powerOutageBuffPriceMult) <= 0) G._powerOutageBuffPriceMult = 1;
@@ -1073,6 +1077,7 @@ function spawnPowerOutageEvent() {
       },
     })),
   };
+  G.outageEventsSeen = Math.max(0, Number(G.outageEventsSeen || 0)) + 1;
   updateTicker('🚨 ' + G.powerOutage.title + ' - Entscheidung noetig');
   notify('🚨 ' + G.powerOutage.title + ': Entscheidung im Power-Tab erforderlich.', 'error');
   return true;
@@ -1165,6 +1170,11 @@ function resolvePowerOutageOption(optionId, silentAuto) {
   G.powerOutage.remaining = 12;
   G.powerOutageCooldown = 220 + Math.random() * 180;
   G.outageDecisions = Math.max(0, Number(G.outageDecisions || 0)) + 1;
+  if (silentAuto) {
+    G.outageAutoResolved = Math.max(0, Number(G.outageAutoResolved || 0)) + 1;
+  } else {
+    G.outageManualResolved = Math.max(0, Number(G.outageManualResolved || 0)) + 1;
+  }
 
   const summary = '⚙️ Krisenoption: ' + option.label + (usdCost > 0 || btcCost > 0
     ? (' (-$' + fmtNum(usdCost, 0) + (btcCost > 0 ? ', -₿' + fmtNum(btcCost, 4) : '') + ')')
@@ -1178,6 +1188,7 @@ window.resolvePowerOutageOption = resolvePowerOutageOption;
 function updatePowerOutageDecision(dt) {
   ensurePowerOutageState();
   const safeDt = Math.max(0, Number(dt || 0));
+  G._powerOutageSpawnChancePerSec = 0;
 
   if (G.powerOutageCooldown > 0) {
     G.powerOutageCooldown = Math.max(0, Number(G.powerOutageCooldown || 0) - safeDt);
@@ -1215,7 +1226,28 @@ function updatePowerOutageDecision(dt) {
       G.powerOutage = null;
     }
   } else if (!G._opsShutdown && getTotalRigCount() > 0 && Number(G.powerOutageCooldown || 0) <= 0) {
-    const spawnChancePerSec = 0.0018 + Math.max(0, Number(G._powerLoadRatio || 0) - 0.9) * 0.0032;
+    const loadRatio = Math.max(0, Number(G._powerLoadRatio || 0));
+    const loadExcess = Math.max(0, loadRatio - 0.9);
+    const heat = getRigHeatSummary();
+    const maxHeat = Math.max(0, Number(heat.maxHeat || 0));
+    const avgHeat = Math.max(0, Number(heat.avgHeat || 0));
+    const dangerCount = Math.max(0, Number(heat.dangerCount || 0));
+    const criticalCount = Math.max(0, Number(heat.criticalCount || 0));
+    const heatExcess = Math.max(0, maxHeat - 72) / 28;
+    const avgHeatExcess = Math.max(0, avgHeat - 62) / 38;
+    const hotspotPressure = Math.min(6, dangerCount) * 0.00015 + Math.min(4, criticalCount) * 0.00055;
+    const spawnChancePerSec = Math.max(
+      0.00035,
+      Math.min(
+        0.028,
+        0.00115 +
+          loadExcess * 0.0032 +
+          heatExcess * 0.0017 +
+          avgHeatExcess * 0.0012 +
+          hotspotPressure
+      )
+    );
+    G._powerOutageSpawnChancePerSec = spawnChancePerSec;
     if (Math.random() < spawnChancePerSec * safeDt) {
       spawnPowerOutageEvent();
     }
@@ -1242,6 +1274,81 @@ function updatePowerOutageDecision(dt) {
   G._powerDecisionCapMult = cap;
   G._powerDecisionCrashMult = crash;
 }
+
+function getPowerForecastSnapshot() {
+  ensurePowerOutageState();
+  const usageKw = Math.max(0, Number(G.powerUsageKw || 0));
+  const capKw = Math.max(0.01, Number(G._powerEffectiveCapKw || G.powerCapacityKw || 0.01));
+  const loadRatio = Math.max(0, usageKw / capKw);
+  const spareKw = capKw - usageKw;
+  const pricePerKwh = Math.max(0.01, Number(G.powerPriceCurrent || G.powerPriceBase || POWER_BALANCE.basePricePerKwh || 0.2));
+  const provider = getPowerProviderById(G.powerProviderId);
+  const heat = getRigHeatSummary();
+
+  const avgHeat = Math.max(0, Number(heat.avgHeat || 0));
+  const maxHeat = Math.max(0, Number(heat.maxHeat || 0));
+  const dangerCount = Math.max(0, Number(heat.dangerCount || 0));
+  const criticalCount = Math.max(0, Number(heat.criticalCount || 0));
+  const thermalScore = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.max(0, avgHeat - 52) * 0.95 +
+      Math.max(0, maxHeat - 70) * 1.45 +
+      dangerCount * 6.2 +
+      criticalCount * 13.5
+    )
+  );
+  const overloadScore = Math.max(0, Math.min(100, Math.max(0, loadRatio - 0.84) * 290));
+  const outageChancePerSec = Math.max(0, Number(G._powerOutageSpawnChancePerSec || 0));
+  const outageChancePerMin = Math.max(0, Math.min(0.95, 1 - Math.exp(-outageChancePerSec * 60)));
+  const outageScore = outageChancePerMin * 100;
+  const riskScore = Math.max(0, Math.min(100, thermalScore * 0.42 + overloadScore * 0.33 + outageScore * 0.25));
+
+  const dailyEnergyKwh = usageKw * 24;
+  const dailyEnergyCost = dailyEnergyKwh * pricePerKwh;
+  const fixedCost = Math.max(0, Number(POWER_BALANCE.billBaseFee || 0))
+    + Math.max(0, Number(POWER_BALANCE.billLevelFee || 0)) * Math.max(0, Number(G.powerInfraLevel || 0))
+    + Math.max(0, Number(provider.baseFeePerDay || 0));
+  const projectedPowerDayCost = dailyEnergyCost + fixedCost;
+
+  let recommendation = 'Betrieb stabil. Skalierung moeglich.';
+  if (criticalCount > 0 || riskScore >= 72) {
+    recommendation = 'Sofort kuehlen/umlayouten. Risiko kritisch.';
+  } else if (loadRatio > 1.0) {
+    recommendation = 'Ueberlast: Kapazitaet oder Last senken.';
+  } else if (riskScore >= 52 || maxHeat >= 84) {
+    recommendation = 'Kuehlung und Safety-Fokus anheben.';
+  } else if (spareKw < 1.25) {
+    recommendation = 'Kaum Lastpuffer. +Kapazitaet oder Frugal-Fokus.';
+  }
+
+  return {
+    usageKw,
+    capKw,
+    spareKw,
+    loadRatio,
+    avgHeat,
+    maxHeat,
+    dangerCount,
+    criticalCount,
+    thermalScore,
+    outageChancePerSec,
+    outageChancePerMin,
+    outageScore,
+    overloadScore,
+    riskScore,
+    pricePerKwh,
+    dailyEnergyKwh,
+    dailyEnergyCost,
+    projectedPowerDayCost,
+    outagesSeen: Math.max(0, Number(G.outageEventsSeen || 0)),
+    outagesAuto: Math.max(0, Number(G.outageAutoResolved || 0)),
+    outagesManual: Math.max(0, Number(G.outageManualResolved || 0)),
+    recommendation,
+  };
+}
+window.getPowerForecastSnapshot = getPowerForecastSnapshot;
 
 function updateThermalSystem(dt) {
   ensureRigHeatState();

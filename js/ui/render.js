@@ -1517,6 +1517,31 @@ function renderPowerPanel() {
     }
   }
 
+  const forecastInfo = document.getElementById('power-forecast-info');
+  if (forecastInfo) {
+    const forecast = (typeof window.getPowerForecastSnapshot === 'function')
+      ? getPowerForecastSnapshot()
+      : null;
+    if (!forecast) {
+      forecastInfo.innerHTML = '<div class="power-list-item">Forecast wird geladen…</div>';
+    } else {
+      const riskColor = forecast.riskScore >= 72 ? '#ff6b81' : (forecast.riskScore >= 52 ? '#f6c35f' : '#64e5b3');
+      const outagePct = Math.max(0, Math.min(100, Number(forecast.outageChancePerMin || 0) * 100));
+      const spare = Number(forecast.spareKw || 0);
+      const spareLabel = spare >= 0
+        ? ('+' + fmtNum(spare, 2) + ' kW')
+        : ('-' + fmtNum(Math.abs(spare), 2) + ' kW');
+      forecastInfo.innerHTML = `
+        <div class="power-row"><span>Risiko-Score</span><strong style="color:${riskColor};">${fmtNum(forecast.riskScore || 0, 1)} / 100</strong></div>
+        <div class="power-row"><span>Ausfall-Chance / Min</span><strong>${fmtNum(outagePct, 2)}%</strong></div>
+        <div class="power-row"><span>Lastpuffer</span><strong>${spareLabel}</strong></div>
+        <div class="power-row"><span>Heat (Avg / Max)</span><strong>${fmtNum(forecast.avgHeat || 0, 1)}% / ${fmtNum(forecast.maxHeat || 0, 1)}%</strong></div>
+        <div class="power-row"><span>Stromkosten / Tag (Forecast)</span><strong>$${fmtNum(forecast.projectedPowerDayCost || 0, 2)}</strong></div>
+        <div class="power-row"><span>Outages (Total / Auto / Manuell)</span><strong>${fmtNum(forecast.outagesSeen || 0, 0)} / ${fmtNum(forecast.outagesAuto || 0, 0)} / ${fmtNum(forecast.outagesManual || 0, 0)}</strong></div>
+        <div class="power-row"><span>Empfehlung</span><strong>${forecast.recommendation || '—'}</strong></div>`;
+    }
+  }
+
   const outageInfo = document.getElementById('power-outage-info');
   const outageActions = document.getElementById('power-outage-actions');
   if (outageInfo && outageActions) {
