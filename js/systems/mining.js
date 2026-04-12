@@ -24,8 +24,19 @@ const HOLD_MINING_BALANCE = {
   rearmCooldownSec: 2.5,
   clicksPerSec: 6,
   clickPowerMult: 0.85,
+  armMs: 3000,
 };
 window.HV_HOLD_MINING_BALANCE = HOLD_MINING_BALANCE;
+
+function resetMiningComboChain() {
+  G.comboCount = 0;
+  G.lastClickTime = 0;
+  const btn = document.getElementById('mine-btn');
+  if (btn) btn.classList.remove('combo2', 'combo3');
+  const cd = document.getElementById('combo-display');
+  if (cd) cd.textContent = '';
+}
+window.resetMiningComboChain = resetMiningComboChain;
 
 function ensureHoldMiningState() {
   if (typeof G._holdMiningActive !== 'boolean') G._holdMiningActive = false;
@@ -64,6 +75,7 @@ function stopHoldMining(pointerId) {
   if (Number(G._holdMiningElapsed || 0) >= Number(HOLD_MINING_BALANCE.maxHoldSec || 60)) {
     G._holdMiningCooldown = Math.max(Number(G._holdMiningCooldown || 0), Number(HOLD_MINING_BALANCE.rearmCooldownSec || 2.5));
   }
+  resetMiningComboChain();
   G._holdMiningElapsed = 0;
   G._holdMiningAccum = 0;
   G._holdMiningSuppressTapUntil = Date.now() + 220;
@@ -149,6 +161,7 @@ function updateHoldMining(dt) {
     G._holdMiningActive = false;
     G._holdMiningPointerId = null;
     G._holdMiningCooldown = Math.max(Number(G._holdMiningCooldown || 0), Number(HOLD_MINING_BALANCE.rearmCooldownSec || 2.5));
+    resetMiningComboChain();
     G._holdMiningElapsed = 0;
     G._holdMiningAccum = 0;
     G._holdMiningSuppressTapUntil = Date.now() + 220;

@@ -1247,11 +1247,11 @@ function init() {
   // ── Mine-Button ───────────────────────────────────────────
   const mineBtn = document.getElementById('mine-btn');
   if (mineBtn) {
-    mineBtn.addEventListener('click', (e) => doClick(e));
-
     let holdArmTimer = null;
     let holdActivePointer = null;
-    const HOLD_ARM_MS = 180;
+    let pointerDownAt = 0;
+    let pointerDownPointer = null;
+    const HOLD_ARM_MS = Math.max(300, Number((window.HV_HOLD_MINING_BALANCE && window.HV_HOLD_MINING_BALANCE.armMs) || 3000));
 
     const clearHoldArm = () => {
       if (holdArmTimer) {
@@ -1262,6 +1262,8 @@ function init() {
 
     mineBtn.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
+      pointerDownAt = Date.now();
+      pointerDownPointer = e.pointerId;
       clearHoldArm();
       holdArmTimer = setTimeout(() => {
         const started = startHoldMining(e.pointerId);
@@ -1270,25 +1272,28 @@ function init() {
     });
 
     const stopPointerHold = (e) => {
+      const wasHold = holdActivePointer !== null;
+      const durationMs = Math.max(0, Date.now() - Number(pointerDownAt || 0));
       clearHoldArm();
-      if (holdActivePointer !== null) {
+      if (wasHold) {
         stopHoldMining(e.pointerId);
         holdActivePointer = null;
         e.preventDefault();
+      } else if (pointerDownPointer === e.pointerId && durationMs < HOLD_ARM_MS) {
+        doClick({
+          clientX: Number(e.clientX || 0),
+          clientY: Number(e.clientY || 0),
+        });
       }
+      pointerDownPointer = null;
+      pointerDownAt = 0;
     };
     mineBtn.addEventListener('pointerup', stopPointerHold, { passive: false });
     mineBtn.addEventListener('pointercancel', stopPointerHold, { passive: false });
     mineBtn.addEventListener('pointerleave', stopPointerHold, { passive: false });
   }
 
-  // iOS double-tap/gesture zoom im Spielbereich unterbinden
-  let lastTouchEnd = 0;
-  document.addEventListener('touchend', (e) => {
-    const now = Date.now();
-    if (now - lastTouchEnd <= 320) e.preventDefault();
-    lastTouchEnd = now;
-  }, { passive: false });
+  // iOS gesture zoom im Spielbereich unterbinden
   document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
 
   // ── Crypto-Selektor ───────────────────────────────────────
