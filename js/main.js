@@ -1249,32 +1249,37 @@ function init() {
   if (mineBtn) {
     mineBtn.addEventListener('click', (e) => doClick(e));
 
+    let holdArmTimer = null;
+    let holdActivePointer = null;
+    const HOLD_ARM_MS = 180;
+
+    const clearHoldArm = () => {
+      if (holdArmTimer) {
+        clearTimeout(holdArmTimer);
+        holdArmTimer = null;
+      }
+    };
+
     mineBtn.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
-      e.preventDefault();
-      startHoldMining(e.pointerId);
-    }, { passive: false });
+      clearHoldArm();
+      holdArmTimer = setTimeout(() => {
+        const started = startHoldMining(e.pointerId);
+        if (started) holdActivePointer = e.pointerId;
+      }, HOLD_ARM_MS);
+    });
 
     const stopPointerHold = (e) => {
-      e.preventDefault();
-      stopHoldMining(e.pointerId);
+      clearHoldArm();
+      if (holdActivePointer !== null) {
+        stopHoldMining(e.pointerId);
+        holdActivePointer = null;
+        e.preventDefault();
+      }
     };
     mineBtn.addEventListener('pointerup', stopPointerHold, { passive: false });
     mineBtn.addEventListener('pointercancel', stopPointerHold, { passive: false });
     mineBtn.addEventListener('pointerleave', stopPointerHold, { passive: false });
-
-    mineBtn.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      startHoldMining(1);
-    }, { passive: false });
-    mineBtn.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      stopHoldMining(1);
-    }, { passive: false });
-    mineBtn.addEventListener('touchcancel', (e) => {
-      e.preventDefault();
-      stopHoldMining(1);
-    }, { passive: false });
   }
 
   // iOS double-tap/gesture zoom im Spielbereich unterbinden

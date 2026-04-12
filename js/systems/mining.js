@@ -83,6 +83,58 @@ function getHoldMiningStatusText() {
 }
 window.getHoldMiningStatusText = getHoldMiningStatusText;
 
+function applyMineClick(powerMult, eventObj, silentShutdown) {
+  if (G._opsShutdown) {
+    if (!silentShutdown) {
+      const nowWarn = Date.now();
+      const lastWarn = Number(G._lastOpsShutdownWarnAt || 0);
+      if (nowWarn - lastWarn > 4000) {
+        G._lastOpsShutdownWarnAt = nowWarn;
+        notify('⛔ Betrieb abgeschaltet. Erst Schulden tilgen oder Insolvenz abwarten.', 'error');
+      }
+    }
+    return false;
+  }
+
+  const now = Date.now();
+  const timeDiff = now - G.lastClickTime;
+  if (timeDiff < 1200) {
+    G.comboCount = Math.min(G.comboCount + 1, 100);
+  } else {
+    G.comboCount = 1;
+  }
+  G.lastClickTime = now;
+  if (G.comboCount > G.maxCombo) G.maxCombo = G.comboCount;
+
+  const comboMult = 1 + (G.comboCount / 20) * (1 + G._comboBonus);
+  const pMult = Math.max(0.1, Number(powerMult || 1));
+  const power = Math.max(1, Math.floor(getClickPower() * comboMult * pMult));
+  G.hashes += power;
+  G.totalHashes += power;
+  G.totalClicks += 1;
+
+  const btn = document.getElementById('mine-btn');
+  if (btn) {
+    btn.classList.remove('combo2', 'combo3');
+    if (G.comboCount >= 20) btn.classList.add('combo3');
+    else if (G.comboCount >= 8) btn.classList.add('combo2');
+  }
+
+  const cd = document.getElementById('combo-display');
+  if (cd) {
+    if (G.comboCount >= 3) {
+      cd.textContent = 'COMBO ×' + G.comboCount + ' (+' + Math.round((comboMult - 1) * 100) + '%)';
+    } else {
+      cd.textContent = '';
+    }
+  }
+
+  if (eventObj && Number.isFinite(eventObj.clientX) && Number.isFinite(eventObj.clientY)) {
+    floatText(eventObj.clientX, eventObj.clientY, '+' + fmtNum(power) + ' H');
+  }
+  return true;
+}
+
 function updateHoldMining(dt) {
   ensureHoldMiningState();
   const safeDt = Math.max(0, Number(dt || 0));
@@ -108,61 +160,16 @@ function updateHoldMining(dt) {
   G._holdMiningAccum += safeDt * cps;
   while (G._holdMiningAccum >= 1) {
     G._holdMiningAccum -= 1;
-    const power = Math.max(1, Math.floor(getClickPower() * Math.max(0.2, Number(HOLD_MINING_BALANCE.clickPowerMult || 0.85))));
-    G.hashes += power;
-    G.totalHashes += power;
-    G.totalClicks += 1;
+    const ok = applyMineClick(Number(HOLD_MINING_BALANCE.clickPowerMult || 0.85), null, true);
+    if (!ok) break;
   }
 }
 window.updateHoldMining = updateHoldMining;
 
-function doClick(e) {
-  if (typeof isHoldMiningTapSuppressed === 'function' && isHoldMiningTapSuppressed()) return;
-  if (G._opsShutdown) {
-    const nowWarn = Date.now();
-    const lastWarn = Number(G._lastOpsShutdownWarnAt || 0);
-    if (nowWarn - lastWarn > 4000) {
-      G._lastOpsShutdownWarnAt = nowWarn;
-      notify('⛔ Betrieb abgeschaltet. Erst Schulden tilgen oder Insolvenz abwarten.', 'error');
-    }
-    return;
-  }
-
-  const now      = Date.now();
-  const timeDiff = now - G.lastClickTime;
-
-  // Combo-Tracking
-  if (timeDiff < 1200) {
-    G.comboCount = Math.min(G.comboCount + 1, 100);
-  } else {
-    G.comboCount = 1;
-  }
-  G.lastClickTime = now;
-  if (G.comboCount > G.maxCombo) G.maxCombo = G.comboCount;
-
-  // Hash-Berechnung mit Combo-Multiplikator
-  const comboMult = 1 + (G.comboCount / 20) * (1 + G._comboBonus);
-  const power     = Math.max(1, Math.floor(getClickPower() * comboMult));
-  G.hashes      += power;
-  G.totalHashes += power;
-  G.totalClicks++;
-
-  // Button-Glow
-  const btn = document.getElementById('mine-btn');
-  btn.classList.remove('combo2', 'combo3');
-  if      (G.comboCount >= 20) btn.classList.add('combo3');
-  else if (G.comboCount >= 8)  btn.classList.add('combo2');
-
-  // Combo-Display
-  const cd = document.getElementById('combo-display');
-  if (G.comboCount >= 3) {
-    cd.textContent = 'COMBO ×' + G.comboCount + ' (+' + Math.round((comboMult - 1) * 100) + '%)';
-  } else {
-    cd.textContent = '';
-  }
-
-  // Float-Text
-  if (e) floatText(e.clientX, e.clientY, '+' + fmtNum(power) + ' H');
+function doClick(e, options) {
+  const opts = options || {};
+  if (!opts.fromHold && typeof isHoldMiningTapSuppressed === 'function' && isHoldMiningTapSuppressed()) return;
+  applyMineClick(1, e, false);
 }
 
 function buyRig(rigId, qty) {

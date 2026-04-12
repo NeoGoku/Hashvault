@@ -593,3 +593,11 @@ Original prompt: Lass uns hier weitermachen am Projekt.
     - `#mine-btn` mit `touch-action: manipulation` + iOS user-select/callout Disable.
   - Build angehoben: `20260412v3` (`index.html`, `version.json`).
   - Verifikation: `npm test` erfolgreich (Syntax + Regression Smoke).
+
+- 2026-04-12: Hold-Mining Follow-up Fixes.
+  - Problem 1: Hold-Mining hatte keine Combo-Dynamik -> jetzt nutzt Hold dieselbe Klick-/Combo-Pipeline wie Tap-Klicks.
+  - Problem 2: Tap-Klicks wurden durch sofortigen Hold-Start blockiert -> Hold startet jetzt erst nach 180ms (`HOLD_ARM_MS`), kurze Taps bleiben normale Klicks.
+  - `main.js`: Pointer-Handling auf Arm-Timer + selektives Stoppen nur bei aktivem Hold umgebaut; Touch-Fallback-Handler entfernt, die Taps unterdrueckt haben.
+  - `mining.js`: interne Funktion `applyMineClick()` eingefuehrt; `updateHoldMining()` routed jetzt darueber (inkl. Combo-Progression).
+  - Build angehoben: `20260412v4` (`index.html`, `version.json`).
+  - Verifikation: `npm test` + `npm run check:syntax` erfolgreich.
