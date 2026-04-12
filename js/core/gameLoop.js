@@ -133,6 +133,23 @@ const MARKET_BALANCE = {
 };
 window.HV_MARKET_BALANCE = MARKET_BALANCE;
 
+const EARLY_RIG_PROGRESS_BALANCE = {
+  earlyBoostMaxDay: 4,
+  earlyBoostMaxTotalRigs: 60,
+  firstRunOnly: true,
+  rigMult: {
+    usb: 1.26,
+    rpi: 1.14,
+  },
+  usbGroupBonuses: [
+    { count: 5, mult: 1.03 },
+    { count: 10, mult: 1.06 },
+    { count: 20, mult: 1.10 },
+    { count: 35, mult: 1.15 },
+  ],
+};
+window.HV_EARLY_RIG_PROGRESS_BALANCE = EARLY_RIG_PROGRESS_BALANCE;
+
 function ensureCoinReserveState() {
   if (!G.coinReserves || typeof G.coinReserves !== 'object') G.coinReserves = {};
   const defaults = COIN_UTILITY_BALANCE.reserveDefaults || {};
@@ -468,7 +485,32 @@ function getRigHps(rigId) {
   const bonuses = window.calculateRigModBonuses ? calculateRigModBonuses(mods) : { hashPerSec: 1 };
   const modMult = Number(bonuses.hashPerSec || 1);
   const powerMult = Number(G._powerPerfMult || 1);
-  return r.hps * G._hpsMult * modMult * powerMult;
+  let progressionMult = 1;
+
+  const cfg = window.HV_EARLY_RIG_PROGRESS_BALANCE || EARLY_RIG_PROGRESS_BALANCE;
+  const totalRigs = Object.values(G.rigs || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+  const day = Math.max(1, Number(G.worldDay || 1));
+  const prestigeCount = Math.max(0, Number(G.prestigeCount || 0));
+  const earlyRunAllowed = !cfg.firstRunOnly || prestigeCount <= 0;
+  const earlyWindowActive = earlyRunAllowed && day <= Number(cfg.earlyBoostMaxDay || 0) && totalRigs <= Number(cfg.earlyBoostMaxTotalRigs || 0);
+
+  if (earlyWindowActive) {
+    const baseRigMult = Number((cfg.rigMult || {})[rigId] || 1);
+    progressionMult *= Math.max(1, baseRigMult);
+  }
+
+  if (rigId === 'usb') {
+    const ownedUsb = Math.max(0, Number((G.rigs || {}).usb || 0));
+    let groupMult = 1;
+    (cfg.usbGroupBonuses || []).forEach((entry) => {
+      if (ownedUsb >= Number(entry.count || 0)) {
+        groupMult = Math.max(groupMult, Number(entry.mult || 1));
+      }
+    });
+    progressionMult *= Math.max(1, groupMult);
+  }
+
+  return r.hps * G._hpsMult * modMult * powerMult * progressionMult;
 }
 
 function getTotalHps() {

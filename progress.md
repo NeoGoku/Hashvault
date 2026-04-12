@@ -563,3 +563,13 @@ Original prompt: Lass uns hier weitermachen am Projekt.
 - 2026-04-12: Verifikation
   - `npm test` erfolgreich (Syntax + Regression Smoke).
   - Build-ID angehoben: `20260412v1` (`index.html`, `version.json`) fuer sauberes Cache-Busting.
+
+- 2026-04-12: Early-Rig-Progression patch (USB/RPi + USB-Gruppenbonus).
+  - Neue Balance-Konstante `EARLY_RIG_PROGRESS_BALANCE` in `gameLoop.js`:
+    - Early-Window: bis Tag 4 und max 60 Gesamt-Rigs.
+    - First-run-only (nur bei `prestigeCount === 0`).
+    - Softboost: USB x1.26, RPi x1.14.
+    - USB-Gruppenbonus: 5/10/20/35 => x1.03/x1.06/x1.10/x1.15.
+  - `getRigHps()` erweitert um progression multipliers (frues Spiel + USB-Cluster).
+  - Verifikation: `npm test` erfolgreich (Syntax + Regression Smoke).
+  - Build angehoben: `20260412v2` (`index.html`, `version.json`).
