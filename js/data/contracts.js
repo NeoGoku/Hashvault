@@ -13,6 +13,8 @@ const CONTRACT_TEMPLATES = [
   { name:'Pocket Profit',    desc:'Verdiene ${t} gesamt',   type:'earn',   diffMult: 6000,    reward: 1200,  difficulty:'easy' },
   { name:'Facility Tuning',  desc:'Installiere {t} Standort-Shop Items', type:'location_shop_items', diffMult: 2, reward: 1600, difficulty:'easy', fixedTarget: true },
   { name:'Research Brief',   desc:'Schliesse {t} Forschungen ab', type:'research_count', diffMult: 3, reward: 2200, difficulty:'easy', fixedTarget: true },
+  { name:'Cooling Basics',   desc:'Erreiche Cooling-Level {t}', type:'cooling_level', diffMult: 1, reward: 2400, difficulty:'easy', fixedTarget: true },
+  { name:'Ops Drill',        desc:'Treffe {t} Netz-Entscheidungen', type:'outage_responses', diffMult: 2, reward: 2500, difficulty:'easy', fixedTarget: true },
 
   // Medium
   { name:'Hash Tsunami',     desc:'Sammle {t} Hashes',      type:'hashes', diffMult: 200000,  reward: 2000,  difficulty:'medium' },
@@ -25,6 +27,8 @@ const CONTRACT_TEMPLATES = [
   { name:'Expansion Audit',  desc:'Erreiche Standort-Tier {t}', type:'location_tier', diffMult: 5, reward: 11000, difficulty:'medium', fixedTarget: true },
   { name:'Ops Upgrade',      desc:'Installiere {t} Standort-Shop Items', type:'location_shop_items', diffMult: 5, reward: 12500, difficulty:'medium', fixedTarget: true },
   { name:'Grid Discipline',  desc:'Erreiche Power-Infra Level {t}', type:'power_infra', diffMult: 5, reward: 13800, difficulty:'medium', fixedTarget: true },
+  { name:'Cooling Ladder',   desc:'Erreiche Cooling-Level {t}', type:'cooling_level', diffMult: 3, reward: 14600, difficulty:'medium', fixedTarget: true },
+  { name:'Layout Commander', desc:'Wechsle {t}x das Rig-Layout', type:'layout_switches', diffMult: 4, reward: 15200, difficulty:'medium', fixedTarget: true },
   { name:'Meta Drill',       desc:'Fuehre {t} Prestige-Durchlaeufe aus', type:'prestige_count', diffMult: 2, reward: 14200, difficulty:'medium', fixedTarget: true },
 
   // Hard
@@ -39,5 +43,7 @@ const CONTRACT_TEMPLATES = [
   { name:'Facility Overhaul',desc:'Installiere {t} Standort-Shop Items', type:'location_shop_items', diffMult: 8, reward: 58000, difficulty:'hard', fixedTarget: true },
   { name:'Research Marathon',desc:'Schliesse {t} Forschungen ab', type:'research_count', diffMult: 8, reward: 68000, difficulty:'hard', fixedTarget: true },
   { name:'Grid Sovereign',   desc:'Erreiche Power-Infra Level {t}', type:'power_infra', diffMult: 8, reward: 76000, difficulty:'hard', fixedTarget: true },
+  { name:'Thermal Architect',desc:'Erreiche Cooling-Level {t}', type:'cooling_level', diffMult: 6, reward: 79000, difficulty:'hard', fixedTarget: true },
+  { name:'Blackout Marshal', desc:'Treffe {t} Netz-Entscheidungen', type:'outage_responses', diffMult: 8, reward: 84000, difficulty:'hard', fixedTarget: true },
   { name:'Legacy Calibration',desc:'Fuehre {t} Prestige-Durchlaeufe aus', type:'prestige_count', diffMult: 4, reward: 88000, difficulty:'hard', fixedTarget: true }
 ];

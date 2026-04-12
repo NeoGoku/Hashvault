@@ -659,3 +659,30 @@ Original prompt: Lass uns hier weitermachen am Projekt.
   - `npm test` (syntax + smoke) -> erfolgreich.
 
 - Hinweis naechster Schritt: Feintuning Balancing fuer neue Systeme (Heat-Gain/Cooling-Cost/Outage-Frequenz) im Live-Playtest.
+
+- 2026-04-12: Phase 2 umgesetzt (Power-Automation + Missions-Content + Verdrahtung).
+  - Power-Automation erweitert:
+    - Cooling Auto-Profile eingefuehrt: `off`, `safe`, `balanced`, `aggressive`.
+    - Auto-Logik schaltet Cooling-Modus dynamisch nach Hitze/Last mit Hysterese (`_coolingAutoSwitchCd`) statt hektischem Flattern.
+    - Stromausfall-Autoplan eingefuehrt: `off`, `safe`, `balanced`, `greedy`.
+    - Auto-Entscheidung bei aktiven Ausfall-Events nach kurzer Reaktionszeit (6s), Plan bewertet Kosten/Perf/Crash-Risiko.
+  - Tracking/Progression erweitert:
+    - Neue persistente Zaehler: `layoutSwitchCount`, `coolingModeChanges`, `outageDecisions`.
+    - Zaehler werden bei Layoutwechsel, manuellen/automatischen Cooling-Wechseln und Ausfallentscheidungen aktualisiert.
+  - UI/UX im Power-Panel:
+    - Neue Selects + Actions: `Cooling-Auto uebernehmen` und `Ausfall-Autoplan uebernehmen`.
+    - Thermal-Card zeigt aktives Auto-Profil.
+    - Outage-Card zeigt Auto-Strategie, Auto/Manuell-Markierung bei Entscheidung und Gesamtanzahl Entscheidungen.
+  - Contracts 2.1 Content:
+    - Neue Contract-Typen in Engine integriert:
+      - `cooling_level`
+      - `layout_switches`
+      - `outage_responses`
+    - Neue Templates (easy/medium/hard) fuer die drei Typen hinzugefuegt.
+  - Save/State-Migration:
+    - Neue Felder in `DEFAULT_STATE`, `SAVE_FIELDS` und Sanitizer aufgenommen.
+    - Ausfall-Objekt speichert zusaetzlich `createdAt` und `autoResolved`.
+
+- 2026-04-12: Verifikation nach Phase 2.
+  - `npm test` erfolgreich (`check:syntax` + `check:smoke`).
+  - Build angehoben auf `20260412v9` (`index.html`, `version.json`).

@@ -42,6 +42,7 @@ const SAVE_FIELDS = [
   'locationId','locationShopPurchases','unlockedLocationTier','locationMoveBoostUntilDay',
   'dailyStreak','lastDaily','playTime','maxCombo',
   'activeResearch','researchProgress','totalRigs',
+  'layoutSwitchCount','coolingModeChanges','outageDecisions',
   // v5 additions:
   'rigTargets','rigHashPools','rigLayoutByLocation','rigHeat','rigBuildPresetSelected','totalCoinsMined',
   'recentEvents','activeEvent',
@@ -67,8 +68,8 @@ const SAVE_FIELDS = [
   'powerBatteryTier','powerBatteryCapacityKwh','powerBatteryLevelKwh',
   'powerBatteryChargeRateKw','powerBatteryDischargeRateKw','powerBatteryCycleLoss',
   'powerBatteryMode','powerBatteryGridOffsetKw',
-  'coolingInfraLevel','coolingMode','coolingPowerKw',
-  'powerOutage','powerOutageCooldown','powerOutageBuffRemaining',
+  'coolingInfraLevel','coolingMode','coolingAutoProfile','_coolingAutoSwitchCd','coolingPowerKw',
+  'powerOutage','powerOutageAutoPlan','powerOutageCooldown','powerOutageBuffRemaining',
   '_powerOutageBuffPerfMult','_powerOutageBuffPriceMult','_powerOutageBuffCapMult','_powerOutageBuffCrashMult',
   '_powerDecisionPerfMult','_powerDecisionPriceMult','_powerDecisionCapMult','_powerDecisionCrashMult',
   'dailyBillHistory','dailyLastBilledDay','dailyOpsDebt','lastDailyBill',
@@ -171,6 +172,15 @@ function sanitizeLoadedSavePayload(input) {
   out.coolingMode = coolingModes.includes(String(out.coolingMode || ''))
     ? String(out.coolingMode)
     : 'balanced';
+  const coolingProfiles = ['off', 'safe', 'balanced', 'aggressive'];
+  out.coolingAutoProfile = coolingProfiles.includes(String(out.coolingAutoProfile || ''))
+    ? String(out.coolingAutoProfile)
+    : 'balanced';
+  out._coolingAutoSwitchCd = toNum(out._coolingAutoSwitchCd, 0, 0, 600, false);
+  const outagePlans = ['off', 'safe', 'balanced', 'greedy'];
+  out.powerOutageAutoPlan = outagePlans.includes(String(out.powerOutageAutoPlan || ''))
+    ? String(out.powerOutageAutoPlan)
+    : 'balanced';
   out.powerOutageCooldown = toNum(out.powerOutageCooldown, 0, 0, 7200, false);
   out.powerOutageBuffRemaining = toNum(out.powerOutageBuffRemaining, 0, 0, 7200, false);
   out._powerOutageBuffPerfMult = toNum(out._powerOutageBuffPerfMult, 1, 0.2, 2.5, false);
@@ -186,6 +196,9 @@ function sanitizeLoadedSavePayload(input) {
   out.chips = toNum(out.chips, 0, 0, 1e8, true);
   out.modParts = toNum(out.modParts, 0, 0, 1e9, true);
   out.totalRigs = toNum(out.totalRigs, 0, 0, 1e7, true);
+  out.layoutSwitchCount = toNum(out.layoutSwitchCount, 0, 0, 1e8, true);
+  out.coolingModeChanges = toNum(out.coolingModeChanges, 0, 0, 1e8, true);
+  out.outageDecisions = toNum(out.outageDecisions, 0, 0, 1e8, true);
 
   const coinKeys = Object.keys(COIN_DATA || template.coins || { BTC:1, ETH:1, LTC:1, BNB:1 });
   out.coins = ensureObject(out.coins);
@@ -377,6 +390,8 @@ function sanitizeLoadedSavePayload(input) {
       desc: String(po.desc || ''),
       remaining: toNum(po.remaining, 0, 0, 1800, false),
       resolved: !!po.resolved,
+      createdAt: toNum(po.createdAt, Date.now(), 0, 9999999999999, false),
+      autoResolved: !!po.autoResolved,
       choiceId: String(po.choiceId || ''),
       choiceLabel: String(po.choiceLabel || ''),
       choiceText: String(po.choiceText || ''),

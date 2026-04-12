@@ -733,7 +733,11 @@ function setRigLayoutForCurrentLocation(layoutId) {
     return;
   }
   if (!G.rigLayoutByLocation || typeof G.rigLayoutByLocation !== 'object') G.rigLayoutByLocation = {};
+  const prevLayout = String(G.rigLayoutByLocation[location.id] || '');
   G.rigLayoutByLocation[location.id] = layout.id;
+  if (prevLayout !== layout.id) {
+    G.layoutSwitchCount = Math.max(0, Number(G.layoutSwitchCount || 0)) + 1;
+  }
   if (typeof computeLocationEffects === 'function') computeLocationEffects();
   if (typeof computeMultipliers === 'function') computeMultipliers();
   notify('🧱 Rig-Layout aktiv: ' + layout.name, 'success');
@@ -760,8 +764,42 @@ function upgradeCoolingInfra() {
 function setCoolingMode(modeId) {
   const meta = (typeof window.getCoolingModeMeta === 'function') ? getCoolingModeMeta(modeId) : null;
   if (!meta) return;
-  G.coolingMode = String(modeId || 'balanced');
+  const nextMode = String(modeId || 'balanced');
+  if (String(G.coolingMode || 'balanced') === nextMode) return;
+  G.coolingMode = nextMode;
+  G.coolingModeChanges = Math.max(0, Number(G.coolingModeChanges || 0)) + 1;
+  G._coolingAutoSwitchCd = Math.max(0, Number((window.HV_POWER_AUTOMATION_BALANCE && window.HV_POWER_AUTOMATION_BALANCE.coolingSwitchCdSec) || 18));
   notify('❄️ Cooling-Modus: ' + (meta.label || G.coolingMode), 'success');
+  if (typeof renderPowerPanel === 'function') renderPowerPanel();
+}
+
+function setCoolingAutoProfile(profileId) {
+  const allowed = ['off', 'safe', 'balanced', 'aggressive'];
+  const next = String(profileId || 'balanced');
+  if (!allowed.includes(next)) return;
+  G.coolingAutoProfile = next;
+  const labels = {
+    off: 'Aus',
+    safe: 'Sicher',
+    balanced: 'Balanced',
+    aggressive: 'Aggressiv Sparen',
+  };
+  notify('🤖 Cooling-Auto-Profil: ' + (labels[next] || next), 'success');
+  if (typeof renderPowerPanel === 'function') renderPowerPanel();
+}
+
+function setPowerOutageAutoPlan(planId) {
+  const allowed = ['off', 'safe', 'balanced', 'greedy'];
+  const next = String(planId || 'balanced');
+  if (!allowed.includes(next)) return;
+  G.powerOutageAutoPlan = next;
+  const labels = {
+    off: 'Manuell',
+    safe: 'Safety',
+    balanced: 'Balanced',
+    greedy: 'Durchsatz',
+  };
+  notify('⚡ Ausfall-Autoplan: ' + (labels[next] || next), 'success');
   if (typeof renderPowerPanel === 'function') renderPowerPanel();
 }
 
@@ -1123,6 +1161,18 @@ function handlePowerAction(action) {
     setCoolingMode(select.value);
     return;
   }
+  if (action === 'coolauto') {
+    const select = document.getElementById('power-cooling-auto-select');
+    if (!select) return;
+    setCoolingAutoProfile(select.value);
+    return;
+  }
+  if (action === 'outageplan') {
+    const select = document.getElementById('power-outage-plan-select');
+    if (!select) return;
+    setPowerOutageAutoPlan(select.value);
+    return;
+  }
   if (action === 'layout') {
     const select = document.getElementById('power-layout-select');
     if (!select) return;
@@ -1336,7 +1386,17 @@ function init() {
   if (!Number.isFinite(G.powerBatteryGridOffsetKw)) G.powerBatteryGridOffsetKw = 0;
   if (!Number.isFinite(G.coolingInfraLevel) || G.coolingInfraLevel < 0) G.coolingInfraLevel = 0;
   if (typeof G.coolingMode !== 'string' || !['eco', 'balanced', 'turbo'].includes(G.coolingMode)) G.coolingMode = 'balanced';
+  if (typeof G.coolingAutoProfile !== 'string' || !['off', 'safe', 'balanced', 'aggressive'].includes(G.coolingAutoProfile)) {
+    G.coolingAutoProfile = 'balanced';
+  }
+  if (!Number.isFinite(G._coolingAutoSwitchCd) || G._coolingAutoSwitchCd < 0) G._coolingAutoSwitchCd = 0;
   if (!Number.isFinite(G.coolingPowerKw) || G.coolingPowerKw < 0) G.coolingPowerKw = 0;
+  if (typeof G.powerOutageAutoPlan !== 'string' || !['off', 'safe', 'balanced', 'greedy'].includes(G.powerOutageAutoPlan)) {
+    G.powerOutageAutoPlan = 'balanced';
+  }
+  if (!Number.isFinite(G.layoutSwitchCount) || G.layoutSwitchCount < 0) G.layoutSwitchCount = 0;
+  if (!Number.isFinite(G.coolingModeChanges) || G.coolingModeChanges < 0) G.coolingModeChanges = 0;
+  if (!Number.isFinite(G.outageDecisions) || G.outageDecisions < 0) G.outageDecisions = 0;
   if (!Number.isFinite(G.powerOutageCooldown) || G.powerOutageCooldown < 0) G.powerOutageCooldown = 0;
   if (!Number.isFinite(G.powerOutageBuffRemaining) || G.powerOutageBuffRemaining < 0) G.powerOutageBuffRemaining = 0;
   if (!Number.isFinite(G._powerOutageBuffPerfMult) || G._powerOutageBuffPerfMult <= 0) G._powerOutageBuffPerfMult = 1;

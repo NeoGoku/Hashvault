@@ -67,6 +67,9 @@ const DEFAULT_STATE = {
   maxCombo:        0,
   totalRigs:       0,
   totalCoinsMined: 0,  // Gesamt-Coins für Achievements
+  layoutSwitchCount: 0,
+  coolingModeChanges: 0,
+  outageDecisions: 0,
 
   // Research — Slot 1
   activeResearch:   null,
@@ -167,8 +170,11 @@ const DEFAULT_STATE = {
   powerBatteryGridOffsetKw: 0,
   coolingInfraLevel: 0,
   coolingMode: 'balanced',
+  coolingAutoProfile: 'balanced',
+  _coolingAutoSwitchCd: 0,
   coolingPowerKw: 0,
   powerOutage: null,
+  powerOutageAutoPlan: 'balanced',
   powerOutageCooldown: 0,
   powerOutageBuffRemaining: 0,
   _powerOutageBuffPerfMult: 1,

@@ -9,7 +9,7 @@
 <title>HashVault Pro</title>
 <script>
 (function() {
-  const BUILD_ID = '20260412v8';
+  const BUILD_ID = '20260412v9';
   const BUILD_KEY = '__hv_build_id';
   const prevBuild = localStorage.getItem(BUILD_KEY);
   const isNewBuild = prevBuild !== BUILD_ID;
@@ -325,7 +325,14 @@
           <option value="balanced">Balanced</option>
           <option value="turbo">Turbo</option>
         </select>
+        <select id="power-cooling-auto-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);">
+          <option value="off">Cooling Auto: Aus</option>
+          <option value="safe">Cooling Auto: Sicher</option>
+          <option value="balanced">Cooling Auto: Balanced</option>
+          <option value="aggressive">Cooling Auto: Aggressiv Sparen</option>
+        </select>
         <button class="buy-btn" data-power-action="coolmode" type="button">Cooling-Modus uebernehmen</button>
+        <button class="buy-btn" data-power-action="coolauto" type="button">Cooling-Auto uebernehmen</button>
         <button class="buy-btn" data-power-action="coolingupg" type="button" style="background:linear-gradient(135deg,#2f86c9,#21588b);">Cooling-Ausbau</button>
       </div>
     </div>
@@ -333,6 +340,15 @@
     <div class="power-card">
       <h3>🚨 Stromausfall-Entscheidung</h3>
       <div id="power-outage-info" class="power-list"></div>
+      <div class="power-actions" style="margin-top:8px;">
+        <select id="power-outage-plan-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);">
+          <option value="off">Ausfall-Autoplan: Manuell</option>
+          <option value="safe">Ausfall-Autoplan: Safety</option>
+          <option value="balanced">Ausfall-Autoplan: Balanced</option>
+          <option value="greedy">Ausfall-Autoplan: Durchsatz</option>
+        </select>
+        <button class="buy-btn" data-power-action="outageplan" type="button">Autoplan uebernehmen</button>
+      </div>
       <div id="power-outage-actions" class="power-actions" style="margin-top:8px;"></div>
     </div>
 

@@ -1150,6 +1150,20 @@ function updatePowerActionButtons() {
     btn.title = 'Eco spart Strom, Turbo kuehlt aggressiver.';
     btn.disabled = !coolingMode || String(coolingMode) === String(G.coolingMode || 'balanced');
   });
+  const coolingAutoSelect = document.getElementById('power-cooling-auto-select');
+  const coolingAutoProfile = coolingAutoSelect ? coolingAutoSelect.value : String(G.coolingAutoProfile || 'balanced');
+  document.querySelectorAll('[data-power-action="coolauto"]').forEach((btn) => {
+    btn.textContent = 'Cooling-Auto uebernehmen';
+    btn.title = 'Auto-Profil schaltet den Cooling-Modus je nach Hitze und Last.';
+    btn.disabled = !coolingAutoProfile || String(coolingAutoProfile) === String(G.coolingAutoProfile || 'balanced');
+  });
+  const outagePlanSelect = document.getElementById('power-outage-plan-select');
+  const outagePlan = outagePlanSelect ? outagePlanSelect.value : String(G.powerOutageAutoPlan || 'balanced');
+  document.querySelectorAll('[data-power-action="outageplan"]').forEach((btn) => {
+    btn.textContent = 'Autoplan uebernehmen';
+    btn.title = 'Safety priorisiert Stabilitaet, Durchsatz priorisiert H/s.';
+    btn.disabled = !outagePlan || String(outagePlan) === String(G.powerOutageAutoPlan || 'balanced');
+  });
 
   const locSelect = document.getElementById('power-location-select');
   const selectedLocId = locSelect ? locSelect.value : '';
@@ -1446,6 +1460,7 @@ function renderPowerPanel() {
     thermalInfo.innerHTML = `
       <div class="power-row"><span>Cooling Level</span><strong>${fmtNum(G.coolingInfraLevel || 0, 0)}</strong></div>
       <div class="power-row"><span>Cooling-Modus</span><strong>${summary.coolingMode || 'Balanced'}</strong></div>
+      <div class="power-row"><span>Cooling Auto</span><strong>${String(G.coolingAutoProfile || 'balanced')}</strong></div>
       <div class="power-row"><span>Cooling-Leistung</span><strong>${fmtNum(summary.coolingPowerKw || 0, 2)} kW</strong></div>
       <div class="power-row"><span>Avg Hitze</span><strong>${fmtNum(summary.avgHeat || 0, 1)}%</strong></div>
       <div class="power-row"><span>Max Hitze</span><strong>${fmtNum(summary.maxHeat || 0, 1)}%</strong></div>
@@ -1465,6 +1480,42 @@ function renderPowerPanel() {
       coolingModeSelect.value = modes[prev] ? prev : String(G.coolingMode || 'balanced');
     }
   }
+  const coolingAutoSelect = document.getElementById('power-cooling-auto-select');
+  if (coolingAutoSelect) {
+    const isEditingAuto = document.activeElement === coolingAutoSelect;
+    if (!isEditingAuto) {
+      const prev = coolingAutoSelect.value || String(G.coolingAutoProfile || 'balanced');
+      const opts = [
+        { id: 'off', label: 'Cooling Auto: Aus' },
+        { id: 'safe', label: 'Cooling Auto: Sicher' },
+        { id: 'balanced', label: 'Cooling Auto: Balanced' },
+        { id: 'aggressive', label: 'Cooling Auto: Aggressiv Sparen' },
+      ];
+      coolingAutoSelect.innerHTML = opts.map((opt) => (
+        '<option value="' + opt.id + '">' + opt.label + '</option>'
+      )).join('');
+      const fallback = opts.some((x) => x.id === prev) ? prev : String(G.coolingAutoProfile || 'balanced');
+      coolingAutoSelect.value = fallback;
+    }
+  }
+  const outagePlanSelect = document.getElementById('power-outage-plan-select');
+  if (outagePlanSelect) {
+    const isEditingPlan = document.activeElement === outagePlanSelect;
+    if (!isEditingPlan) {
+      const prev = outagePlanSelect.value || String(G.powerOutageAutoPlan || 'balanced');
+      const opts = [
+        { id: 'off', label: 'Ausfall-Autoplan: Manuell' },
+        { id: 'safe', label: 'Ausfall-Autoplan: Safety' },
+        { id: 'balanced', label: 'Ausfall-Autoplan: Balanced' },
+        { id: 'greedy', label: 'Ausfall-Autoplan: Durchsatz' },
+      ];
+      outagePlanSelect.innerHTML = opts.map((opt) => (
+        '<option value="' + opt.id + '">' + opt.label + '</option>'
+      )).join('');
+      const fallback = opts.some((x) => x.id === prev) ? prev : String(G.powerOutageAutoPlan || 'balanced');
+      outagePlanSelect.value = fallback;
+    }
+  }
 
   const outageInfo = document.getElementById('power-outage-info');
   const outageActions = document.getElementById('power-outage-actions');
@@ -1473,13 +1524,15 @@ function renderPowerPanel() {
     if (!outage) {
       outageInfo.innerHTML = `
         <div class="power-row"><span>Status</span><strong>Stabil</strong></div>
+        <div class="power-row"><span>Auto-Strategie</span><strong>${String(G.powerOutageAutoPlan || 'balanced')}</strong></div>
         <div class="power-row"><span>Naechster Moeglicher Ausfall</span><strong>${fmtTime(Math.max(0, Number(G.powerOutageCooldown || 0)))}</strong></div>
-        <div class="power-row"><span>Aktiver Krisenbuff</span><strong>${Number(G.powerOutageBuffRemaining || 0) > 0 ? fmtTime(G.powerOutageBuffRemaining) : 'Keiner'}</strong></div>`;
+        <div class="power-row"><span>Aktiver Krisenbuff</span><strong>${Number(G.powerOutageBuffRemaining || 0) > 0 ? fmtTime(G.powerOutageBuffRemaining) : 'Keiner'}</strong></div>
+        <div class="power-row"><span>Entscheidungen gesamt</span><strong>${fmtNum(G.outageDecisions || 0, 0)}</strong></div>`;
       outageActions.innerHTML = '';
     } else if (outage.resolved) {
       outageInfo.innerHTML = `
         <div class="power-row"><span>Event</span><strong>${outage.title}</strong></div>
-        <div class="power-row"><span>Entscheidung</span><strong>${outage.choiceLabel || 'Auto-Plan'}</strong></div>
+        <div class="power-row"><span>Entscheidung</span><strong>${outage.choiceLabel || 'Auto-Plan'} ${outage.autoResolved ? '(auto)' : ''}</strong></div>
         <div class="power-row"><span>Effekt Restzeit</span><strong>${fmtTime(Math.max(0, Number(G.powerOutageBuffRemaining || 0)))}</strong></div>
         <div class="power-row"><span>Panel schliesst in</span><strong>${fmtTime(Math.max(0, Number(outage.remaining || 0)))}</strong></div>`;
       outageActions.innerHTML = '';
@@ -1488,6 +1541,7 @@ function renderPowerPanel() {
       outageInfo.innerHTML = `
         <div class="power-row"><span>Event</span><strong>${outage.title}</strong></div>
         <div class="power-row"><span>Beschreibung</span><strong>${outage.desc || '-'}</strong></div>
+        <div class="power-row"><span>Auto-Strategie</span><strong>${String(G.powerOutageAutoPlan || 'balanced')}</strong></div>
         <div class="power-row"><span>Restzeit</span><strong>${fmtTime(Math.max(0, Number(outage.remaining || 0)))}</strong></div>
         <div class="power-row"><span>Perf / Cap</span><strong>x${fmtNum(penalties.perfMult || 1, 2)} / x${fmtNum(penalties.capMult || 1, 2)}</strong></div>
         <div class="power-row"><span>Preis / Crash</span><strong>x${fmtNum(penalties.priceMult || 1, 2)} / x${fmtNum(penalties.crashMult || 1, 2)}</strong></div>`;

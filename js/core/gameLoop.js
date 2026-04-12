@@ -222,6 +222,12 @@ const COOLING_BALANCE = {
 };
 window.HV_COOLING_BALANCE = COOLING_BALANCE;
 
+const POWER_AUTOMATION_BALANCE = {
+  coolingSwitchCdSec: 18,
+  outageAutoDelaySec: 6,
+};
+window.HV_POWER_AUTOMATION_BALANCE = POWER_AUTOMATION_BALANCE;
+
 const POWER_OUTAGE_EVENTS = [
   {
     id: 'transformer_trip',
@@ -877,6 +883,11 @@ function ensureRigHeatState() {
   if (!G.rigHeat || typeof G.rigHeat !== 'object') G.rigHeat = {};
   if (!Number.isFinite(G.coolingInfraLevel) || Number(G.coolingInfraLevel) < 0) G.coolingInfraLevel = 0;
   if (typeof G.coolingMode !== 'string' || !((COOLING_BALANCE.modes || {})[G.coolingMode])) G.coolingMode = 'balanced';
+  const autoProfiles = ['off', 'safe', 'balanced', 'aggressive'];
+  if (typeof G.coolingAutoProfile !== 'string' || !autoProfiles.includes(G.coolingAutoProfile)) {
+    G.coolingAutoProfile = 'balanced';
+  }
+  if (!Number.isFinite(G._coolingAutoSwitchCd) || Number(G._coolingAutoSwitchCd) < 0) G._coolingAutoSwitchCd = 0;
   if (!Number.isFinite(G.coolingPowerKw) || Number(G.coolingPowerKw) < 0) G.coolingPowerKw = 0;
   (RIGS || []).forEach((rig) => {
     const current = Number((G.rigHeat || {})[rig.id]);
@@ -948,7 +959,52 @@ function getRigHeatSummary() {
 }
 window.getRigHeatSummary = getRigHeatSummary;
 
+function updateCoolingAutomation(dt) {
+  ensureRigHeatState();
+  const profile = String(G.coolingAutoProfile || 'balanced');
+  if (profile === 'off') return;
+
+  const safeDt = Math.max(0, Number(dt || 0));
+  if (safeDt <= 0) return;
+  G._coolingAutoSwitchCd = Math.max(0, Number(G._coolingAutoSwitchCd || 0) - safeDt);
+  if (Number(G._coolingAutoSwitchCd || 0) > 0) return;
+
+  const summary = getRigHeatSummary();
+  const maxHeat = Math.max(0, Number(summary.maxHeat || 0));
+  const avgHeat = Math.max(0, Number(summary.avgHeat || 0));
+  const load = Math.max(0, Number(G._powerLoadRatio || 0));
+
+  let target = String(G.coolingMode || 'balanced');
+  if (profile === 'safe') {
+    if (maxHeat >= 82 || Number(summary.criticalCount || 0) > 0) target = 'turbo';
+    else if (maxHeat <= 44 && load < 0.78) target = 'eco';
+    else target = 'balanced';
+  } else if (profile === 'aggressive') {
+    if (maxHeat >= 90 || Number(summary.criticalCount || 0) > 0) target = 'turbo';
+    else if (maxHeat <= 60 && avgHeat <= 52) target = 'eco';
+    else target = 'balanced';
+  } else {
+    if (maxHeat >= 86 || Number(summary.criticalCount || 0) > 0) target = 'turbo';
+    else if (maxHeat <= 48 && load < 0.74) target = 'eco';
+    else target = 'balanced';
+  }
+
+  if (target === String(G.coolingMode || 'balanced')) return;
+  if (!((COOLING_BALANCE.modes || {})[target])) return;
+
+  G.coolingMode = target;
+  G.coolingModeChanges = Math.max(0, Number(G.coolingModeChanges || 0)) + 1;
+  G._coolingAutoSwitchCd = Math.max(6, Number(POWER_AUTOMATION_BALANCE.coolingSwitchCdSec || 18));
+  const modeLabel = getCoolingModeMeta(target).label || target;
+  notify('🤖 Cooling-Auto: Modus auf ' + modeLabel + ' gesetzt.', 'success');
+}
+
 function ensurePowerOutageState() {
+  const plans = ['off', 'safe', 'balanced', 'greedy'];
+  if (typeof G.powerOutageAutoPlan !== 'string' || !plans.includes(G.powerOutageAutoPlan)) {
+    G.powerOutageAutoPlan = 'balanced';
+  }
+  if (!Number.isFinite(G.outageDecisions) || Number(G.outageDecisions) < 0) G.outageDecisions = 0;
   if (!Number.isFinite(G.powerOutageCooldown) || Number(G.powerOutageCooldown) < 0) G.powerOutageCooldown = 0;
   if (!Number.isFinite(G.powerOutageBuffRemaining) || Number(G.powerOutageBuffRemaining) < 0) G.powerOutageBuffRemaining = 0;
   if (!Number.isFinite(G._powerOutageBuffPerfMult) || Number(G._powerOutageBuffPerfMult) <= 0) G._powerOutageBuffPerfMult = 1;
@@ -969,6 +1025,8 @@ function ensurePowerOutageState() {
     po.choiceId = String(po.choiceId || '');
     po.choiceLabel = String(po.choiceLabel || '');
     po.choiceText = String(po.choiceText || '');
+    po.createdAt = Number.isFinite(Number(po.createdAt)) ? Number(po.createdAt) : Date.now();
+    po.autoResolved = !!po.autoResolved;
     po.options = Array.isArray(po.options) ? po.options : [];
     po.penalties = (po.penalties && typeof po.penalties === 'object') ? po.penalties : {};
   } else {
@@ -989,6 +1047,8 @@ function spawnPowerOutageEvent() {
     desc: String(tpl.desc || ''),
     remaining: Math.max(20, Number(tpl.duration || 80)),
     resolved: false,
+    createdAt: Date.now(),
+    autoResolved: false,
     choiceId: '',
     choiceLabel: '',
     choiceText: '',
@@ -1018,6 +1078,44 @@ function spawnPowerOutageEvent() {
   return true;
 }
 window.spawnPowerOutageEvent = spawnPowerOutageEvent;
+
+function pickPowerOutageOptionByPlan(planId, options) {
+  const plan = String(planId || 'balanced');
+  const list = Array.isArray(options) ? options : [];
+  if (!list.length) return null;
+
+  const usdBase = Math.max(1, Number(G.usd || 1));
+  const btcBase = Math.max(0.001, Number(((G.coins || {}).BTC) || 0.001));
+  let best = null;
+  let bestScore = -Infinity;
+
+  list.forEach((opt) => {
+    if (!opt) return;
+    const fx = opt.effect || {};
+    const perf = Math.max(0.2, Number(fx.perfMult || 1));
+    const cap = Math.max(0.2, Number(fx.capMult || 1));
+    const crash = Math.max(0.2, Number(fx.crashMult || 1));
+    const price = Math.max(0.2, Number(fx.priceMult || 1));
+    const usdCost = Math.max(0, Number(opt.costUsd || 0));
+    const btcCost = Math.max(0, Number(opt.costBtc || 0));
+    const costScore = usdCost / usdBase + btcCost / btcBase;
+    let score = 0;
+
+    if (plan === 'safe') {
+      score = (1 / crash) * 2.1 + cap * 0.6 + perf * 0.35 - price * 0.18 - costScore * 0.55;
+    } else if (plan === 'greedy') {
+      score = perf * 2.0 + cap * 0.75 + (1 / crash) * 0.2 - price * 0.06 - costScore * 0.15;
+    } else {
+      score = perf * 1.25 + cap * 0.78 + (1 / crash) * 0.9 - price * 0.28 - costScore * 0.38;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = opt;
+    }
+  });
+  return best;
+}
 
 function resolvePowerOutageOption(optionId, silentAuto) {
   ensurePowerOutageState();
@@ -1060,11 +1158,13 @@ function resolvePowerOutageOption(optionId, silentAuto) {
   G.powerOutageBuffRemaining = Math.max(0, Number(option.duration || 120));
 
   G.powerOutage.resolved = true;
+  G.powerOutage.autoResolved = !!silentAuto;
   G.powerOutage.choiceId = option.id;
   G.powerOutage.choiceLabel = option.label;
   G.powerOutage.choiceText = option.desc || '';
   G.powerOutage.remaining = 12;
   G.powerOutageCooldown = 220 + Math.random() * 180;
+  G.outageDecisions = Math.max(0, Number(G.outageDecisions || 0)) + 1;
 
   const summary = '⚙️ Krisenoption: ' + option.label + (usdCost > 0 || btcCost > 0
     ? (' (-$' + fmtNum(usdCost, 0) + (btcCost > 0 ? ', -₿' + fmtNum(btcCost, 4) : '') + ')')
@@ -1094,6 +1194,17 @@ function updatePowerOutageDecision(dt) {
   }
 
   if (G.powerOutage && typeof G.powerOutage === 'object') {
+    if (!G.powerOutage.resolved) {
+      const autoPlan = String(G.powerOutageAutoPlan || 'balanced');
+      if (autoPlan !== 'off') {
+        const ageSec = Math.max(0, (Date.now() - Number(G.powerOutage.createdAt || Date.now())) / 1000);
+        const autoDelay = Math.max(2, Number(POWER_AUTOMATION_BALANCE.outageAutoDelaySec || 6));
+        if (ageSec >= autoDelay) {
+          const autoPick = pickPowerOutageOptionByPlan(autoPlan, G.powerOutage.options);
+          if (autoPick) resolvePowerOutageOption(autoPick.id, true);
+        }
+      }
+    }
     G.powerOutage.remaining = Math.max(0, Number(G.powerOutage.remaining || 0) - safeDt);
     if (!G.powerOutage.resolved && G.powerOutage.remaining <= 0) {
       const fallback = (G.powerOutage.options || []).find((opt) => String(opt.id || '').includes('load'))
@@ -1180,6 +1291,7 @@ function updateThermalSystem(dt) {
   G.coolingPowerKw = totalRigs > 0
     ? (baseCoolingPower + coolingPowerLevel) * Math.max(0.5, Number(modeMeta.powerMult || 1)) * (1 + thermalPressure * 0.65)
     : 0;
+  updateCoolingAutomation(safeDt);
 }
 
 function refreshUnlockedLocationTier() {
