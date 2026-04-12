@@ -874,3 +874,17 @@ Original prompt: Lass uns hier weitermachen am Projekt.
   - Build angehoben:
     - `index.html` BUILD_ID -> `20260412v18`
     - `version.json` buildId -> `20260412v18`
+
+- 2026-04-12: Loader/Caching hart auf Build-Konsistenz gestellt.
+  - `index.html` exportiert jetzt `window.__HV_BUILD_ID`.
+  - `boot.js` nutzt dieselbe Build-ID fuer alle nachgeladenen Module.
+  - Alle dynamisch geladenen Assets tragen jetzt:
+    - `v=<buildId>`
+    - `sv=<sessionToken>`
+    - bei No-Store-Loads zusaetzlich `ts=<timestamp>`
+  - Ziel:
+    - kein Mix aus altem HTML und alten/neuen Modulen
+    - pro Session immer ein konsistenter aktueller Build
+  - Build angehoben:
+    - `index.html` BUILD_ID -> `20260412v19`
+    - `version.json` buildId -> `20260412v19`

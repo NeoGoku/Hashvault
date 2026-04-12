@@ -5,7 +5,8 @@
 
 window.HV_BOOT_MANAGED = true;
 
-const BOOT_ASSET_VERSION = '20260401v2';
+const BOOT_ASSET_VERSION = String(window.__HV_BUILD_ID || '20260412v19');
+const BOOT_SESSION_TOKEN = String(window.__HV_BUST || (BOOT_ASSET_VERSION + '-session'));
 const BOOT_SLOT_COUNT = 3;
 const BOOT_META_KEY = 'hashvault_slots_meta_v1';
 const BOOT_ACTIVE_SLOT_KEY = 'hashvault_active_slot';
@@ -200,9 +201,11 @@ function loadScript(src) {
 }
 
 function assetUrl(path, noStore) {
-  const token = BOOT_ASSET_VERSION + '-' + Date.now() + '-' + Math.floor(Math.random() * 100000);
-  if (noStore) return path + '?v=' + encodeURIComponent(token);
-  return path + '?v=' + encodeURIComponent(BOOT_ASSET_VERSION);
+  const sep = path.includes('?') ? '&' : '?';
+  const versionPart = 'v=' + encodeURIComponent(BOOT_ASSET_VERSION);
+  const sessionPart = 'sv=' + encodeURIComponent(BOOT_SESSION_TOKEN);
+  if (noStore) return path + sep + versionPart + '&' + sessionPart + '&ts=' + encodeURIComponent(String(Date.now()));
+  return path + sep + versionPart + '&' + sessionPart;
 }
 
 function markBootOpDone() {

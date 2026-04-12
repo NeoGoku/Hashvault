@@ -9,7 +9,7 @@
 <title>HashVault Pro</title>
 <script>
 (function() {
-  const BUILD_ID = '20260412v18';
+  const BUILD_ID = '20260412v19';
   const BUILD_KEY = '__hv_build_id';
   const prevBuild = localStorage.getItem(BUILD_KEY);
   const isNewBuild = prevBuild !== BUILD_ID;
@@ -55,6 +55,7 @@
     .catch(() => {});
 
   const bust = BUILD_ID + '-' + Date.now();
+  window.__HV_BUILD_ID = BUILD_ID;
   const styles = [
     'css/base.css',
     'css/layout.css',
