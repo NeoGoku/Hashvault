@@ -1102,22 +1102,37 @@ function renderTutorialBox() {
   const targetReady = !!(target && target.kind === 'target' && target.el);
   const targetLabel = guide.focusLabel || (target && target.label) || 'Naechster Bereich';
   const areaLabel = guide.area || formatTutorialTab(guide.tab);
+  const explain = getTutorialExplain(step, guide, idx, steps.length, targetReady, targetLabel, areaLabel);
   const actionText = targetReady
     ? ('Jetzt hier arbeiten: ' + targetLabel)
     : ('Wechsle zuerst in den Bereich ' + areaLabel + '.');
   if (guideBox) {
     guideBox.classList.add('show');
     guideBox.innerHTML = `
+      <div class="tutorial-progress"><div class="tutorial-progress-fill" style="width:${(((idx + 1) / Math.max(1, steps.length)) * 100).toFixed(2)}%"></div></div>
       <div class="tutorial-guide-top">
         <div class="tutorial-chip">📘 Tutorial ${idx + 1}/${steps.length}</div>
         <div class="tutorial-chip">${areaLabel}</div>
       </div>
       <div class="tutorial-guide-title">${step.title}</div>
       <div class="tutorial-guide-desc">${step.desc}</div>
+      <div class="tutorial-guide-section">
+        <div class="tutorial-guide-label">Was ist das?</div>
+        <div class="tutorial-guide-copy">${explain.what}</div>
+      </div>
+      <div class="tutorial-guide-section">
+        <div class="tutorial-guide-label">Warum jetzt?</div>
+        <div class="tutorial-guide-copy">${explain.why}</div>
+      </div>
       <div class="tutorial-guide-action">${guide.cta || actionText}</div>
+      <div class="tutorial-guide-section tutorial-guide-section-soft">
+        <div class="tutorial-guide-label">Erledigt, wenn</div>
+        <div class="tutorial-guide-copy">${explain.doneWhen}</div>
+      </div>
       <div class="tutorial-guide-meta">
         <div>Ziel: <strong>${targetLabel}</strong></div>
         <div>Status: <strong>${targetReady ? 'markiert' : 'Bereich wechseln'}</strong></div>
+        <div>Naechster Klick: <strong>${explain.nextClick}</strong></div>
       </div>
       <div class="tutorial-guide-actions">
         <button class="tutorial-mini-btn primary" type="button" onclick="jumpToTutorialTarget()">${targetReady ? 'Zum Ziel scrollen' : 'Zum Bereich springen'}</button>
@@ -1197,6 +1212,65 @@ function formatTutorialTab(tab) {
 
 function getTutorialGuide(stepId) {
   return TUTORIAL_GUIDE_MAP[String(stepId || '')] || { tab: 'mine', selector: '#mine-btn', area: 'Mine', focusLabel: 'Mine', cta: 'Arbeite den aktuellen Tutorial-Schritt im markierten Bereich ab.' };
+}
+
+function getTutorialAreaExplainer(area) {
+  const key = String(area || '').toLowerCase();
+  if (key === 'mine') return {
+    what: 'Hier erzeugst du aktiv Hashes und kaufst neue Rigs fuer passives Einkommen.',
+    why: 'Das ist dein Startpunkt. Ohne Hashes, Cash und erste Rigs kommt der Rest des Spiels nicht ins Rollen.',
+  };
+  if (key === 'market' || key === 'economy') return {
+    what: 'Hier verwandelst du geminte Coins in Cash und stellst Auto-Sell ein.',
+    why: 'Cash ist deine Hauptwaehrung fuer Ausbau, Upgrades, Forschung und Infrastruktur.',
+  };
+  if (key === 'upgrades') return {
+    what: 'Hier kaufst du dauerhafte Verbesserungen fuer Klicks, Rigs und Multiplikatoren.',
+    why: 'Upgrades sorgen dafuer, dass du nicht nur breiter, sondern auch effizienter skalierst.',
+  };
+  if (key === 'research') return {
+    what: 'Hier schaltest du langfristige Tech-Fortschritte frei.',
+    why: 'Research oeffnet neue Systeme und macht spaetere Skalierung deutlich effizienter.',
+  };
+  if (key === 'staff') return {
+    what: 'Hier stellst du Kernpersonal fuer Handel, Entwicklung und Operations ein.',
+    why: 'Core-Staff bringt permanente Betriebsboni und ist fuer Midgame-Stabilitaet wichtig.',
+  };
+  if (key === 'rig crew') return {
+    what: 'Hier verwaltest du Technik-Teams, die konkrete Rig-Typen betreuen.',
+    why: 'Crew stabilisiert Haltbarkeit, Wartung und Performance deiner Mining-Flotte.',
+  };
+  if (key === 'power' || key === 'power mods') return {
+    what: 'Hier steuerst du Stromnetz, Hitze, Last, Akku und Grid-Automation.',
+    why: 'Ohne saubere Power-Planung bremsen Stromgrenze, Hitze und Ausfaelle dein Wachstum aus.',
+  };
+  if (key === 'standort' || key === 'post-prestige') return {
+    what: 'Hier wechselst du in groessere Gebaeude und kaufst Standort-Boni.',
+    why: 'Mehr Platz und Standort-Boni sind noetig, damit deine Farm ueberhaupt weiter wachsen kann.',
+  };
+  if (key === 'missionen' || key === 'meta-ziele') return {
+    what: 'Hier findest du kurzfristige Aufgaben, Daily Challenges, Story-Ziele und Claims.',
+    why: 'Missionen geben dir Richtung, Belohnungen und eine sinnvolle Priorisierung deiner naechsten Schritte.',
+  };
+  if (key === 'prestige') return {
+    what: 'Hier setzt du einen Run kontrolliert zurueck und startest mit Meta-Boni neu.',
+    why: 'Prestige ist der Sprung ins spaetere Spiel. Ein guter Reset beschleunigt alle weiteren Runs.',
+  };
+  return {
+    what: 'Dieser Bereich gehoert zum aktuellen Tutorial-Schritt.',
+    why: 'Hier liegt gerade dein sinnvollster Fortschritt.',
+  };
+}
+
+function getTutorialExplain(step, guide, idx, total, targetReady, targetLabel, areaLabel) {
+  const areaInfo = getTutorialAreaExplainer(areaLabel);
+  return {
+    what: guide.what || areaInfo.what,
+    why: guide.why || areaInfo.why,
+    doneWhen: guide.doneWhen || step.desc,
+    nextClick: targetReady ? targetLabel : ('Reiter ' + areaLabel),
+    stepOf: 'Schritt ' + (idx + 1) + ' von ' + total,
+  };
 }
 
 function resolveTutorialTarget(guide) {

@@ -862,3 +862,15 @@ Original prompt: Lass uns hier weitermachen am Projekt.
   - Build angehoben:
     - `index.html` BUILD_ID -> `20260412v17`
     - `version.json` buildId -> `20260412v17`
+
+- 2026-04-12: Tutorial-Fuehrung inhaltlich geschaerft.
+  - Guide-Karte zeigt jetzt nicht nur Zieltext, sondern:
+    - `Was ist das?`
+    - `Warum jetzt?`
+    - `Erledigt, wenn`
+    - `Naechster Klick`
+  - Progress-Bar oben in der Guide-Karte ergaenzt.
+  - Tutorial fuehlt sich damit weniger wie Questlog und mehr wie eine gefuehrte Einfuehrung an.
+  - Build angehoben:
+    - `index.html` BUILD_ID -> `20260412v18`
+    - `version.json` buildId -> `20260412v18`
