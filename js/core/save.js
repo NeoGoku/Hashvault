@@ -43,7 +43,7 @@ const SAVE_FIELDS = [
   'dailyStreak','lastDaily','playTime','maxCombo',
   'activeResearch','researchProgress','totalRigs',
   // v5 additions:
-  'rigTargets','totalCoinsMined',
+  'rigTargets','rigHashPools','rigLayoutByLocation','rigHeat','rigBuildPresetSelected','totalCoinsMined',
   'recentEvents','activeEvent',
   'activeResearch2','researchProgress2',
   'activeBoosts',
@@ -67,6 +67,10 @@ const SAVE_FIELDS = [
   'powerBatteryTier','powerBatteryCapacityKwh','powerBatteryLevelKwh',
   'powerBatteryChargeRateKw','powerBatteryDischargeRateKw','powerBatteryCycleLoss',
   'powerBatteryMode','powerBatteryGridOffsetKw',
+  'coolingInfraLevel','coolingMode','coolingPowerKw',
+  'powerOutage','powerOutageCooldown','powerOutageBuffRemaining',
+  '_powerOutageBuffPerfMult','_powerOutageBuffPriceMult','_powerOutageBuffCapMult','_powerOutageBuffCrashMult',
+  '_powerDecisionPerfMult','_powerDecisionPriceMult','_powerDecisionCapMult','_powerDecisionCrashMult',
   'dailyBillHistory','dailyLastBilledDay','dailyOpsDebt','lastDailyBill',
   'opsDebtStage','opsDebtStageLabel','opsDebtStrikeDays','_opsShutdown','_opsPassiveIncomeMult',
   'loans','nextLoanId','insuranceActive','insuranceTier','leasedRigs','lastFinanceBill',
@@ -161,6 +165,22 @@ function sanitizeLoadedSavePayload(input) {
   out.powerBillAccrued = toNum(out.powerBillAccrued, 0, 0, 1e12, false);
   out.powerBillTimer = toNum(out.powerBillTimer, 86400, 0, 86400 * 10, false);
   out.powerBillInterval = toNum(out.powerBillInterval, 86400, 60, 86400 * 10, false);
+  out.coolingInfraLevel = toNum(out.coolingInfraLevel, 0, 0, 2000, true);
+  out.coolingPowerKw = toNum(out.coolingPowerKw, 0, 0, 100000, false);
+  const coolingModes = ['eco', 'balanced', 'turbo'];
+  out.coolingMode = coolingModes.includes(String(out.coolingMode || ''))
+    ? String(out.coolingMode)
+    : 'balanced';
+  out.powerOutageCooldown = toNum(out.powerOutageCooldown, 0, 0, 7200, false);
+  out.powerOutageBuffRemaining = toNum(out.powerOutageBuffRemaining, 0, 0, 7200, false);
+  out._powerOutageBuffPerfMult = toNum(out._powerOutageBuffPerfMult, 1, 0.2, 2.5, false);
+  out._powerOutageBuffPriceMult = toNum(out._powerOutageBuffPriceMult, 1, 0.2, 2.5, false);
+  out._powerOutageBuffCapMult = toNum(out._powerOutageBuffCapMult, 1, 0.2, 2.5, false);
+  out._powerOutageBuffCrashMult = toNum(out._powerOutageBuffCrashMult, 1, 0.2, 2.5, false);
+  out._powerDecisionPerfMult = toNum(out._powerDecisionPerfMult, 1, 0.2, 2.5, false);
+  out._powerDecisionPriceMult = toNum(out._powerDecisionPriceMult, 1, 0.2, 2.5, false);
+  out._powerDecisionCapMult = toNum(out._powerDecisionCapMult, 1, 0.2, 2.5, false);
+  out._powerDecisionCrashMult = toNum(out._powerDecisionCrashMult, 1, 0.2, 2.5, false);
   out.prestige = toNum(out.prestige, 0, 0, 1e9, false);
   out.prestigeCount = toNum(out.prestigeCount, 0, 0, 10000, true);
   out.chips = toNum(out.chips, 0, 0, 1e8, true);
@@ -190,11 +210,13 @@ function sanitizeLoadedSavePayload(input) {
     : Object.keys((template.rigs || {}));
   out.rigs = ensureObject(out.rigs);
   out.rigEnergy = ensureObject(out.rigEnergy);
+  out.rigHeat = ensureObject(out.rigHeat);
   out.rigTargets = ensureObject(out.rigTargets);
   out.rigHashPools = ensureObject(out.rigHashPools);
   rigKeys.forEach((rigId) => {
     out.rigs[rigId] = toNum(out.rigs[rigId], 0, 0, 1e6, true);
     out.rigEnergy[rigId] = toNum(out.rigEnergy[rigId], 100, 0, 100, false);
+    out.rigHeat[rigId] = toNum(out.rigHeat[rigId], 8, 0, 100, false);
     const selected = String(out.rigTargets[rigId] || '');
     out.rigTargets[rigId] = coinKeys.includes(selected) ? selected : (out.rigTargets[rigId] ? coinKeys[0] : '');
   });
@@ -211,9 +233,18 @@ function sanitizeLoadedSavePayload(input) {
   out.locationId = typeof out.locationId === 'string' ? out.locationId : String(template.locationId || 'home_pc');
   out.unlockedLocationTier = toNum(out.unlockedLocationTier, 1, 1, 99, true);
   out.locationMoveBoostUntilDay = toNum(out.locationMoveBoostUntilDay, 0, 0, 500000, true);
+  out.rigBuildPresetSelected = String(out.rigBuildPresetSelected || 'starter_balanced');
+  out.rigLayoutByLocation = ensureObject(out.rigLayoutByLocation);
   out.locationShopPurchases = ensureObject(out.locationShopPurchases);
   Object.keys(out.locationShopPurchases).forEach((locId) => {
     out.locationShopPurchases[locId] = asUniqueStringArray(out.locationShopPurchases[locId], 200);
+  });
+  const knownLocs = Array.isArray(window.LOCATIONS) ? window.LOCATIONS : [];
+  knownLocs.forEach((loc) => {
+    const key = String(loc.id || '');
+    if (!key) return;
+    const value = String(out.rigLayoutByLocation[key] || '');
+    out.rigLayoutByLocation[key] = value || 'balanced_grid';
   });
 
   out.upgrades = asUniqueStringArray(out.upgrades, 500);
@@ -337,6 +368,36 @@ function sanitizeLoadedSavePayload(input) {
   rigKeys.forEach((rigId) => {
     out.leasedRigs[rigId] = toNum(out.leasedRigs[rigId], 0, 0, 1e6, true);
   });
+
+  if (out.powerOutage && typeof out.powerOutage === 'object') {
+    const po = out.powerOutage;
+    out.powerOutage = {
+      id: String(po.id || ''),
+      title: String(po.title || 'Netzentscheidung'),
+      desc: String(po.desc || ''),
+      remaining: toNum(po.remaining, 0, 0, 1800, false),
+      resolved: !!po.resolved,
+      choiceId: String(po.choiceId || ''),
+      choiceLabel: String(po.choiceLabel || ''),
+      choiceText: String(po.choiceText || ''),
+      penalties: ensureObject(po.penalties),
+      options: Array.isArray(po.options) ? po.options.slice(0, 4).map((opt) => ({
+        id: String((opt && opt.id) || ''),
+        label: String((opt && opt.label) || ''),
+        desc: String((opt && opt.desc) || ''),
+        costUsd: toNum(opt && opt.costUsd, 0, 0, 1e12, false),
+        costBtc: toNum(opt && opt.costBtc, 0, 0, 1e8, false),
+        effect: ensureObject(opt && opt.effect),
+        duration: toNum(opt && opt.duration, 0, 0, 3600, false),
+      })) : [],
+    };
+    out.powerOutage.penalties.perfMult = toNum(out.powerOutage.penalties.perfMult, 1, 0.2, 2.5, false);
+    out.powerOutage.penalties.priceMult = toNum(out.powerOutage.penalties.priceMult, 1, 0.2, 2.5, false);
+    out.powerOutage.penalties.capMult = toNum(out.powerOutage.penalties.capMult, 1, 0.2, 2.5, false);
+    out.powerOutage.penalties.crashMult = toNum(out.powerOutage.penalties.crashMult, 1, 0.2, 3, false);
+  } else {
+    out.powerOutage = null;
+  }
 
   out.__integrityCheckedAt = Date.now();
   let repaired = issues.length > 0;

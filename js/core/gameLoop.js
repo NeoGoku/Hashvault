@@ -150,6 +150,186 @@ const EARLY_RIG_PROGRESS_BALANCE = {
 };
 window.HV_EARLY_RIG_PROGRESS_BALANCE = EARLY_RIG_PROGRESS_BALANCE;
 
+const RIG_LAYOUT_PROFILES = [
+  {
+    id: 'balanced_grid',
+    name: 'Balanced Grid',
+    desc: 'Solider Mix aus Leistung und Stabilitaet.',
+    minTier: 1,
+    hpsMult: 1.00,
+    powerMult: 1.00,
+    heatMult: 1.00,
+    crashMult: 1.00,
+  },
+  {
+    id: 'dense_stack',
+    name: 'Dense Stack',
+    desc: 'Maximaler Durchsatz, aber hohe Waermelast.',
+    minTier: 2,
+    hpsMult: 1.14,
+    powerMult: 1.08,
+    heatMult: 1.24,
+    crashMult: 1.18,
+  },
+  {
+    id: 'airflow_lanes',
+    name: 'Airflow Lanes',
+    desc: 'Kuehlgaenge reduzieren Hitze auf Kosten von Peak-H/s.',
+    minTier: 3,
+    hpsMult: 0.97,
+    powerMult: 0.95,
+    heatMult: 0.74,
+    crashMult: 0.85,
+  },
+  {
+    id: 'cold_aisle',
+    name: 'Cold Aisle Pods',
+    desc: 'Segmentierte Cold-Aisles fuer starke Dauerlast.',
+    minTier: 5,
+    hpsMult: 1.08,
+    powerMult: 1.02,
+    heatMult: 0.78,
+    crashMult: 0.88,
+  },
+  {
+    id: 'isolation_cells',
+    name: 'Isolation Cells',
+    desc: 'Sicherster Betrieb fuer kritische Endgame-Hardware.',
+    minTier: 7,
+    hpsMult: 0.92,
+    powerMult: 0.90,
+    heatMult: 0.64,
+    crashMult: 0.72,
+  },
+];
+window.HV_RIG_LAYOUT_PROFILES = RIG_LAYOUT_PROFILES;
+
+const COOLING_BALANCE = {
+  baseCoolingPerSec: 0.55,
+  levelCoolingPerSec: 0.24,
+  basePowerKw: 0.12,
+  levelPowerKw: 0.08,
+  overheatStart: 65,
+  dangerStart: 82,
+  criticalStart: 94,
+  upgradeBaseCost: 2100,
+  upgradeCostMult: 1.58,
+  modes: {
+    eco: { label: 'Eco', coolingMult: 0.78, powerMult: 0.72, hpsMult: 0.98 },
+    balanced: { label: 'Balanced', coolingMult: 1.00, powerMult: 1.00, hpsMult: 1.00 },
+    turbo: { label: 'Turbo', coolingMult: 1.34, powerMult: 1.32, hpsMult: 1.03 },
+  },
+};
+window.HV_COOLING_BALANCE = COOLING_BALANCE;
+
+const POWER_OUTAGE_EVENTS = [
+  {
+    id: 'transformer_trip',
+    title: 'Transformator-Ausfall',
+    desc: 'Ein lokaler Transformator ist ueberhitzt. Waehle sofort eine Gegenmassnahme.',
+    duration: 85,
+    penalties: { perfMult: 0.64, priceMult: 1.42, capMult: 0.78, crashMult: 1.35 },
+    options: [
+      {
+        id: 'express_fix',
+        label: 'Express-Reparatur',
+        desc: 'Technik-Team ruft Notdienst. Teuer, aber stabil.',
+        costUsd: 5200,
+        costBtc: 0.018,
+        duration: 190,
+        effect: { perfMult: 1.03, priceMult: 0.97, capMult: 1.02, crashMult: 0.88 },
+      },
+      {
+        id: 'load_shedding',
+        label: 'Lastabwurf',
+        desc: 'Teilabschaltung ohne Kosten, aber weniger Durchsatz.',
+        costUsd: 0,
+        costBtc: 0,
+        duration: 170,
+        effect: { perfMult: 0.90, priceMult: 0.96, capMult: 0.96, crashMult: 0.94 },
+      },
+      {
+        id: 'risky_bypass',
+        label: 'Riskanter Bypass',
+        desc: 'Guenstig, aber Instabilitaet steigt deutlich.',
+        costUsd: 1100,
+        costBtc: 0,
+        duration: 200,
+        effect: { perfMult: 1.07, priceMult: 1.00, capMult: 1.00, crashMult: 1.28 },
+      },
+    ],
+  },
+  {
+    id: 'substation_fire',
+    title: 'Umspannwerk-Brand',
+    desc: 'Externe Leitungen fallen aus. Du musst zwischen Kosten, Risiko und Leistung abwaegen.',
+    duration: 95,
+    penalties: { perfMult: 0.58, priceMult: 1.55, capMult: 0.72, crashMult: 1.45 },
+    options: [
+      {
+        id: 'generator_bridge',
+        label: 'Generator-Bruecke',
+        desc: 'Sofortige Notversorgung ueber Mietgenerator.',
+        costUsd: 7600,
+        costBtc: 0.025,
+        duration: 230,
+        effect: { perfMult: 1.05, priceMult: 1.08, capMult: 1.06, crashMult: 0.92 },
+      },
+      {
+        id: 'controlled_pause',
+        label: 'Kontrollierter Pausemodus',
+        desc: 'Kurzzeitig drosseln und Hardware schuetzen.',
+        costUsd: 0,
+        costBtc: 0,
+        duration: 180,
+        effect: { perfMult: 0.86, priceMult: 0.94, capMult: 0.94, crashMult: 0.86 },
+      },
+      {
+        id: 'overclock_push',
+        label: 'Volllast durchziehen',
+        desc: 'Keine Ausgaben, aber deutlich hoeheres Ausfallrisiko.',
+        costUsd: 0,
+        costBtc: 0.004,
+        duration: 210,
+        effect: { perfMult: 1.12, priceMult: 1.02, capMult: 0.98, crashMult: 1.36 },
+      },
+    ],
+  },
+];
+window.HV_POWER_OUTAGE_EVENTS = POWER_OUTAGE_EVENTS;
+
+const RIG_BUILD_PRESETS = [
+  {
+    id: 'starter_balanced',
+    name: 'Starter Balanced',
+    minTier: 1,
+    desc: 'Sicherer Fruehstart fuer stabile Coin-Produktion.',
+    plan: { usb: 8, rpi: 2 },
+  },
+  {
+    id: 'garage_scale',
+    name: 'Garage Scale',
+    minTier: 3,
+    desc: 'Mittlerer Ausbau fuer Garage/Kleine Halle.',
+    plan: { rpi: 8, gpu1: 6, asic1: 1 },
+  },
+  {
+    id: 'hall_density',
+    name: 'Hall Density',
+    minTier: 4,
+    desc: 'Dichter Produktionsmix fuer Hallen-Standorte.',
+    plan: { gpu1: 12, asic1: 4, gpu4: 1 },
+  },
+  {
+    id: 'dc_ramp',
+    name: 'Datacenter Ramp',
+    minTier: 6,
+    desc: 'Skaliert zuegig in Richtung Datacenter-Betrieb.',
+    plan: { asic1: 10, gpu4: 6, asic8: 2, srv: 1 },
+  },
+];
+window.HV_RIG_BUILD_PRESETS = RIG_BUILD_PRESETS;
+
 function ensureCoinReserveState() {
   if (!G.coinReserves || typeof G.coinReserves !== 'object') G.coinReserves = {};
   const defaults = COIN_UTILITY_BALANCE.reserveDefaults || {};
@@ -485,6 +665,14 @@ function getRigHps(rigId) {
   const bonuses = window.calculateRigModBonuses ? calculateRigModBonuses(mods) : { hashPerSec: 1 };
   const modMult = Number(bonuses.hashPerSec || 1);
   const powerMult = Number(G._powerPerfMult || 1);
+  const layoutMult = Math.max(0.55, Number(G._layoutHpsMult || 1)) * Math.max(0.6, Number(G._coolingHpsMult || 1));
+  const thermalMult = (() => {
+    if (typeof getRigThermalEffects === 'function') {
+      const t = getRigThermalEffects(rigId);
+      return Math.max(0.55, Number(t.hpsMult || 1));
+    }
+    return 1;
+  })();
   let progressionMult = 1;
 
   const cfg = window.HV_EARLY_RIG_PROGRESS_BALANCE || EARLY_RIG_PROGRESS_BALANCE;
@@ -510,7 +698,7 @@ function getRigHps(rigId) {
     progressionMult *= Math.max(1, groupMult);
   }
 
-  return r.hps * G._hpsMult * modMult * powerMult * progressionMult;
+  return r.hps * G._hpsMult * modMult * powerMult * layoutMult * thermalMult * progressionMult;
 }
 
 function getTotalHps() {
@@ -614,6 +802,384 @@ function getCurrentLocationRigCap() {
   const loc = (typeof window.getCurrentLocation === 'function') ? getCurrentLocation() : null;
   if (!loc) return Infinity;
   return Math.max(1, Number(loc.maxRigs || 1));
+}
+
+function getRigLayoutById(layoutId) {
+  return (RIG_LAYOUT_PROFILES || []).find((x) => x.id === layoutId) || RIG_LAYOUT_PROFILES[0];
+}
+window.getRigLayoutById = getRigLayoutById;
+
+function getAvailableRigLayouts(locationId) {
+  const loc = (typeof window.getLocationById === 'function')
+    ? getLocationById(locationId || ((G && G.locationId) || 'home_pc'))
+    : null;
+  const tier = Math.max(1, Number((loc && loc.tier) || 1));
+  return (RIG_LAYOUT_PROFILES || []).filter((layout) => tier >= Math.max(1, Number(layout.minTier || 1)));
+}
+window.getAvailableRigLayouts = getAvailableRigLayouts;
+
+function ensureRigLayoutState() {
+  if (!G.rigLayoutByLocation || typeof G.rigLayoutByLocation !== 'object') G.rigLayoutByLocation = {};
+  const allLocs = Array.isArray(window.LOCATIONS) ? window.LOCATIONS : [];
+  allLocs.forEach((loc) => {
+    const locId = String(loc.id || '');
+    if (!locId) return;
+    const current = String(G.rigLayoutByLocation[locId] || '');
+    const options = getAvailableRigLayouts(locId);
+    const fallback = options.length ? options[0].id : 'balanced_grid';
+    const valid = options.some((layout) => layout.id === current);
+    G.rigLayoutByLocation[locId] = valid ? current : fallback;
+  });
+}
+
+function getActiveRigLayout(locationId) {
+  ensureRigLayoutState();
+  const loc = (typeof window.getLocationById === 'function')
+    ? getLocationById(locationId || ((G && G.locationId) || 'home_pc'))
+    : null;
+  if (!loc) return getRigLayoutById('balanced_grid');
+  const options = getAvailableRigLayouts(loc.id);
+  const selected = String((G.rigLayoutByLocation || {})[loc.id] || '');
+  const active = options.find((layout) => layout.id === selected);
+  return active || options[0] || getRigLayoutById('balanced_grid');
+}
+window.getActiveRigLayout = getActiveRigLayout;
+
+function getRigBuildPresetById(presetId) {
+  return (RIG_BUILD_PRESETS || []).find((x) => x.id === presetId) || null;
+}
+window.getRigBuildPresetById = getRigBuildPresetById;
+
+function getAvailableRigBuildPresets() {
+  const loc = (typeof window.getCurrentLocation === 'function') ? getCurrentLocation() : null;
+  const tier = Math.max(1, Number((loc && loc.tier) || 1));
+  return (RIG_BUILD_PRESETS || []).filter((preset) => tier >= Math.max(1, Number(preset.minTier || 1)));
+}
+window.getAvailableRigBuildPresets = getAvailableRigBuildPresets;
+
+function getCoolingModeMeta(modeId) {
+  const modes = (COOLING_BALANCE && COOLING_BALANCE.modes) || {};
+  const mode = String(modeId || (G && G.coolingMode) || 'balanced');
+  return modes[mode] || modes.balanced || { label: 'Balanced', coolingMult: 1, powerMult: 1, hpsMult: 1 };
+}
+window.getCoolingModeMeta = getCoolingModeMeta;
+
+function getCoolingUpgradeCost() {
+  const level = Math.max(0, Math.floor(Number(G.coolingInfraLevel || 0)));
+  const base = Math.max(100, Number(COOLING_BALANCE.upgradeBaseCost || 2100));
+  const mult = Math.max(1.05, Number(COOLING_BALANCE.upgradeCostMult || 1.58));
+  const scaled = base * Math.pow(mult, level);
+  return Math.ceil(scaled * Math.max(0.4, Number(G._buildCostMult || 1)));
+}
+window.getCoolingUpgradeCost = getCoolingUpgradeCost;
+
+function ensureRigHeatState() {
+  if (!G.rigHeat || typeof G.rigHeat !== 'object') G.rigHeat = {};
+  if (!Number.isFinite(G.coolingInfraLevel) || Number(G.coolingInfraLevel) < 0) G.coolingInfraLevel = 0;
+  if (typeof G.coolingMode !== 'string' || !((COOLING_BALANCE.modes || {})[G.coolingMode])) G.coolingMode = 'balanced';
+  if (!Number.isFinite(G.coolingPowerKw) || Number(G.coolingPowerKw) < 0) G.coolingPowerKw = 0;
+  (RIGS || []).forEach((rig) => {
+    const current = Number((G.rigHeat || {})[rig.id]);
+    if (!Number.isFinite(current)) {
+      G.rigHeat[rig.id] = 8;
+    } else {
+      G.rigHeat[rig.id] = Math.max(0, Math.min(100, current));
+    }
+  });
+}
+
+function getRigHeat(rigId) {
+  ensureRigHeatState();
+  return Math.max(0, Math.min(100, Number((G.rigHeat || {})[rigId] || 0)));
+}
+window.getRigHeat = getRigHeat;
+
+function getRigThermalEffects(rigId) {
+  const heat = getRigHeat(rigId);
+  const overheatStart = Math.max(0, Number(COOLING_BALANCE.overheatStart || 65));
+  const dangerStart = Math.max(overheatStart, Number(COOLING_BALANCE.dangerStart || 82));
+  const criticalStart = Math.max(dangerStart, Number(COOLING_BALANCE.criticalStart || 94));
+
+  const warm = Math.max(0, heat - overheatStart);
+  const danger = Math.max(0, heat - dangerStart);
+  const critical = Math.max(0, heat - criticalStart);
+
+  const drainMult = Math.max(0.7, 1 + warm * 0.010 + critical * 0.01);
+  const crashMult = Math.max(0.8, 1 + danger * 0.018 + critical * 0.024);
+  const hpsMult = Math.max(0.55, 1 - Math.max(0, heat - 74) * 0.0045);
+  const repairMult = Math.max(0.45, 1 - Math.max(0, heat - 78) * 0.008);
+  const severity = heat >= criticalStart ? 'critical' : (heat >= dangerStart ? 'danger' : (heat >= overheatStart ? 'warn' : 'ok'));
+  return { heat, drainMult, crashMult, hpsMult, repairMult, severity };
+}
+window.getRigThermalEffects = getRigThermalEffects;
+
+function getRigHeatSummary() {
+  ensureRigHeatState();
+  const rows = (RIGS || []).filter((rig) => Number((G.rigs || {})[rig.id] || 0) > 0);
+  if (!rows.length) {
+    return {
+      avgHeat: 0,
+      maxHeat: 0,
+      dangerCount: 0,
+      criticalCount: 0,
+      coolingPowerKw: Number(G.coolingPowerKw || 0),
+      coolingMode: getCoolingModeMeta(G.coolingMode).label,
+    };
+  }
+  let sum = 0;
+  let maxHeat = 0;
+  let dangerCount = 0;
+  let criticalCount = 0;
+  rows.forEach((rig) => {
+    const t = getRigThermalEffects(rig.id);
+    sum += t.heat;
+    if (t.heat > maxHeat) maxHeat = t.heat;
+    if (t.severity === 'danger') dangerCount += 1;
+    if (t.severity === 'critical') criticalCount += 1;
+  });
+  return {
+    avgHeat: rows.length ? (sum / rows.length) : 0,
+    maxHeat,
+    dangerCount,
+    criticalCount,
+    coolingPowerKw: Number(G.coolingPowerKw || 0),
+    coolingMode: getCoolingModeMeta(G.coolingMode).label,
+  };
+}
+window.getRigHeatSummary = getRigHeatSummary;
+
+function ensurePowerOutageState() {
+  if (!Number.isFinite(G.powerOutageCooldown) || Number(G.powerOutageCooldown) < 0) G.powerOutageCooldown = 0;
+  if (!Number.isFinite(G.powerOutageBuffRemaining) || Number(G.powerOutageBuffRemaining) < 0) G.powerOutageBuffRemaining = 0;
+  if (!Number.isFinite(G._powerOutageBuffPerfMult) || Number(G._powerOutageBuffPerfMult) <= 0) G._powerOutageBuffPerfMult = 1;
+  if (!Number.isFinite(G._powerOutageBuffPriceMult) || Number(G._powerOutageBuffPriceMult) <= 0) G._powerOutageBuffPriceMult = 1;
+  if (!Number.isFinite(G._powerOutageBuffCapMult) || Number(G._powerOutageBuffCapMult) <= 0) G._powerOutageBuffCapMult = 1;
+  if (!Number.isFinite(G._powerOutageBuffCrashMult) || Number(G._powerOutageBuffCrashMult) <= 0) G._powerOutageBuffCrashMult = 1;
+  if (!Number.isFinite(G._powerDecisionPerfMult) || Number(G._powerDecisionPerfMult) <= 0) G._powerDecisionPerfMult = 1;
+  if (!Number.isFinite(G._powerDecisionPriceMult) || Number(G._powerDecisionPriceMult) <= 0) G._powerDecisionPriceMult = 1;
+  if (!Number.isFinite(G._powerDecisionCapMult) || Number(G._powerDecisionCapMult) <= 0) G._powerDecisionCapMult = 1;
+  if (!Number.isFinite(G._powerDecisionCrashMult) || Number(G._powerDecisionCrashMult) <= 0) G._powerDecisionCrashMult = 1;
+  if (G.powerOutage && typeof G.powerOutage === 'object') {
+    const po = G.powerOutage;
+    po.id = String(po.id || '');
+    po.title = String(po.title || 'Netzentscheidung');
+    po.desc = String(po.desc || '');
+    po.remaining = Math.max(0, Number(po.remaining || 0));
+    po.resolved = !!po.resolved;
+    po.choiceId = String(po.choiceId || '');
+    po.choiceLabel = String(po.choiceLabel || '');
+    po.choiceText = String(po.choiceText || '');
+    po.options = Array.isArray(po.options) ? po.options : [];
+    po.penalties = (po.penalties && typeof po.penalties === 'object') ? po.penalties : {};
+  } else {
+    G.powerOutage = null;
+  }
+}
+
+function spawnPowerOutageEvent() {
+  ensurePowerOutageState();
+  if (G.powerOutage && !G.powerOutage.resolved) return false;
+  const list = Array.isArray(POWER_OUTAGE_EVENTS) ? POWER_OUTAGE_EVENTS : [];
+  if (!list.length) return false;
+  const tpl = list[Math.floor(Math.random() * list.length)];
+  if (!tpl) return false;
+  G.powerOutage = {
+    id: String(tpl.id || 'outage'),
+    title: String(tpl.title || 'Netzentscheidung'),
+    desc: String(tpl.desc || ''),
+    remaining: Math.max(20, Number(tpl.duration || 80)),
+    resolved: false,
+    choiceId: '',
+    choiceLabel: '',
+    choiceText: '',
+    penalties: {
+      perfMult: Math.max(0.2, Number((tpl.penalties || {}).perfMult || 1)),
+      priceMult: Math.max(0.2, Number((tpl.penalties || {}).priceMult || 1)),
+      capMult: Math.max(0.2, Number((tpl.penalties || {}).capMult || 1)),
+      crashMult: Math.max(0.2, Number((tpl.penalties || {}).crashMult || 1)),
+    },
+    options: (Array.isArray(tpl.options) ? tpl.options : []).slice(0, 4).map((opt) => ({
+      id: String(opt.id || ''),
+      label: String(opt.label || 'Option'),
+      desc: String(opt.desc || ''),
+      costUsd: Math.max(0, Number(opt.costUsd || 0)),
+      costBtc: Math.max(0, Number(opt.costBtc || 0)),
+      duration: Math.max(0, Number(opt.duration || 120)),
+      effect: {
+        perfMult: Math.max(0.2, Number((opt.effect || {}).perfMult || 1)),
+        priceMult: Math.max(0.2, Number((opt.effect || {}).priceMult || 1)),
+        capMult: Math.max(0.2, Number((opt.effect || {}).capMult || 1)),
+        crashMult: Math.max(0.2, Number((opt.effect || {}).crashMult || 1)),
+      },
+    })),
+  };
+  updateTicker('🚨 ' + G.powerOutage.title + ' - Entscheidung noetig');
+  notify('🚨 ' + G.powerOutage.title + ': Entscheidung im Power-Tab erforderlich.', 'error');
+  return true;
+}
+window.spawnPowerOutageEvent = spawnPowerOutageEvent;
+
+function resolvePowerOutageOption(optionId, silentAuto) {
+  ensurePowerOutageState();
+  if (!G.powerOutage || G.powerOutage.resolved) return false;
+  const selected = String(optionId || '');
+  const opts = Array.isArray(G.powerOutage.options) ? G.powerOutage.options : [];
+  const option = opts.find((x) => x && String(x.id) === selected);
+  if (!option) return false;
+
+  const usdCost = Math.max(0, Number(option.costUsd || 0));
+  const btcCost = Math.max(0, Number(option.costBtc || 0));
+  if (Number(G.usd || 0) + 1e-9 < usdCost) {
+    if (!silentAuto) notify('❌ Nicht genug USD fuer diese Krisenoption.', 'error');
+    return false;
+  }
+  if (Number((G.coins || {}).BTC || 0) + 1e-9 < btcCost) {
+    if (!silentAuto) notify('❌ Nicht genug BTC fuer diese Krisenoption.', 'error');
+    return false;
+  }
+
+  G.usd = Number(G.usd || 0) - usdCost;
+  if (btcCost > 0) {
+    if (typeof spendCoin === 'function') {
+      const spent = spendCoin('BTC', btcCost);
+      if (!spent) {
+        G.usd += usdCost;
+        if (!silentAuto) notify('❌ BTC-Abbuchung fehlgeschlagen.', 'error');
+        return false;
+      }
+    } else {
+      G.coins.BTC = Math.max(0, Number((G.coins || {}).BTC || 0) - btcCost);
+    }
+  }
+
+  const eff = option.effect || {};
+  G._powerOutageBuffPerfMult = Math.max(0.2, Number(eff.perfMult || 1));
+  G._powerOutageBuffPriceMult = Math.max(0.2, Number(eff.priceMult || 1));
+  G._powerOutageBuffCapMult = Math.max(0.2, Number(eff.capMult || 1));
+  G._powerOutageBuffCrashMult = Math.max(0.2, Number(eff.crashMult || 1));
+  G.powerOutageBuffRemaining = Math.max(0, Number(option.duration || 120));
+
+  G.powerOutage.resolved = true;
+  G.powerOutage.choiceId = option.id;
+  G.powerOutage.choiceLabel = option.label;
+  G.powerOutage.choiceText = option.desc || '';
+  G.powerOutage.remaining = 12;
+  G.powerOutageCooldown = 220 + Math.random() * 180;
+
+  const summary = '⚙️ Krisenoption: ' + option.label + (usdCost > 0 || btcCost > 0
+    ? (' (-$' + fmtNum(usdCost, 0) + (btcCost > 0 ? ', -₿' + fmtNum(btcCost, 4) : '') + ')')
+    : '');
+  if (!silentAuto) notify(summary, 'gold');
+  updateTicker(summary);
+  return true;
+}
+window.resolvePowerOutageOption = resolvePowerOutageOption;
+
+function updatePowerOutageDecision(dt) {
+  ensurePowerOutageState();
+  const safeDt = Math.max(0, Number(dt || 0));
+
+  if (G.powerOutageCooldown > 0) {
+    G.powerOutageCooldown = Math.max(0, Number(G.powerOutageCooldown || 0) - safeDt);
+  }
+  if (G.powerOutageBuffRemaining > 0) {
+    G.powerOutageBuffRemaining = Math.max(0, Number(G.powerOutageBuffRemaining || 0) - safeDt);
+    if (G.powerOutageBuffRemaining <= 0) {
+      G._powerOutageBuffPerfMult = 1;
+      G._powerOutageBuffPriceMult = 1;
+      G._powerOutageBuffCapMult = 1;
+      G._powerOutageBuffCrashMult = 1;
+      notify('✅ Netzkrisen-Buff ausgelaufen. Betrieb wieder normalisiert.', 'success');
+    }
+  }
+
+  if (G.powerOutage && typeof G.powerOutage === 'object') {
+    G.powerOutage.remaining = Math.max(0, Number(G.powerOutage.remaining || 0) - safeDt);
+    if (!G.powerOutage.resolved && G.powerOutage.remaining <= 0) {
+      const fallback = (G.powerOutage.options || []).find((opt) => String(opt.id || '').includes('load'))
+        || (G.powerOutage.options || [])[0];
+      if (fallback) resolvePowerOutageOption(fallback.id, true);
+      notify('⏳ Keine Wahl getroffen - Notfallplan automatisch aktiv.', 'warning');
+    } else if (G.powerOutage.resolved && G.powerOutage.remaining <= 0) {
+      G.powerOutage = null;
+    }
+  } else if (!G._opsShutdown && getTotalRigCount() > 0 && Number(G.powerOutageCooldown || 0) <= 0) {
+    const spawnChancePerSec = 0.0018 + Math.max(0, Number(G._powerLoadRatio || 0) - 0.9) * 0.0032;
+    if (Math.random() < spawnChancePerSec * safeDt) {
+      spawnPowerOutageEvent();
+    }
+  }
+
+  let perf = 1;
+  let price = 1;
+  let cap = 1;
+  let crash = 1;
+  if (G.powerOutage && !G.powerOutage.resolved) {
+    const p = G.powerOutage.penalties || {};
+    perf *= Math.max(0.2, Number(p.perfMult || 1));
+    price *= Math.max(0.2, Number(p.priceMult || 1));
+    cap *= Math.max(0.2, Number(p.capMult || 1));
+    crash *= Math.max(0.2, Number(p.crashMult || 1));
+  }
+  perf *= Math.max(0.2, Number(G._powerOutageBuffPerfMult || 1));
+  price *= Math.max(0.2, Number(G._powerOutageBuffPriceMult || 1));
+  cap *= Math.max(0.2, Number(G._powerOutageBuffCapMult || 1));
+  crash *= Math.max(0.2, Number(G._powerOutageBuffCrashMult || 1));
+
+  G._powerDecisionPerfMult = perf;
+  G._powerDecisionPriceMult = price;
+  G._powerDecisionCapMult = cap;
+  G._powerDecisionCrashMult = crash;
+}
+
+function updateThermalSystem(dt) {
+  ensureRigHeatState();
+  const safeDt = Math.max(0, Number(dt || 0));
+  if (safeDt <= 0) return;
+  const modeMeta = getCoolingModeMeta(G.coolingMode);
+  const loadRatio = Math.max(0, Number(G._powerLoadRatio || 0));
+  const totalRigs = getTotalRigCount();
+
+  const baseCooling = Math.max(0.05, Number(COOLING_BALANCE.baseCoolingPerSec || 0.55));
+  const levelCooling = Math.max(0.01, Number(COOLING_BALANCE.levelCoolingPerSec || 0.24)) * Math.max(0, Number(G.coolingInfraLevel || 0));
+  const coolingPerSec = (baseCooling + levelCooling) * Math.max(0.4, Number(modeMeta.coolingMult || 1)) * Math.max(0.6, Number(G._locMaintenanceMult || 1));
+
+  const baseCoolingPower = Math.max(0.02, Number(COOLING_BALANCE.basePowerKw || 0.12));
+  const coolingPowerLevel = Math.max(0.01, Number(COOLING_BALANCE.levelPowerKw || 0.08)) * Math.max(0, Number(G.coolingInfraLevel || 0));
+
+  let activeHeatTypes = 0;
+  let avgHeatForPower = 0;
+  (RIGS || []).forEach((rig) => {
+    const rigId = rig.id;
+    const count = Math.max(0, Number((G.rigs || {})[rigId] || 0));
+    let heat = getRigHeat(rigId);
+    if (count <= 0 || G._opsShutdown) {
+      heat = Math.max(0, heat - (3.8 + Math.max(0, Number(G.coolingInfraLevel || 0)) * 0.35) * safeDt);
+      G.rigHeat[rigId] = heat;
+      return;
+    }
+    const maintenance = getRigMaintenanceStats(rigId);
+    const layoutHeat = Math.max(0.45, Number(G._layoutHeatMult || 1));
+    const rigKw = Math.max(0, Number(rig.powerW || 0) * count / 1000);
+    const loadHeat = 1 + Math.max(0, loadRatio - 0.88) * 0.8;
+    const coverageCool = 1 + Math.max(0, Number(maintenance.coverage || 0)) * 0.3;
+
+    const gain = rigKw * 0.22 * layoutHeat * loadHeat * safeDt;
+    const drop = coolingPerSec * coverageCool * safeDt;
+    heat = Math.max(0, Math.min(100, heat + gain - drop));
+    G.rigHeat[rigId] = heat;
+
+    activeHeatTypes += 1;
+    avgHeatForPower += heat;
+  });
+
+  if (activeHeatTypes > 0) avgHeatForPower /= activeHeatTypes;
+  const thermalPressure = Math.max(0, avgHeatForPower - 45) / 55;
+  const turboHps = Math.max(0.85, Number(modeMeta.hpsMult || 1));
+  G._coolingHpsMult = turboHps;
+  G.coolingPowerKw = totalRigs > 0
+    ? (baseCoolingPower + coolingPowerLevel) * Math.max(0.5, Number(modeMeta.powerMult || 1)) * (1 + thermalPressure * 0.65)
+    : 0;
 }
 
 function refreshUnlockedLocationTier() {
@@ -788,11 +1354,15 @@ function getGlobalRigStaffCoverage() {
 }
 
 function computeLocationEffects() {
+  ensureRigLayoutState();
+  ensureRigHeatState();
+  ensurePowerOutageState();
   const loc = (typeof window.getCurrentLocation === 'function') ? getCurrentLocation() : null;
   const bonus = (loc && loc.bonus) ? loc.bonus : {};
   const shopFx = (typeof window.getCurrentLocationShopEffects === 'function')
     ? getCurrentLocationShopEffects()
     : {};
+  const layout = getActiveRigLayout((loc && loc.id) || (G && G.locationId) || 'home_pc');
 
   G._shopHpsMult = Number(shopFx.hpsMult || 1);
   G._shopStaffEffMult = Number(shopFx.staffEffMult || 1);
@@ -807,8 +1377,14 @@ function computeLocationEffects() {
   G._locPowerCapMult = Number(bonus.powerCapMult || 1);
   G._locEventPenaltyMult = Number(bonus.eventPenaltyMult || 1);
   G._locMaintenanceMult = Number(bonus.maintenanceMult || 1);
-  G._locCrashRiskMult = Number(bonus.crashRiskMult || 1) * G._shopCrashRiskMult;
-  G._locPowerUsageMult = Number(bonus.powerUsageMult || 1) * G._shopPowerUsageMult;
+  G._layoutHpsMult = Number(layout.hpsMult || 1);
+  G._layoutPowerUsageMult = Number(layout.powerMult || 1);
+  G._layoutHeatMult = Number(layout.heatMult || 1);
+  G._layoutCrashMult = Number(layout.crashMult || 1);
+  G._activeRigLayoutId = layout.id || 'balanced_grid';
+  G._activeRigLayoutName = layout.name || 'Balanced Grid';
+  G._locCrashRiskMult = Number(bonus.crashRiskMult || 1) * G._shopCrashRiskMult * G._layoutCrashMult;
+  G._locPowerUsageMult = Number(bonus.powerUsageMult || 1) * G._shopPowerUsageMult * G._layoutPowerUsageMult;
 
   G._rigStaffCoverage = getGlobalRigStaffCoverage();
 }
@@ -834,11 +1410,12 @@ function getPowerCapForPurchases() {
     Number(G.powerCapacityKw || POWER_BALANCE.startCapacityKw || 3)
   );
   const eventCapMult = Number(G._powerEventCapMult || 1);
+  const decisionCapMult = Number(G._powerDecisionCapMult || 1);
   const locCapMult = Math.max(0.5, Number(G._locPowerCapMult || 1));
   const prestigeCapMult = Math.max(1, Number(G._prestigePowerCapMult || 1));
   const provider = getPowerProviderById(G.powerProviderId);
   const providerCapMult = Math.max(0.6, Number((provider && provider.capMult) || 1));
-  return Math.max(0.25, baseCap * eventCapMult * providerCapMult * locCapMult * prestigeCapMult);
+  return Math.max(0.25, baseCap * eventCapMult * decisionCapMult * providerCapMult * locCapMult * prestigeCapMult);
 }
 window.getPowerCapForPurchases = getPowerCapForPurchases;
 
@@ -851,7 +1428,11 @@ function getRigPowerUsageKw(rigId, count = 1) {
   const bonuses = window.calculateRigModBonuses ? calculateRigModBonuses(mods) : {};
   const energyMult = Number(bonuses.energyDrain || 1);
   const watt = Number(rig.powerW || 0) * Math.max(0.4, Math.min(2.2, energyMult));
-  return ((watt * qty) / 1000) * Number(G._locPowerUsageMult || 1);
+  const thermal = (typeof getRigThermalEffects === 'function')
+    ? getRigThermalEffects(rigId)
+    : { drainMult: 1 };
+  const thermalPowerMult = Math.max(0.65, Number(thermal.drainMult || 1));
+  return ((watt * qty) / 1000) * Number(G._locPowerUsageMult || 1) * thermalPowerMult;
 }
 window.getRigPowerUsageKw = getRigPowerUsageKw;
 
@@ -949,6 +1530,7 @@ function getConvRateForCoin(coin) {
 window.getConvRateForCoin = getConvRateForCoin;
 
 function getTotalPowerUsageKw() {
+  ensureRigHeatState();
   let kw = 0;
   RIGS.forEach(r => {
     const count = Number(G.rigs[r.id] || 0);
@@ -957,9 +1539,14 @@ function getTotalPowerUsageKw() {
     const mods = (G.rigMods && G.rigMods[r.id]) ? G.rigMods[r.id] : [];
     const bonuses = window.calculateRigModBonuses ? calculateRigModBonuses(mods) : {};
     const energyMult = Number(bonuses.energyDrain || 1);
-    const watt = Number(r.powerW || 0) * Math.max(0.4, Math.min(2.2, energyMult));
+    const thermal = (typeof getRigThermalEffects === 'function')
+      ? getRigThermalEffects(r.id)
+      : { drainMult: 1 };
+    const thermalPowerMult = Math.max(0.65, Number(thermal.drainMult || 1));
+    const watt = Number(r.powerW || 0) * Math.max(0.4, Math.min(2.2, energyMult)) * thermalPowerMult;
     kw += (watt * count) / 1000;
   });
+  kw += Math.max(0, Number(G.coolingPowerKw || 0));
   return kw * Number(G._locPowerUsageMult || 1);
 }
 
@@ -1213,7 +1800,9 @@ function applyInsolvencyReset(billDay) {
   G.rigStaffAssignments = {};
   (RIGS || []).forEach((rig) => { G.rigStaffAssignments[rig.id] = {}; });
   if (!G.rigEnergy || typeof G.rigEnergy !== 'object') G.rigEnergy = {};
+  if (!G.rigHeat || typeof G.rigHeat !== 'object') G.rigHeat = {};
   (RIGS || []).forEach((rig) => { G.rigEnergy[rig.id] = 100; });
+  (RIGS || []).forEach((rig) => { G.rigHeat[rig.id] = 12; });
   G.locationId = 'home_pc';
   G.locationMoveBoostUntilDay = 0;
   G.usd = Math.max(0, Number(G.usd || 0) * 0.25);
@@ -1231,6 +1820,17 @@ function applyInsolvencyReset(billDay) {
   G.insuranceTier = 0;
   G.leasedRigs = {};
   (RIGS || []).forEach((rig) => { G.leasedRigs[rig.id] = 0; });
+  G.powerOutage = null;
+  G.powerOutageCooldown = 200;
+  G.powerOutageBuffRemaining = 0;
+  G._powerOutageBuffPerfMult = 1;
+  G._powerOutageBuffPriceMult = 1;
+  G._powerOutageBuffCapMult = 1;
+  G._powerOutageBuffCrashMult = 1;
+  G._powerDecisionPerfMult = 1;
+  G._powerDecisionPriceMult = 1;
+  G._powerDecisionCapMult = 1;
+  G._powerDecisionCrashMult = 1;
 
   notify(
     '💥 Insolvenz (Tag ' + billDay + '): ' + lostRigs + ' Rigs eingezogen, Crew aufgeloest, Standort zurueckgesetzt.',
@@ -1354,6 +1954,8 @@ function settleDailyOperationsBill(billDay) {
 }
 
 function updatePowerSystem(dt) {
+  ensureRigHeatState();
+  ensurePowerOutageState();
   const timeScale = Math.max(0.25, Number(G._timeScaleMinPerSec || 1));
   G.worldTimeMinutes = Number(G.worldTimeMinutes || 0) + dt * timeScale;
   G.worldDay = Math.max(1, Number(G.worldDay || 1));
@@ -1390,9 +1992,14 @@ function updatePowerSystem(dt) {
   const applyPenaltyToLow = (value) => value < 1 ? (1 - (1 - value) * eventPenaltyMult) : value;
 
   const tariff = getTariffForMinute(G.worldTimeMinutes);
-  const priceMult = applyPenaltyToHigh(Number(G._powerEventPriceMult || 1));
-  const capMult = applyPenaltyToLow(Number(G._powerEventCapMult || 1));
-  const crashMult = applyPenaltyToHigh(Number(G._powerEventCrashMult || 1));
+  const decisionPriceMult = Math.max(0.2, Number(G._powerDecisionPriceMult || 1));
+  const decisionCapMult = Math.max(0.2, Number(G._powerDecisionCapMult || 1));
+  const decisionCrashMult = Math.max(0.2, Number(G._powerDecisionCrashMult || 1));
+  const decisionPerfMult = Math.max(0.2, Number(G._powerDecisionPerfMult || 1));
+
+  const priceMult = applyPenaltyToHigh(Number(G._powerEventPriceMult || 1)) * decisionPriceMult;
+  const capMult = applyPenaltyToLow(Number(G._powerEventCapMult || 1)) * decisionCapMult;
+  const crashMult = applyPenaltyToHigh(Number(G._powerEventCrashMult || 1)) * decisionCrashMult;
   const provider = getPowerProviderById(G.powerProviderId);
 
   const rawUsageKw = getTotalPowerUsageKw();
@@ -1471,6 +2078,7 @@ function updatePowerSystem(dt) {
     perfMult *= (1 - debtPenalty);
     crashRiskMult *= (1 + debtPenalty);
   }
+  perfMult *= decisionPerfMult;
   const debtStageInfo = applyOpsDebtStage(debt);
   perfMult *= Number(debtStageInfo.perfMult || 1);
   crashRiskMult *= Number(debtStageInfo.crashMult || 1);
@@ -1708,10 +2316,13 @@ function updateRigEnergy(dt) {
     const overloadMult = Number(G._powerOverloadMult || 1);
     const locDrainMult = Math.max(0.5, Number(G._locEnergyDrainMult || 1));
     const maintenance = getRigMaintenanceStats(rigId);
+    const thermal = (typeof getRigThermalEffects === 'function')
+      ? getRigThermalEffects(rigId)
+      : { drainMult: 1, repairMult: 1 };
     const uncoveredPenalty = 1 + maintenance.uncoveredRatio * 0.45;
     
-    const baseDrain = 0.8 * drainMult * overloadMult * locDrainMult * uncoveredPenalty; // % pro Sekunde wenn aktiv
-    const repairPerSec = Math.max(0, Number(maintenance.repairPerSec || 0));
+    const baseDrain = 0.8 * drainMult * overloadMult * locDrainMult * uncoveredPenalty * Math.max(0.7, Number(thermal.drainMult || 1)); // % pro Sekunde wenn aktiv
+    const repairPerSec = Math.max(0, Number(maintenance.repairPerSec || 0)) * Math.max(0.45, Number(thermal.repairMult || 1));
     
     // Wenn Rig mined → Drain; sonst Regen
     const currentEnergy = Number.isFinite(G.rigEnergy[rigId]) ? G.rigEnergy[rigId] : 100;
@@ -1821,6 +2432,8 @@ function checkRigExplosions() {
     }
     // Gewünschtes Verhalten: nach jeder Explosion startet die Haltbarkeit wieder bei 100%.
     G.rigEnergy[rigId] = 100;
+    if (!G.rigHeat || typeof G.rigHeat !== 'object') G.rigHeat = {};
+    G.rigHeat[rigId] = 24;
     if (insuranceActive) {
       const payout = Number(rig.baseCost || 0) * (0.28 + Math.min(0.20, Number(G.insuranceTier || 0) * 0.04));
       G.usd += payout;
@@ -1853,14 +2466,20 @@ function checkRigExplosions() {
       const mods = (G.rigMods && G.rigMods[rigId]) ? G.rigMods[rigId] : [];
       const bonuses = window.calculateRigModBonuses ? calculateRigModBonuses(mods) : {};
       const maintenance = getRigMaintenanceStats(rigId);
+      const thermal = (typeof getRigThermalEffects === 'function') ? getRigThermalEffects(rigId) : { heat: 0, crashMult: 1 };
       const crashResist = Math.max(0, Math.min(0.95, Number(bonuses.crashResistance || 0) + Number(maintenance.crashReduction || 0)));
       const powerCrashMult = Math.max(1, Number(G._powerCrashMult || 1));
       const locCrashMult = Math.max(0.5, Number(G._locCrashRiskMult || 1));
       const uncoveredRisk = 1 + Number(maintenance.uncoveredRatio || 0) * 0.6;
       const insuranceMult = G.insuranceActive ? Math.max(0.55, 0.8 - Number(G.insuranceTier || 0) * 0.06) : 1;
-      const crashRisk = Math.min(0.95, (G._crashRiskBase || 0.02) * (1 - crashResist) * powerCrashMult * locCrashMult * uncoveredRisk * insuranceMult);
+      const thermalCrashMult = Math.max(0.8, Number(thermal.crashMult || 1));
+      const crashRisk = Math.min(0.95, (G._crashRiskBase || 0.02) * (1 - crashResist) * powerCrashMult * locCrashMult * uncoveredRisk * insuranceMult * thermalCrashMult);
       if (Math.random() < crashRisk) {
         explodeRig(r, count, 'Kritische Haltbarkeit');
+      }
+      if (Number(thermal.heat || 0) >= Number(COOLING_BALANCE.criticalStart || 94)) {
+        const thermalBurstChance = Math.min(0.55, 0.12 + (Number(thermal.heat || 0) - Number(COOLING_BALANCE.criticalStart || 94)) * 0.03);
+        if (Math.random() < thermalBurstChance) explodeRig(r, count, 'Thermal Runaway');
       }
     } else {
       G.rigExplosions[rigId] = false;
@@ -1973,6 +2592,8 @@ function gameTick() {
   G.totalRigs = getTotalRigCount();
   refreshUnlockedLocationTier();
   computeLocationEffects();
+  updateThermalSystem(dt);
+  updatePowerOutageDecision(dt);
   computeMultipliers();
   
   // ── Neue Systeme pro Tick ────────────────────────────────────

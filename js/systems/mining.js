@@ -208,9 +208,11 @@ function doClick(e, options) {
   applyMineClick(1, e, false);
 }
 
-function buyRig(rigId, qty) {
+function buyRig(rigId, qty, options) {
+  const opts = options || {};
+  const silent = !!opts.silent;
   const r = RIGS.find(x => x.id === rigId);
-  if (!r) return;
+  if (!r) return 0;
 
   const totalRigs = (typeof getTotalRigCount === 'function')
     ? getTotalRigCount()
@@ -218,35 +220,35 @@ function buyRig(rigId, qty) {
   const cap = (typeof getCurrentLocationRigCap === 'function') ? getCurrentLocationRigCap() : Infinity;
   const free = Math.max(0, cap - totalRigs);
   if (free <= 0) {
-    notify('🏢 Standort voll! Erst umziehen, dann mehr Rigs kaufen.', 'error');
-    return;
+    if (!silent) notify('🏢 Standort voll! Erst umziehen, dann mehr Rigs kaufen.', 'error');
+    return 0;
   }
   const buyQty = Math.min(Math.max(1, qty), free);
   if (buyQty < qty) {
-    notify('ℹ️ Standortlimit erreicht, nur ×' + buyQty + ' gekauft.', 'warning');
+    if (!silent) notify('ℹ️ Standortlimit erreicht, nur ×' + buyQty + ' gekauft.', 'warning');
   }
   const powerLimit = (typeof getMaxRigBuyByPower === 'function') ? getMaxRigBuyByPower(rigId) : Infinity;
   if (powerLimit <= 0) {
-    notify('⚡ Kein freier Strom mehr! Erst Netzkapazitaet ausbauen oder Rigs verkaufen.', 'error');
-    return;
+    if (!silent) notify('⚡ Kein freier Strom mehr! Erst Netzkapazitaet ausbauen oder Rigs verkaufen.', 'error');
+    return 0;
   }
   const finalQty = Math.min(buyQty, Math.max(0, Math.floor(powerLimit)));
   if (finalQty < buyQty) {
-    notify('⚡ Stromlimit erreicht, nur ×' + finalQty + ' kaufbar.', 'warning');
+    if (!silent) notify('⚡ Stromlimit erreicht, nur ×' + finalQty + ' kaufbar.', 'warning');
   }
 
   if (totalRigs < r.unlock) {
-    notify('🔒 Noch nicht freigeschaltet! (Benötigt ' + r.unlock + ' Rigs gesamt)', 'error');
-    return;
+    if (!silent) notify('🔒 Noch nicht freigeschaltet! (Benötigt ' + r.unlock + ' Rigs gesamt)', 'error');
+    return 0;
   }
   if (finalQty <= 0) {
-    notify('⚡ Kein Rig kaufbar wegen Stromlimit.', 'error');
-    return;
+    if (!silent) notify('⚡ Kein Rig kaufbar wegen Stromlimit.', 'error');
+    return 0;
   }
   const cost = getRigCost(rigId, finalQty);
   if (G.usd < cost) {
-    notify('Nicht genug USD! Benötigt: $' + fmtNum(cost) + ' 💸', 'error');
-    return;
+    if (!silent) notify('Nicht genug USD! Benötigt: $' + fmtNum(cost) + ' 💸', 'error');
+    return 0;
   }
   G.usd        -= cost;
   G.rigs[rigId] = (G.rigs[rigId] || 0) + finalQty;
@@ -255,16 +257,53 @@ function buyRig(rigId, qty) {
   renderRigs();
   if (typeof updateMineUI === 'function') updateMineUI();
   if (typeof renderPowerPanel === 'function') renderPowerPanel();
-  notify('✅ ' + r.name + ' ×' + finalQty + ' gekauft!');
+  if (!silent) notify('✅ ' + r.name + ' ×' + finalQty + ' gekauft!');
+  return finalQty;
 }
 
 function buyMax(rigId) {
   const n = getMaxBuyable(rigId);
   if (n <= 0) {
     notify('Nicht genug USD! 💸', 'error');
-    return;
+    return 0;
   }
-  buyRig(rigId, n);
+  return buyRig(rigId, n);
+}
+
+function buyRigUntilCap(rigId) {
+  const rig = (RIGS || []).find((x) => x.id === rigId);
+  if (!rig) return 0;
+  const totalOwned = (typeof getTotalRigCount === 'function')
+    ? getTotalRigCount()
+    : Object.values(G.rigs || {}).reduce((sum, val) => sum + Number(val || 0), 0);
+  if (totalOwned < Number(rig.unlock || 0)) {
+    notify('🔒 ' + rig.name + ' erst ab ' + rig.unlock + ' Gesamt-Rigs.', 'warning');
+    return 0;
+  }
+  const cap = (typeof getCurrentLocationRigCap === 'function') ? getCurrentLocationRigCap() : Infinity;
+  const capLeft = Math.max(0, cap - totalOwned);
+  const powerLeft = (typeof getMaxRigBuyByPower === 'function') ? getMaxRigBuyByPower(rigId) : Infinity;
+  const hardTarget = Math.max(0, Math.floor(Math.min(capLeft, powerLeft)));
+  const affordable = Math.max(0, Number(getMaxBuyable(rigId) || 0));
+  const qty = Math.min(hardTarget, affordable);
+
+  if (hardTarget <= 0) {
+    notify('⚡ Kein Platz durch Standort- oder Stromlimit.', 'warning');
+    return 0;
+  }
+  if (qty <= 0) {
+    notify('💸 Fuer Cap-Fill reicht das Budget aktuell nicht.', 'warning');
+    return 0;
+  }
+
+  const bought = buyRig(rigId, qty, { silent: true });
+  if (bought > 0) {
+    const reason = bought >= hardTarget
+      ? 'Cap erreicht'
+      : (affordable < hardTarget ? 'durch Budget begrenzt' : 'Limit erreicht');
+    notify('📦 Cap-Fill: ' + rig.name + ' ×' + bought + ' gekauft (' + reason + ').', 'success');
+  }
+  return bought;
 }
 
 function getRigSellValue(rigId, qty = 1) {

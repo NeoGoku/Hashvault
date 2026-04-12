@@ -720,6 +720,120 @@ function upgradePowerBattery() {
   if (typeof updateHeader === 'function') updateHeader();
 }
 
+function setRigLayoutForCurrentLocation(layoutId) {
+  const location = (typeof window.getCurrentLocation === 'function') ? getCurrentLocation() : null;
+  if (!location) {
+    notify('❌ Standortdaten fehlen.', 'error');
+    return;
+  }
+  const layouts = (typeof window.getAvailableRigLayouts === 'function') ? getAvailableRigLayouts(location.id) : [];
+  const layout = layouts.find((x) => x.id === layoutId) || null;
+  if (!layout) {
+    notify('🔒 Layout an diesem Standort nicht verfuegbar.', 'error');
+    return;
+  }
+  if (!G.rigLayoutByLocation || typeof G.rigLayoutByLocation !== 'object') G.rigLayoutByLocation = {};
+  G.rigLayoutByLocation[location.id] = layout.id;
+  if (typeof computeLocationEffects === 'function') computeLocationEffects();
+  if (typeof computeMultipliers === 'function') computeMultipliers();
+  notify('🧱 Rig-Layout aktiv: ' + layout.name, 'success');
+  if (typeof renderPowerPanel === 'function') renderPowerPanel();
+  if (typeof renderRigs === 'function') renderRigs();
+  if (typeof updateMineUI === 'function') updateMineUI();
+}
+
+function upgradeCoolingInfra() {
+  const cost = (typeof window.getCoolingUpgradeCost === 'function') ? getCoolingUpgradeCost() : Infinity;
+  if (!Number.isFinite(cost) || cost <= 0) return;
+  if (Number(G.usd || 0) < cost) {
+    notify('❌ Nicht genug USD fuer Cooling-Ausbau! ($' + fmtNum(cost) + ')', 'error');
+    return;
+  }
+  G.usd -= cost;
+  G.coolingInfraLevel = Math.max(0, Number(G.coolingInfraLevel || 0)) + 1;
+  notify('🌡️ Cooling-Infrastruktur auf Level ' + G.coolingInfraLevel + ' ausgebaut.', 'success');
+  if (typeof renderPowerPanel === 'function') renderPowerPanel();
+  if (typeof renderRigs === 'function') renderRigs();
+  if (typeof updateMineUI === 'function') updateMineUI();
+}
+
+function setCoolingMode(modeId) {
+  const meta = (typeof window.getCoolingModeMeta === 'function') ? getCoolingModeMeta(modeId) : null;
+  if (!meta) return;
+  G.coolingMode = String(modeId || 'balanced');
+  notify('❄️ Cooling-Modus: ' + (meta.label || G.coolingMode), 'success');
+  if (typeof renderPowerPanel === 'function') renderPowerPanel();
+}
+
+function applyRigBuildPreset(presetId) {
+  const preset = (typeof window.getRigBuildPresetById === 'function') ? getRigBuildPresetById(presetId) : null;
+  if (!preset) {
+    notify('❌ Unbekanntes Build-Preset.', 'error');
+    return;
+  }
+  const location = (typeof window.getCurrentLocation === 'function') ? getCurrentLocation() : null;
+  const locTier = Math.max(1, Number((location && location.tier) || 1));
+  if (locTier < Math.max(1, Number(preset.minTier || 1))) {
+    notify('🔒 Preset erst ab Standort-Tier ' + preset.minTier + '.', 'error');
+    return;
+  }
+  G.rigBuildPresetSelected = preset.id;
+
+  const beforeRigs = (typeof getTotalRigCount === 'function')
+    ? getTotalRigCount()
+    : Object.values(G.rigs || {}).reduce((sum, n) => sum + Number(n || 0), 0);
+  const beforeUsd = Number(G.usd || 0);
+
+  const plan = preset.plan || {};
+  Object.keys(plan).forEach((rigId) => {
+    const wanted = Math.max(0, Math.floor(Number(plan[rigId] || 0)));
+    if (wanted <= 0) return;
+    const buyable = Math.max(0, Number((typeof getMaxBuyable === 'function') ? getMaxBuyable(rigId) : 0));
+    const qty = Math.min(wanted, buyable);
+    if (qty > 0 && typeof buyRig === 'function') buyRig(rigId, qty, { silent: true });
+  });
+
+  const afterRigs = (typeof getTotalRigCount === 'function')
+    ? getTotalRigCount()
+    : Object.values(G.rigs || {}).reduce((sum, n) => sum + Number(n || 0), 0);
+  const gained = Math.max(0, afterRigs - beforeRigs);
+  const spent = Math.max(0, beforeUsd - Number(G.usd || 0));
+  if (gained <= 0) {
+    notify('ℹ️ Preset konnte wegen Limits/Budget nichts kaufen.', 'warning');
+    return;
+  }
+  notify('📦 Preset gebaut: ' + preset.name + ' (+' + gained + ' Rigs, -$' + fmtNum(spent) + ')', 'gold');
+  if (typeof renderRigs === 'function') renderRigs();
+  if (typeof renderRigCrew === 'function') renderRigCrew();
+  if (typeof renderPowerPanel === 'function') renderPowerPanel();
+  if (typeof updateMineUI === 'function') updateMineUI();
+}
+
+function batchSetRigCrewFocus(focusId) {
+  const focusMap = window.HV_RIG_CREW_FOCUS || {};
+  if (!focusMap[focusId]) return;
+  if (!G.rigCrewFocus || typeof G.rigCrewFocus !== 'object') G.rigCrewFocus = {};
+  (RIGS || []).forEach((rig) => {
+    const count = Math.max(0, Number((G.rigs || {})[rig.id] || 0));
+    if (count > 0) G.rigCrewFocus[rig.id] = focusId;
+  });
+}
+
+function runRigCrewBatch(mode) {
+  const m = String(mode || 'balanced');
+  if (m === 'reset') {
+    resetRigStaffAssignments();
+    return;
+  }
+  if (m === 'throughput' || m === 'maintenance' || m === 'safety' || m === 'frugal' || m === 'balanced') {
+    batchSetRigCrewFocus(m);
+  }
+  autoAssignRigStaff();
+  if (typeof renderRigCrew === 'function') renderRigCrew();
+  if (typeof renderRigs === 'function') renderRigs();
+  if (typeof renderPowerPanel === 'function') renderPowerPanel();
+}
+
 function getLocationMoveCost(locationId) {
   const loc = (typeof window.getLocationById === 'function') ? getLocationById(locationId) : null;
   if (!loc) return Infinity;
@@ -999,6 +1113,22 @@ function handlePowerAction(action) {
     upgradePowerBattery();
     return;
   }
+  if (action === 'coolingupg') {
+    upgradeCoolingInfra();
+    return;
+  }
+  if (action === 'coolmode') {
+    const select = document.getElementById('power-cooling-mode-select');
+    if (!select) return;
+    setCoolingMode(select.value);
+    return;
+  }
+  if (action === 'layout') {
+    const select = document.getElementById('power-layout-select');
+    if (!select) return;
+    setRigLayoutForCurrentLocation(select.value);
+    return;
+  }
   if (action === 'provider') {
     const select = document.getElementById('power-provider-select');
     if (!select) return;
@@ -1145,6 +1275,9 @@ function init() {
   if (!Number.isFinite(G.modParts) || G.modParts < 0) G.modParts = 0;
   if (!Number.isFinite(G._modPartTimer) || G._modPartTimer < 0) G._modPartTimer = 0;
   if (!G.locationId) G.locationId = 'home_pc';
+  if (!G.rigLayoutByLocation || typeof G.rigLayoutByLocation !== 'object') G.rigLayoutByLocation = {};
+  if (!G.rigHeat || typeof G.rigHeat !== 'object') G.rigHeat = {};
+  if (typeof G.rigBuildPresetSelected !== 'string' || !G.rigBuildPresetSelected) G.rigBuildPresetSelected = 'starter_balanced';
   if (typeof window.ensureLocationShopState === 'function') ensureLocationShopState(G);
   if (!G.locationShopPurchases || typeof G.locationShopPurchases !== 'object') G.locationShopPurchases = {};
   if (!Number.isFinite(G.unlockedLocationTier) || G.unlockedLocationTier < 1) G.unlockedLocationTier = 1;
@@ -1164,10 +1297,17 @@ function init() {
     if (!G.rigStaffAssignments[rig.id] || typeof G.rigStaffAssignments[rig.id] !== 'object') {
       G.rigStaffAssignments[rig.id] = {};
     }
+    if (!Number.isFinite(G.rigHeat[rig.id])) G.rigHeat[rig.id] = 8;
     if (typeof G.rigCrewFocus[rig.id] !== 'string' || !(window.HV_RIG_CREW_FOCUS || {})[G.rigCrewFocus[rig.id]]) {
       G.rigCrewFocus[rig.id] = 'balanced';
     }
     if (typeof G.rigAutoRepair[rig.id] !== 'boolean') G.rigAutoRepair[rig.id] = false;
+  });
+  (window.LOCATIONS || []).forEach((loc) => {
+    if (!loc || !loc.id) return;
+    if (typeof G.rigLayoutByLocation[loc.id] !== 'string' || !G.rigLayoutByLocation[loc.id]) {
+      G.rigLayoutByLocation[loc.id] = 'balanced_grid';
+    }
   });
   (window.RIG_STAFF_TIERS || []).forEach((tier) => {
     if (!G.rigCrewProgress[tier.id] || typeof G.rigCrewProgress[tier.id] !== 'object') {
@@ -1194,6 +1334,20 @@ function init() {
   if (!Number.isFinite(G.powerBatteryCycleLoss) || G.powerBatteryCycleLoss < 0) G.powerBatteryCycleLoss = 0.03;
   if (typeof G.powerBatteryMode !== 'string') G.powerBatteryMode = 'idle';
   if (!Number.isFinite(G.powerBatteryGridOffsetKw)) G.powerBatteryGridOffsetKw = 0;
+  if (!Number.isFinite(G.coolingInfraLevel) || G.coolingInfraLevel < 0) G.coolingInfraLevel = 0;
+  if (typeof G.coolingMode !== 'string' || !['eco', 'balanced', 'turbo'].includes(G.coolingMode)) G.coolingMode = 'balanced';
+  if (!Number.isFinite(G.coolingPowerKw) || G.coolingPowerKw < 0) G.coolingPowerKw = 0;
+  if (!Number.isFinite(G.powerOutageCooldown) || G.powerOutageCooldown < 0) G.powerOutageCooldown = 0;
+  if (!Number.isFinite(G.powerOutageBuffRemaining) || G.powerOutageBuffRemaining < 0) G.powerOutageBuffRemaining = 0;
+  if (!Number.isFinite(G._powerOutageBuffPerfMult) || G._powerOutageBuffPerfMult <= 0) G._powerOutageBuffPerfMult = 1;
+  if (!Number.isFinite(G._powerOutageBuffPriceMult) || G._powerOutageBuffPriceMult <= 0) G._powerOutageBuffPriceMult = 1;
+  if (!Number.isFinite(G._powerOutageBuffCapMult) || G._powerOutageBuffCapMult <= 0) G._powerOutageBuffCapMult = 1;
+  if (!Number.isFinite(G._powerOutageBuffCrashMult) || G._powerOutageBuffCrashMult <= 0) G._powerOutageBuffCrashMult = 1;
+  if (!Number.isFinite(G._powerDecisionPerfMult) || G._powerDecisionPerfMult <= 0) G._powerDecisionPerfMult = 1;
+  if (!Number.isFinite(G._powerDecisionPriceMult) || G._powerDecisionPriceMult <= 0) G._powerDecisionPriceMult = 1;
+  if (!Number.isFinite(G._powerDecisionCapMult) || G._powerDecisionCapMult <= 0) G._powerDecisionCapMult = 1;
+  if (!Number.isFinite(G._powerDecisionCrashMult) || G._powerDecisionCrashMult <= 0) G._powerDecisionCrashMult = 1;
+  if (!G.powerOutage || typeof G.powerOutage !== 'object') G.powerOutage = null;
   if (!Array.isArray(G.dailyBillHistory)) G.dailyBillHistory = [];
   if (!Number.isFinite(G.dailyLastBilledDay) || G.dailyLastBilledDay < 0) G.dailyLastBilledDay = Math.max(0, Math.floor(G.worldDay || 1) - 1);
   if (!Number.isFinite(G.dailyOpsDebt) || G.dailyOpsDebt < 0) G.dailyOpsDebt = 0;
@@ -1237,6 +1391,9 @@ function init() {
     }
   });
 
+  if (typeof ensureRigLayoutState === 'function') ensureRigLayoutState();
+  if (typeof ensureRigHeatState === 'function') ensureRigHeatState();
+  if (typeof ensurePowerOutageState === 'function') ensurePowerOutageState();
   if (typeof computeLocationEffects === 'function') computeLocationEffects();
   if (typeof checkRigModUnlocks === 'function') checkRigModUnlocks(false);
   
@@ -1361,6 +1518,43 @@ function init() {
     ownedOnly.addEventListener('change', () => {
       G.uiRigOwnedOnly = !!ownedOnly.checked;
       if (typeof renderRigs === 'function') renderRigs();
+    });
+  }
+  const presetSelect = document.getElementById('rig-preset-select');
+  const presetBtn = document.getElementById('rig-apply-preset-btn');
+  const refreshRigPresetSelect = () => {
+    if (!presetSelect) return;
+    const list = (typeof window.getAvailableRigBuildPresets === 'function')
+      ? getAvailableRigBuildPresets()
+      : [];
+    if (!list.length) {
+      presetSelect.innerHTML = '<option value="">Keine Presets verfuegbar</option>';
+      presetSelect.disabled = true;
+      if (presetBtn) presetBtn.disabled = true;
+      return;
+    }
+    const prev = String(presetSelect.value || G.rigBuildPresetSelected || '');
+    presetSelect.innerHTML = list.map((preset) => (
+      '<option value="' + preset.id + '">' + preset.name + ' - ' + preset.desc + '</option>'
+    )).join('');
+    const fallback = list.some((x) => x.id === G.rigBuildPresetSelected)
+      ? G.rigBuildPresetSelected
+      : list[0].id;
+    presetSelect.value = list.some((x) => x.id === prev) ? prev : fallback;
+    G.rigBuildPresetSelected = presetSelect.value;
+    presetSelect.disabled = false;
+    if (presetBtn) presetBtn.disabled = false;
+  };
+  refreshRigPresetSelect();
+  if (presetSelect) {
+    presetSelect.addEventListener('change', () => {
+      G.rigBuildPresetSelected = presetSelect.value || 'starter_balanced';
+    });
+  }
+  if (presetBtn) {
+    presetBtn.addEventListener('click', () => {
+      applyRigBuildPreset((presetSelect && presetSelect.value) || G.rigBuildPresetSelected || 'starter_balanced');
+      refreshRigPresetSelect();
     });
   }
   const repairAllBtn = document.getElementById('rig-repair-all-btn');

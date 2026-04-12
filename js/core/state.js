@@ -27,6 +27,9 @@ const DEFAULT_STATE = {
   // ── Per-Rig Coin-Zuweisung ────────────────────────────────
   rigTargets:   {},  // { rigId: 'BTC'|'ETH'|'LTC'|'BNB' }
   rigHashPools: { BTC:0, ETH:0, LTC:0, BNB:0 }, // Hash-Puffer pro Coin
+  rigLayoutByLocation: {}, // { locationId: layoutId }
+  rigHeat: {},             // { rigId: 0-100 } Thermal Last pro Rig-Typ
+  rigBuildPresetSelected: 'starter_balanced',
 
   // Progression
   achievements:    [],
@@ -162,6 +165,20 @@ const DEFAULT_STATE = {
   powerBatteryCycleLoss: 0.03,
   powerBatteryMode: 'idle',
   powerBatteryGridOffsetKw: 0,
+  coolingInfraLevel: 0,
+  coolingMode: 'balanced',
+  coolingPowerKw: 0,
+  powerOutage: null,
+  powerOutageCooldown: 0,
+  powerOutageBuffRemaining: 0,
+  _powerOutageBuffPerfMult: 1,
+  _powerOutageBuffPriceMult: 1,
+  _powerOutageBuffCapMult: 1,
+  _powerOutageBuffCrashMult: 1,
+  _powerDecisionPerfMult: 1,
+  _powerDecisionPriceMult: 1,
+  _powerDecisionCapMult: 1,
+  _powerDecisionCrashMult: 1,
   dailyBillHistory: [],
   dailyLastBilledDay: 0,
   dailyOpsDebt: 0,
@@ -229,6 +246,13 @@ const DEFAULT_STATE = {
   _locMaintenanceMult: 1,
   _locCrashRiskMult: 1,
   _locPowerUsageMult: 1,
+  _layoutHpsMult: 1,
+  _layoutPowerUsageMult: 1,
+  _layoutHeatMult: 1,
+  _layoutCrashMult: 1,
+  _activeRigLayoutId: 'balanced_grid',
+  _activeRigLayoutName: 'Balanced Grid',
+  _coolingHpsMult: 1,
   _shopHpsMult: 1,
   _shopStaffEffMult: 1,
   _shopStaffWageMult: 1,

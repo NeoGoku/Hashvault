@@ -614,3 +614,48 @@ Original prompt: Lass uns hier weitermachen am Projekt.
   - CSS fuer klickbare H/s-Pille + Breakdown-Modal hinzugefuegt.
   - Build angehoben: `20260412v7` (`index.html`, `version.json`).
   - Verifikation: `npm test` + `npm run check:syntax` erfolgreich.
+
+- 2026-04-12: UX-Fixrunde (Pools + Header H/s Breakdown).
+  - `updatePoolBars()` korrigiert:
+    - Rig-Pool-Progress nutzt jetzt den Restwert (`pool % convRate`) statt gemischter Anzeige.
+    - Click-Hashes (`G.hashes`) werden getrennt als eigene `🖱️ Click`-Pool-Zeile dargestellt.
+    - Effekt: Balken springt nach Coin-Konvertierung wieder sichtbar zurueck und wirkt nicht mehr "stuck".
+  - Header-H/s aufklappbar gemacht:
+    - klickbare H/s-Stat-Pille (`#hs-breakdown-btn`).
+    - neues Overlay `#hs-breakdown-overlay` mit Breakdown pro Rig-Typ (Anzahl, H/s pro Rig, Anteil) + Gesamt-H/s + aktive Multiplikatoren.
+    - Close-Button + Outside-Click schliessen das Fenster.
+  - CSS ergänzt fuer klickbare H/s-Pille und Breakdown-Overlay.
+  - Build angehoben: `20260412v7` (`index.html`, `version.json`).
+  - Verifikation: `npm test` erfolgreich (Syntax + Regression Smoke).
+- 2026-04-12: Phase 1 komplett umgesetzt (Layouts, Thermik, Stromausfall-Entscheidungen, QoL-Welle 1).
+  - Rig-Layouts pro Standort:
+    - Neue Layout-Profile mit Tier-Gates (`balanced_grid`, `dense_stack`, `airflow_lanes`, `cold_aisle`, `isolation_cells`).
+    - Persistente Layout-Wahl je Standort via `rigLayoutByLocation`.
+    - Layout-Effekte greifen live auf H/s, Power-Verbrauch, Hitze und Crash-Risiko.
+    - Neues UI im Power-Tab: `Rig-Layouts pro Standort` mit Auswahl + Apply.
+  - Heat/Cooling-System:
+    - Neues Thermik-State: `rigHeat` pro Rig-Typ.
+    - Tick-Logik fuer Hitzeaufbau/Abkuehlung inkl. Einfluss von Last, Standort, Crew und Layout.
+    - Cooling-Modi (`eco`, `balanced`, `turbo`) + Cooling-Infrastruktur-Level mit Ausbaukosten.
+    - Cooling braucht eigene kW (`coolingPowerKw`) und fliesst in die Power-Lastrechnung ein.
+    - Rig-Karten zeigen jetzt zusaetzlich Heat-Bar + Warnungen.
+    - Thermik beeinflusst Energie-Drain, Repair-Effizienz, H/s und Explosionsrisiko.
+  - Stromausfaelle als Entscheidungs-Events:
+    - Neue Incident-Events mit Timer + Optionenauswahl (Kosten/Nutzen/Risiko).
+    - Optionen setzen temporaere Krisen-Buffs/Mali (Perf, Preis, Cap, Crash).
+    - Bei Timeout wird automatischer Fallback angewendet.
+    - Neues UI im Power-Tab: `Stromausfall-Entscheidung` inkl. Optionen.
+  - QoL-Welle 1:
+    - Build-Presets (tier-gated) + Preset-Auswahl/Apply im Rig-Toolbar.
+    - `Cap Fill` pro Rig-Typ (kauft bis Standort-/Power-/Budget-Limit).
+    - Rig-Crew Batch-Buttons (Durchsatz/Wartung/Safety) im Crew-Tab.
+  - Persistenz & Save-Sanitize erweitert:
+    - Neue Felder in `DEFAULT_STATE` + `SAVE_FIELDS` + `sanitizeLoadedSavePayload`.
+    - Outage-Objekt wird defensiv sanitisiert, neue Thermik/Layout-Felder werden geclamped.
+
+- 2026-04-12: Verifikation nach Phase-1-Patch.
+  - `npm run check:syntax` -> erfolgreich.
+  - `npm run check:smoke` -> erfolgreich.
+  - `npm test` (syntax + smoke) -> erfolgreich.
+
+- Hinweis naechster Schritt: Feintuning Balancing fuer neue Systeme (Heat-Gain/Cooling-Cost/Outage-Frequenz) im Live-Playtest.

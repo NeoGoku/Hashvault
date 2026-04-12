@@ -9,7 +9,7 @@
 <title>HashVault Pro</title>
 <script>
 (function() {
-  const BUILD_ID = '20260412v7';
+  const BUILD_ID = '20260412v8';
   const BUILD_KEY = '__hv_build_id';
   const prevBuild = localStorage.getItem(BUILD_KEY);
   const isNewBuild = prevBuild !== BUILD_ID;
@@ -248,6 +248,10 @@
       <label style="font-size:12px;color:var(--muted);display:flex;gap:4px;align-items:center;">
         <input type="checkbox" id="rig-owned-only"> Nur Besitz
       </label>
+      <select id="rig-preset-select" style="padding:6px 8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);font-size:12px;min-width:180px;">
+        <option value="">Build Preset</option>
+      </select>
+      <button id="rig-apply-preset-btn" class="buy-btn" style="max-width:180px;padding:8px 10px;">Preset bauen</button>
       <button id="rig-repair-all-btn" class="buy-btn" style="max-width:170px;padding:8px 10px;">Alle reparieren</button>
       <div class="auto-sell-toggle" style="margin-left:auto;">
         <span id="rig-auto-repair-toggle-label">Auto-Reparatur (12s): AUS</span>
@@ -301,6 +305,35 @@
     <div class="power-card">
       <h3>Tarifzeiten</h3>
       <div id="power-tariff-list" class="power-list"></div>
+    </div>
+
+    <div class="power-card">
+      <h3>🧱 Rig-Layouts pro Standort</h3>
+      <div id="power-layout-info" class="power-list"></div>
+      <div class="power-actions" style="margin-top:8px;">
+        <select id="power-layout-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);"></select>
+        <button class="buy-btn" data-power-action="layout" type="button">Layout anwenden</button>
+      </div>
+    </div>
+
+    <div class="power-card">
+      <h3>🌡️ Thermik &amp; Cooling</h3>
+      <div id="power-thermal-info" class="power-list"></div>
+      <div class="power-actions" style="margin-top:8px;">
+        <select id="power-cooling-mode-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);">
+          <option value="eco">Eco</option>
+          <option value="balanced">Balanced</option>
+          <option value="turbo">Turbo</option>
+        </select>
+        <button class="buy-btn" data-power-action="coolmode" type="button">Cooling-Modus uebernehmen</button>
+        <button class="buy-btn" data-power-action="coolingupg" type="button" style="background:linear-gradient(135deg,#2f86c9,#21588b);">Cooling-Ausbau</button>
+      </div>
+    </div>
+
+    <div class="power-card">
+      <h3>🚨 Stromausfall-Entscheidung</h3>
+      <div id="power-outage-info" class="power-list"></div>
+      <div id="power-outage-actions" class="power-actions" style="margin-top:8px;"></div>
     </div>
 
     <div class="power-card">

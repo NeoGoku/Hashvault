@@ -70,6 +70,8 @@ function renderRigs() {
     const cost1    = getRigCost(r.id, 1);
     const cost5    = getRigCost(r.id, 5);
     const maxN     = getMaxBuyable(r.id);
+    const powerCapN = (typeof getMaxRigBuyByPower === 'function') ? Math.max(0, Number(getMaxRigBuyByPower(r.id) || 0)) : maxN;
+    const capFillN = Math.max(0, Math.min(maxN, capLeft, powerCapN));
     const costMax  = maxN > 0 ? getRigCost(r.id, maxN) : 0;
     const sellOne  = (typeof getRigSellValue === 'function') ? getRigSellValue(r.id, 1) : 0;
     const sellCooldownSec = (typeof getRigSellCooldownRemaining === 'function')
@@ -101,6 +103,14 @@ function renderRigs() {
     const energy = Math.max(0, Math.min(100, rawEnergy));
     const energyClass = energy < 12 ? 'danger' : (energy < 35 ? 'warn' : 'ok');
     const energyHint = energy < 12 ? '⚠️ Kritisch: Explosionsrisiko hoch' : '';
+    const thermal = (typeof window.getRigThermalEffects === 'function')
+      ? getRigThermalEffects(r.id)
+      : { heat: 0, severity: 'ok' };
+    const heat = Math.max(0, Math.min(100, Number(thermal.heat || 0)));
+    const heatClass = thermal.severity === 'critical' ? 'danger' : (thermal.severity === 'danger' ? 'warn' : (thermal.severity === 'warn' ? 'warn' : 'ok'));
+    const heatHint = thermal.severity === 'critical'
+      ? '🔥 Thermal kritisch - Explosionsrisiko steigt'
+      : (thermal.severity === 'danger' ? '🌡️ Heiss - bitte Cooling/Fokus pruefen' : '');
 
     // Coin-Zuweisung Buttons (nur für Rigs mit count > 0)
     let coinSel = '';
@@ -146,6 +156,14 @@ function renderRigs() {
              <div class="rig-energy-fill ${energyClass}" style="width:${energy.toFixed(1)}%"></div>
            </div>
            ${energyHint ? `<div class="rig-energy-hint">${energyHint}</div>` : ''}
+           <div class="rig-energy-head" style="margin-top:6px;">
+             <span>🌡️ Hitze</span>
+             <span>${heat.toFixed(0)}%</span>
+           </div>
+           <div class="rig-energy-bar">
+             <div class="rig-energy-fill ${heatClass}" style="width:${heat.toFixed(1)}%"></div>
+           </div>
+           ${heatHint ? `<div class="rig-energy-hint">${heatHint}</div>` : ''}
          </div>`
       : '';
 
@@ -176,14 +194,17 @@ function renderRigs() {
             <button class="buy-btn" ${G.usd >= cost5 && capLeft > 0 ? '' : 'disabled'} onclick="buyRig('${r.id}',5)">
               ×5<br><small>$${fmtNum(cost5)}</small>
             </button>
+            <button class="buy-btn" ${capFillN > 0 ? '' : 'disabled'} onclick="buyRigUntilCap('${r.id}')">
+              Cap Fill<br><small>${capFillN > 0 ? ('×' + fmtNum(capFillN, 0)) : '--'}</small>
+            </button>
             <button class="buy-btn max" ${maxN > 0 ? '' : 'disabled'} onclick="buyMax('${r.id}')">
               MAX(${maxN})<br><small>${maxN > 0 ? '$' + fmtNum(costMax) : '--'}</small>
             </button>
+          </div>
+          <div class="rig-btns" style="margin-top:6px;">
             <button class="buy-btn" style="background:linear-gradient(135deg,#74434c,#4f2c33);" ${canSell ? '' : 'disabled'} onclick="sellRig('${r.id}',1)">
               Verkauf<br><small>${sellable > 0 ? sellLabel : '--'}</small>
             </button>
-          </div>
-          <div class="rig-btns" style="margin-top:6px;">
             <button class="buy-btn" style="background:linear-gradient(135deg,#3d6e56,#234338);" ${canRepair ? '' : 'disabled'} onclick="repairRig('${r.id}')">
               Reparieren<br><small>${repairCost > 0 ? ('$' + fmtNum(repairCost) + ' + Ł' + fmtNum(repairLtcCost, 4)) : '100%'}</small>
             </button>
@@ -519,6 +540,9 @@ function renderRigCrew() {
   crewActions.className = 'ops-staff-actions';
   crewActions.innerHTML = `
     <button class="hire-btn ops-assign-btn" onclick="autoAssignRigStaff()">🤖 Auto zuweisen</button>
+    <button class="hire-btn ops-assign-btn" onclick="runRigCrewBatch('throughput')">🚀 Batch Durchsatz</button>
+    <button class="hire-btn ops-assign-btn" onclick="runRigCrewBatch('maintenance')">🔧 Batch Wartung</button>
+    <button class="hire-btn ops-assign-btn" onclick="runRigCrewBatch('safety')">🛡️ Batch Safety</button>
     <button class="hire-btn ops-reset-btn" onclick="resetRigStaffAssignments()">♻️ Neu verteilen</button>`;
   crewWrap.appendChild(crewActions);
 
@@ -1111,6 +1135,22 @@ function updatePowerActionButtons() {
     btn.disabled = Number(G.usd || 0) < batteryCost || btcBalance + 1e-9 < batteryBtcCost;
   });
 
+  const coolingCost = (typeof getCoolingUpgradeCost === 'function') ? getCoolingUpgradeCost() : 0;
+  const coolingLevel = Math.max(0, Number(G.coolingInfraLevel || 0));
+  document.querySelectorAll('[data-power-action="coolingupg"]').forEach((btn) => {
+    btn.textContent = 'Cooling-Ausbau (L' + coolingLevel + ' -> L' + (coolingLevel + 1) + ', $' + fmtNum(coolingCost) + ')';
+    btn.title = 'Mehr Kuehlleistung reduziert Hitze und Crash-Risiko.';
+    btn.disabled = Number(G.usd || 0) < coolingCost;
+  });
+
+  const coolingModeSelect = document.getElementById('power-cooling-mode-select');
+  const coolingMode = coolingModeSelect ? coolingModeSelect.value : String(G.coolingMode || 'balanced');
+  document.querySelectorAll('[data-power-action="coolmode"]').forEach((btn) => {
+    btn.textContent = 'Cooling-Modus uebernehmen';
+    btn.title = 'Eco spart Strom, Turbo kuehlt aggressiver.';
+    btn.disabled = !coolingMode || String(coolingMode) === String(G.coolingMode || 'balanced');
+  });
+
   const locSelect = document.getElementById('power-location-select');
   const selectedLocId = locSelect ? locSelect.value : '';
   const selectedBlocked = !!(locSelect && locSelect.selectedOptions && locSelect.selectedOptions[0] && locSelect.selectedOptions[0].disabled);
@@ -1131,6 +1171,21 @@ function updatePowerActionButtons() {
     btn.textContent = 'Zum Standort umziehen ($' + fmtNum(moveCost) + ')';
     btn.title = 'Standortwechsel kostet Umzugsgeld, hebt aber Rig-Cap/Boni.';
     btn.disabled = Number(G.usd || 0) < moveCost;
+  });
+
+  const layoutSelect = document.getElementById('power-layout-select');
+  const layoutId = layoutSelect ? layoutSelect.value : '';
+  const currentLoc = (typeof window.getCurrentLocation === 'function') ? getCurrentLocation() : null;
+  const currentLayoutId = currentLoc && G.rigLayoutByLocation ? String(G.rigLayoutByLocation[currentLoc.id] || '') : '';
+  document.querySelectorAll('[data-power-action="layout"]').forEach((btn) => {
+    if (!layoutId) {
+      btn.textContent = 'Layout nicht verfuegbar';
+      btn.disabled = true;
+      return;
+    }
+    btn.textContent = 'Layout anwenden';
+    btn.title = 'Layouts wirken auf H/s, Hitze, Risiko und Stromverbrauch.';
+    btn.disabled = String(layoutId) === String(currentLayoutId);
   });
 
   const providerSelect = document.getElementById('power-provider-select');
@@ -1233,6 +1288,33 @@ function updateMineUI() {
     set('s-power-event', 'Stabil');
   }
 
+  const presetSelect = document.getElementById('rig-preset-select');
+  const presetBtn = document.getElementById('rig-apply-preset-btn');
+  if (presetSelect) {
+    const isEditingPreset = document.activeElement === presetSelect;
+    const presets = (typeof window.getAvailableRigBuildPresets === 'function')
+      ? getAvailableRigBuildPresets()
+      : [];
+    if (!isEditingPreset) {
+      const prev = String(presetSelect.value || G.rigBuildPresetSelected || '');
+      if (!presets.length) {
+        presetSelect.innerHTML = '<option value="">Keine Presets verfuegbar</option>';
+        presetSelect.disabled = true;
+      } else {
+        presetSelect.innerHTML = presets.map((preset) => (
+          '<option value="' + preset.id + '">' + preset.name + ' - ' + preset.desc + '</option>'
+        )).join('');
+        const fallback = presets.some((x) => x.id === G.rigBuildPresetSelected)
+          ? G.rigBuildPresetSelected
+          : presets[0].id;
+        presetSelect.value = presets.some((x) => x.id === prev) ? prev : fallback;
+        G.rigBuildPresetSelected = presetSelect.value;
+        presetSelect.disabled = false;
+      }
+    }
+    if (presetBtn) presetBtn.disabled = presetSelect.disabled;
+  }
+
   const repairAllBtn = document.getElementById('rig-repair-all-btn');
   if (repairAllBtn) {
     let totalUsd = 0;
@@ -1316,6 +1398,115 @@ function renderPowerPanel() {
       <div class="power-row"><span>Standort-Bonus</span><strong>${location.bonusText || '—'}</strong></div>
       <div class="power-row"><span>BNB Ops-Rabatt</span><strong>${fmtNum((Number(G._opsBnbDiscount || 0)) * 100, 1)}%</strong></div>
       <div class="power-row"><span>Umzugsboost</span><strong>${moveBoostActive ? ('Aktiv bis Tag ' + moveBoostUntil + ' (+8% H/s)') : 'Keiner aktiv'}</strong></div>`;
+  }
+
+  const layoutInfo = document.getElementById('power-layout-info');
+  const layoutSelect = document.getElementById('power-layout-select');
+  if (layoutInfo && location) {
+    const activeLayout = (typeof window.getActiveRigLayout === 'function')
+      ? getActiveRigLayout(location.id)
+      : null;
+    const hpsPct = Math.max(0, (Number((activeLayout && activeLayout.hpsMult) || 1) - 1) * 100);
+    const powerPct = Math.max(0, (Number((activeLayout && activeLayout.powerMult) || 1) - 1) * 100);
+    const heatCutPct = Math.max(0, (1 - Number((activeLayout && activeLayout.heatMult) || 1)) * 100);
+    const crashCutPct = Math.max(0, (1 - Number((activeLayout && activeLayout.crashMult) || 1)) * 100);
+    layoutInfo.innerHTML = `
+      <div class="power-row"><span>Aktives Layout</span><strong>${activeLayout ? activeLayout.name : 'Balanced Grid'}</strong></div>
+      <div class="power-row"><span>H/s Effekt</span><strong>${hpsPct >= 0 ? '+' : ''}${fmtNum(hpsPct, 1)}%</strong></div>
+      <div class="power-row"><span>Power Effekt</span><strong>${powerPct >= 0 ? '+' : ''}${fmtNum(powerPct, 1)}%</strong></div>
+      <div class="power-row"><span>Hitze-Schnitt</span><strong>-${fmtNum(heatCutPct, 1)}%</strong></div>
+      <div class="power-row"><span>Crash-Schutz</span><strong>-${fmtNum(crashCutPct, 1)}%</strong></div>`;
+  }
+  if (layoutSelect && location) {
+    const isEditingLayout = document.activeElement === layoutSelect;
+    if (!isEditingLayout) {
+      const layouts = (typeof window.getAvailableRigLayouts === 'function')
+        ? getAvailableRigLayouts(location.id)
+        : [];
+      const prev = layoutSelect.value || '';
+      layoutSelect.innerHTML = layouts.map((layout) => (
+        '<option value="' + layout.id + '">' + layout.name + ' - ' + layout.desc + '</option>'
+      )).join('');
+      const activeLayoutId = G.rigLayoutByLocation && G.rigLayoutByLocation[location.id]
+        ? String(G.rigLayoutByLocation[location.id])
+        : (layouts[0] ? layouts[0].id : '');
+      layoutSelect.value = (prev && layoutSelect.querySelector('option[value="' + prev + '"]'))
+        ? prev
+        : activeLayoutId;
+    }
+  }
+
+  const thermalInfo = document.getElementById('power-thermal-info');
+  const coolingModeSelect = document.getElementById('power-cooling-mode-select');
+  if (thermalInfo) {
+    const summary = (typeof window.getRigHeatSummary === 'function')
+      ? getRigHeatSummary()
+      : { avgHeat: 0, maxHeat: 0, dangerCount: 0, criticalCount: 0, coolingPowerKw: 0, coolingMode: 'Balanced' };
+    const coolingCost = (typeof window.getCoolingUpgradeCost === 'function') ? getCoolingUpgradeCost() : 0;
+    thermalInfo.innerHTML = `
+      <div class="power-row"><span>Cooling Level</span><strong>${fmtNum(G.coolingInfraLevel || 0, 0)}</strong></div>
+      <div class="power-row"><span>Cooling-Modus</span><strong>${summary.coolingMode || 'Balanced'}</strong></div>
+      <div class="power-row"><span>Cooling-Leistung</span><strong>${fmtNum(summary.coolingPowerKw || 0, 2)} kW</strong></div>
+      <div class="power-row"><span>Avg Hitze</span><strong>${fmtNum(summary.avgHeat || 0, 1)}%</strong></div>
+      <div class="power-row"><span>Max Hitze</span><strong>${fmtNum(summary.maxHeat || 0, 1)}%</strong></div>
+      <div class="power-row"><span>Hotspots</span><strong>${fmtNum(summary.dangerCount || 0, 0)} warn / ${fmtNum(summary.criticalCount || 0, 0)} kritisch</strong></div>
+      <div class="power-row"><span>Naechstes Upgrade</span><strong>$${fmtNum(coolingCost || 0)}</strong></div>`;
+  }
+  if (coolingModeSelect) {
+    const modes = (window.HV_COOLING_BALANCE && window.HV_COOLING_BALANCE.modes)
+      ? window.HV_COOLING_BALANCE.modes
+      : { balanced: { label: 'Balanced' } };
+    const isEditingMode = document.activeElement === coolingModeSelect;
+    if (!isEditingMode) {
+      const prev = coolingModeSelect.value || String(G.coolingMode || 'balanced');
+      coolingModeSelect.innerHTML = Object.keys(modes).map((key) => (
+        '<option value="' + key + '">' + (modes[key].label || key) + '</option>'
+      )).join('');
+      coolingModeSelect.value = modes[prev] ? prev : String(G.coolingMode || 'balanced');
+    }
+  }
+
+  const outageInfo = document.getElementById('power-outage-info');
+  const outageActions = document.getElementById('power-outage-actions');
+  if (outageInfo && outageActions) {
+    const outage = (G.powerOutage && typeof G.powerOutage === 'object') ? G.powerOutage : null;
+    if (!outage) {
+      outageInfo.innerHTML = `
+        <div class="power-row"><span>Status</span><strong>Stabil</strong></div>
+        <div class="power-row"><span>Naechster Moeglicher Ausfall</span><strong>${fmtTime(Math.max(0, Number(G.powerOutageCooldown || 0)))}</strong></div>
+        <div class="power-row"><span>Aktiver Krisenbuff</span><strong>${Number(G.powerOutageBuffRemaining || 0) > 0 ? fmtTime(G.powerOutageBuffRemaining) : 'Keiner'}</strong></div>`;
+      outageActions.innerHTML = '';
+    } else if (outage.resolved) {
+      outageInfo.innerHTML = `
+        <div class="power-row"><span>Event</span><strong>${outage.title}</strong></div>
+        <div class="power-row"><span>Entscheidung</span><strong>${outage.choiceLabel || 'Auto-Plan'}</strong></div>
+        <div class="power-row"><span>Effekt Restzeit</span><strong>${fmtTime(Math.max(0, Number(G.powerOutageBuffRemaining || 0)))}</strong></div>
+        <div class="power-row"><span>Panel schliesst in</span><strong>${fmtTime(Math.max(0, Number(outage.remaining || 0)))}</strong></div>`;
+      outageActions.innerHTML = '';
+    } else {
+      const penalties = outage.penalties || {};
+      outageInfo.innerHTML = `
+        <div class="power-row"><span>Event</span><strong>${outage.title}</strong></div>
+        <div class="power-row"><span>Beschreibung</span><strong>${outage.desc || '-'}</strong></div>
+        <div class="power-row"><span>Restzeit</span><strong>${fmtTime(Math.max(0, Number(outage.remaining || 0)))}</strong></div>
+        <div class="power-row"><span>Perf / Cap</span><strong>x${fmtNum(penalties.perfMult || 1, 2)} / x${fmtNum(penalties.capMult || 1, 2)}</strong></div>
+        <div class="power-row"><span>Preis / Crash</span><strong>x${fmtNum(penalties.priceMult || 1, 2)} / x${fmtNum(penalties.crashMult || 1, 2)}</strong></div>`;
+      outageActions.innerHTML = (outage.options || []).map((opt) => {
+        const usd = Math.max(0, Number(opt.costUsd || 0));
+        const btc = Math.max(0, Number(opt.costBtc || 0));
+        const canUsd = Number(G.usd || 0) + 1e-9 >= usd;
+        const canBtc = Number((G.coins || {}).BTC || 0) + 1e-9 >= btc;
+        const can = canUsd && canBtc;
+        const costLabel = (usd > 0 || btc > 0)
+          ? ('$' + fmtNum(usd, 0) + (btc > 0 ? (' + ₿' + fmtNum(btc, 4)) : ''))
+          : 'keine Kosten';
+        return `<button class="buy-btn" style="text-align:left;white-space:normal;" ${can ? '' : 'disabled'} onclick="resolvePowerOutageOption('${opt.id}')">
+          <strong>${opt.label}</strong><br>
+          <small>${opt.desc || ''}</small><br>
+          <small>Kosten: ${costLabel} · Effekt: ${fmtTime(Math.max(0, Number(opt.duration || 0)))} </small>
+        </button>`;
+      }).join('');
+    }
   }
 
   const locSelect = document.getElementById('power-location-select');

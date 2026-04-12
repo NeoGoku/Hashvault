@@ -109,7 +109,7 @@
 .rig-stat .label { color: var(--muted); }
 .rig-stat .val   { font-weight: 700; color: var(--green); }
 
-.rig-btns { display: flex; gap: 6px; }
+.rig-btns { display: flex; gap: 6px; flex-wrap: wrap; }
 .buy-btn {
   flex: 1; padding: 7px; border: none; border-radius: 8px;
   cursor: pointer; font-size: 12px; font-weight: 700;
