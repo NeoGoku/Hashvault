@@ -337,44 +337,156 @@ function renderStoryMissionCard() {
 }
 window.renderStoryMissionCard = renderStoryMissionCard;
 
+function getTutorialTotalRigs() {
+  if (typeof window.getTotalRigCount === 'function') return Number(getTotalRigCount() || 0);
+  return Number(G.totalRigs || Object.values(G.rigs || {}).reduce((sum, n) => sum + Number(n || 0), 0));
+}
+
+function getTutorialRigOwned(rigId) {
+  return Math.max(0, Number((G.rigs || {})[rigId] || 0));
+}
+
+function getTutorialStaffTotal() {
+  return Object.values(G.staff || {}).reduce((sum, n) => sum + Number(n || 0), 0);
+}
+
+function getTutorialCrewHiredTotal() {
+  return Object.values(G.hiredRigStaff || {}).reduce((sum, n) => sum + Number(n || 0), 0);
+}
+
+function getTutorialCrewAssignedTotal() {
+  return Object.values(G.rigStaffAssignments || {}).reduce((sum, rigAssign) => {
+    return sum + Object.values(rigAssign || {}).reduce((sub, n) => sub + Number(n || 0), 0);
+  }, 0);
+}
+
+function getTutorialLocationTier() {
+  const loc = (typeof window.getCurrentLocation === 'function') ? getCurrentLocation() : null;
+  return Math.max(1, Number((loc && loc.tier) || 1));
+}
+
+function getTutorialLocationShopCount() {
+  if (typeof window.getTotalLocationShopItemsOwned === 'function') return Number(getTotalLocationShopItemsOwned(G) || 0);
+  return 0;
+}
+
+function getTutorialGoalClaims() {
+  return Object.values(G.goalsClaimed || {}).filter(Boolean).length;
+}
+
+function getTutorialStoryClaims() {
+  return Object.values(G.storyMissionsClaimed || {}).filter(Boolean).length;
+}
+
+function getTutorialDailyClaims() {
+  return (G.dailyChallenges || []).filter((c) => c && c.claimed).length;
+}
+
+function getTutorialUnlockedMods() {
+  return Array.isArray(G.unlockedMods) ? G.unlockedMods.length : 0;
+}
+
+function getTutorialUpgradeCount() {
+  return Array.isArray(G.upgrades) ? G.upgrades.length : 0;
+}
+
+function getTutorialResearchCount() {
+  return Array.isArray(G.research) ? G.research.length : 0;
+}
+
+function getTutorialAchievementCount() {
+  return Array.isArray(G.achievements) ? G.achievements.length : 0;
+}
+
+function hasTutorialRigTarget() {
+  return Object.values(G.rigTargets || {}).some((coin) => typeof coin === 'string' && coin);
+}
+
+function hasTutorialFocusSet() {
+  return Object.values(G.rigCrewFocus || {}).some((focus) => focus && focus !== 'balanced');
+}
+
+function hasTutorialSpecSet() {
+  return Object.values(G.rigCrewProgress || {}).some((p) => p && p.spec && p.spec !== 'balanced');
+}
+
+function hasTutorialModLevel() {
+  return Object.values(G.modLevels || {}).some((lvl) => Number(lvl || 0) >= 1);
+}
+
 const TUTORIAL_STEPS = [
-  { id: 't1', title: 'Klicke aufs Mining-Symbol', desc: 'Fuehre 12 Klicks aus.', check: () => Number(G.totalClicks || 0) >= 12 },
-  { id: 't2', title: 'Kaufe deinen ersten Rig', desc: 'Erreiche mindestens 1 Rig.', check: () => Number(G.totalRigs || 0) >= 1 },
-  { id: 't3', title: 'Erziele erste Umsaetze', desc: 'Verdiene insgesamt $600.', check: () => Number(G.totalEarned || 0) >= 600 },
-  { id: 't4', title: 'Auto-Sell aktivieren', desc: 'Aktiviere Auto-Sell fuer mindestens 1 Coin im Markt.', check: () => Object.values(G.autoSellCoins || {}).some(Boolean) },
-  { id: 't5', title: 'Baue das Stromnetz aus', desc: 'Erreiche Power-Infra Level 1.', check: () => Number(G.powerInfraLevel || 0) >= 1 },
-  { id: 't6', title: 'Stelle Rig-Crew ein', desc: 'Stelle mindestens 1 Crew-Mitglied ein.', check: () => Object.values(G.hiredRigStaff || {}).reduce((a, b) => a + Number(b || 0), 0) >= 1 },
-  { id: 't7', title: 'Crew spezialisieren', desc: 'Aendere eine Crew-Spezialisierung.', check: () => Object.values(G.rigCrewProgress || {}).some((p) => p && p.spec && p.spec !== 'balanced') },
-  { id: 't8', title: 'Starte Forschung', desc: 'Schliesse mindestens 1 Forschung ab.', check: () => Array.isArray(G.research) && G.research.length >= 1 },
-  { id: 't9', title: 'Ziehe um', desc: 'Erreiche einen Standort ab Tier 2.', check: () => {
-      const loc = (typeof window.getCurrentLocation === 'function') ? getCurrentLocation() : null;
-      return Number((loc && loc.tier) || 1) >= 2;
-    } },
-  { id: 't10', title: 'Standort-Shop kaufen', desc: 'Kaufe mindestens 1 Standort-Item.', check: () => {
-      if (typeof window.getTotalLocationShopItemsOwned === 'function') return Number(getTotalLocationShopItemsOwned(G) || 0) >= 1;
-      return false;
-    } },
-  { id: 't11', title: 'Crew-Fokus setzen', desc: 'Setze fuer einen Rig-Typ einen Crew-Fokus ungleich Balanced.', check: () => {
-      return Object.values(G.rigCrewFocus || {}).some((focus) => focus && focus !== 'balanced');
-    } },
+  { id: 't01', title: 'Willkommen im PC-Zimmer', desc: 'Fuehre 3 Klicks auf den Mining-Button aus.', check: () => Number(G.totalClicks || 0) >= 3 },
+  { id: 't02', title: 'Mining-Rhythmus aufbauen', desc: 'Erreiche insgesamt 15 Klicks.', check: () => Number(G.totalClicks || 0) >= 15 },
+  { id: 't03', title: 'Erste Hash-Basis', desc: 'Sammle mindestens 250 Gesamt-Hashes.', check: () => Number(G.totalHashes || 0) >= 250 },
+  { id: 't04', title: 'Startkapital sichern', desc: 'Halte mindestens $120 in der Kasse.', check: () => Number(G.usd || 0) >= 120 },
+  { id: 't05', title: 'Ersten Rig kaufen', desc: 'Erreiche 1 Rig in deiner Flotte.', check: () => getTutorialTotalRigs() >= 1 },
+  { id: 't06', title: 'Rig auf Coin routen', desc: 'Weise mindestens einem Rig ein Coin-Ziel zu.', check: () => hasTutorialRigTarget() },
+  { id: 't07', title: 'Erste Coin-Produktion', desc: 'Mine insgesamt mindestens 1 Coin.', check: () => Number(G.totalCoinsMined || 0) >= 1 },
+  { id: 't08', title: 'Erster Verkaufserfolg', desc: 'Erreiche insgesamt $500 Umsatz.', check: () => Number(G.totalEarned || 0) >= 500 },
+  { id: 't09', title: 'Auto-Sell aktivieren', desc: 'Aktiviere Auto-Sell fuer mindestens einen Coin.', check: () => Object.values(G.autoSellCoins || {}).some(Boolean) },
+  { id: 't10', title: 'Rig-Flotte verdoppeln', desc: 'Baue auf mindestens 2 Rigs aus.', check: () => getTutorialTotalRigs() >= 2 },
+  { id: 't11', title: 'Erstes Upgrade freischalten', desc: 'Kaufe dein erstes Upgrade.', check: () => getTutorialUpgradeCount() >= 1 },
+  { id: 't12', title: 'Upgrade-Kette starten', desc: 'Besitze mindestens 3 Upgrades.', check: () => getTutorialUpgradeCount() >= 3 },
+  { id: 't13', title: 'Lab anwerfen', desc: 'Schliesse mindestens 1 Research ab.', check: () => getTutorialResearchCount() >= 1 },
+  { id: 't14', title: 'Operatives Team einstellen', desc: 'Stelle mindestens 1 Staff-Mitglied ein.', check: () => getTutorialStaffTotal() >= 1 },
+  { id: 't15', title: 'Team erweitern', desc: 'Erhoehe deinen Staff auf mindestens 3.', check: () => getTutorialStaffTotal() >= 3 },
+  { id: 't16', title: 'Rig-Crew anheuern', desc: 'Stelle mindestens 1 Rig-Crew-Mitglied ein.', check: () => getTutorialCrewHiredTotal() >= 1 },
+  { id: 't17', title: 'Crew zuweisen', desc: 'Weise Crew aktiv einem Rig-Typ zu.', check: () => getTutorialCrewAssignedTotal() >= 1 },
+  { id: 't18', title: 'Rig-Fokus setzen', desc: 'Setze fuer einen Rig-Typ einen Fokus ungleich Balanced.', check: () => hasTutorialFocusSet() },
+  { id: 't19', title: 'Crew spezialisieren', desc: 'Aendere die Spezialisierung eines Crew-Tiers.', check: () => hasTutorialSpecSet() },
+  { id: 't20', title: 'Ersten Contract abschliessen', desc: 'Schliesse 1 Contract ab.', check: () => Number(G.contractsDone || 0) >= 1 },
+  { id: 't21', title: 'Missions-Flow lernen', desc: 'Schliesse insgesamt 3 Contracts ab.', check: () => Number(G.contractsDone || 0) >= 3 },
+  { id: 't22', title: 'Daily claimen', desc: 'Loese mindestens eine Daily Challenge ein.', check: () => getTutorialDailyClaims() >= 1 },
+  { id: 't23', title: 'Erste Achievements sammeln', desc: 'Erreiche 5 Achievements.', check: () => getTutorialAchievementCount() >= 5 },
+  { id: 't24', title: 'Bekanntheit steigern', desc: 'Erreiche 12 Achievements.', check: () => getTutorialAchievementCount() >= 12 },
+  { id: 't25', title: 'Stromnetz ausbauen I', desc: 'Erreiche Power-Infra Level 1.', check: () => Number(G.powerInfraLevel || 0) >= 1 },
+  { id: 't26', title: 'Stromnetz ausbauen II', desc: 'Erreiche Power-Infra Level 3.', check: () => Number(G.powerInfraLevel || 0) >= 3 },
+  { id: 't27', title: 'Anbieter wechseln', desc: 'Wechsle einmal aktiv den Stromanbieter.', check: () => String(G.powerProviderId || 'spot') !== 'spot' },
+  { id: 't28', title: 'Erster Umzug', desc: 'Ziehe in einen Standort mit Tier 2 oder hoeher.', check: () => getTutorialLocationTier() >= 2 },
+  { id: 't29', title: 'Standort-Shop testen', desc: 'Kaufe mindestens 1 Standort-Item.', check: () => getTutorialLocationShopCount() >= 1 },
+  { id: 't30', title: 'Standort optimieren', desc: 'Besitze insgesamt mindestens 4 Standort-Items.', check: () => getTutorialLocationShopCount() >= 4 },
+  { id: 't31', title: 'Kleine Rig-Farm', desc: 'Erreiche insgesamt 6 Rigs.', check: () => getTutorialTotalRigs() >= 6 },
+  { id: 't32', title: 'Rack-Reihe aufbauen', desc: 'Erreiche insgesamt 12 Rigs.', check: () => getTutorialTotalRigs() >= 12 },
+  { id: 't33', title: 'GPU-Linie erweitern', desc: 'Besitze 8x GPU Miner Mk1.', check: () => getTutorialRigOwned('gpu1') >= 8 },
+  { id: 't34', title: 'ASIC-Einstieg', desc: 'Kaufe mindestens 1x ASIC Nano.', check: () => getTutorialRigOwned('asic1') >= 1 },
+  { id: 't35', title: 'Coin-Durchsatz steigern', desc: 'Mine insgesamt mindestens 120 Coins.', check: () => Number(G.totalCoinsMined || 0) >= 120 },
+  { id: 't36', title: 'Modding freischalten', desc: 'Schalte mindestens 1 Rig-Mod frei.', check: () => getTutorialUnlockedMods() >= 1 },
+  { id: 't37', title: 'Mod-Level verbessern', desc: 'Bringe einen Mod auf Level 1 oder hoeher.', check: () => hasTutorialModLevel() },
+  { id: 't38', title: 'Part-Lager fuellen', desc: 'Halte mindestens 25 Mod-Parts.', check: () => Number(G.modParts || 0) >= 25 },
+  { id: 't39', title: 'Goal-System verstehen', desc: 'Claim mindestens 3 Goals.', check: () => getTutorialGoalClaims() >= 3 },
+  { id: 't40', title: 'Langfristige Ziele pushen', desc: 'Claim mindestens 8 Goals.', check: () => getTutorialGoalClaims() >= 8 },
+  { id: 't41', title: 'Storyline voranbringen', desc: 'Claim mindestens 4 Story-Missionen.', check: () => getTutorialStoryClaims() >= 4 },
+  { id: 't42', title: 'Storyline vertiefen', desc: 'Claim mindestens 8 Story-Missionen.', check: () => getTutorialStoryClaims() >= 8 },
+  { id: 't43', title: 'Operationsbudget aufbauen', desc: 'Erreiche insgesamt $200.000 Umsatz.', check: () => Number(G.totalEarned || 0) >= 200000 },
+  { id: 't44', title: 'Hash-Leistung industrialisieren', desc: 'Erreiche 5.000.000 Gesamt-Hashes.', check: () => Number(G.totalHashes || 0) >= 5000000 },
+  { id: 't45', title: 'Standort Tier 3', desc: 'Ziehe in einen Standort mit Tier 3 oder hoeher.', check: () => getTutorialLocationTier() >= 3 },
+  { id: 't46', title: 'Chip-Reserve aufbauen', desc: 'Halte mindestens 5 Prestige-Chips.', check: () => Number(G.chips || 0) >= 5 },
+  { id: 't47', title: 'Erstes Prestige ausloesen', desc: 'Fuehre mindestens 1 Prestige durch.', check: () => Number(G.prestigeCount || 0) >= 1 },
+  { id: 't48', title: 'Nach Prestige neu skalieren', desc: 'Baue nach Prestige wieder mindestens 5 Rigs auf.', check: () => Number(G.prestigeCount || 0) >= 1 && getTutorialTotalRigs() >= 5 },
 ];
 window.TUTORIAL_STEPS = TUTORIAL_STEPS;
 
 function updateTutorialState() {
+  if (G.tutorialEnabled === false) return;
   if (G.tutorialCompleted) return;
   let step = Math.max(0, Number(G.tutorialStep || 0));
+  let completedNow = 0;
   while (step < TUTORIAL_STEPS.length && TUTORIAL_STEPS[step].check()) {
     step += 1;
-    notify('📘 Tutorial-Schritt erledigt: ' + TUTORIAL_STEPS[Math.max(0, step - 1)].title, 'success');
+    completedNow += 1;
+    if (completedNow <= 2) {
+      notify('📘 Tutorial-Schritt erledigt: ' + TUTORIAL_STEPS[Math.max(0, step - 1)].title, 'success');
+    }
   }
+  if (completedNow > 2) notify('📘 Tutorial: +' + (completedNow - 2) + ' weitere Schritte automatisch abgeschlossen.', 'success');
   G.tutorialStep = step;
   if (step >= TUTORIAL_STEPS.length) {
     G.tutorialCompleted = true;
-    G.usd += 3500;
-    G.totalEarned += 3500;
-    G.chips += 2;
-    G.modParts = Math.max(0, Number(G.modParts || 0)) + 6;
-    notify('🎓 Tutorial abgeschlossen! +$3.500, +2 Chips, +6 Mod-Parts', 'gold');
+    G.usd += 12000;
+    G.totalEarned += 12000;
+    G.chips += 4;
+    G.modParts = Math.max(0, Number(G.modParts || 0)) + 20;
+    notify('🎓 Tutorial abgeschlossen! +$12.000, +4 Chips, +20 Mod-Parts', 'gold');
   }
 }
 window.updateTutorialState = updateTutorialState;

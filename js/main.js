@@ -368,6 +368,18 @@ function toggleDebugOverlay() {
   if (typeof renderDebugOverlay === 'function') renderDebugOverlay();
 }
 
+function toggleTutorialMode() {
+  const isEnabled = G.tutorialEnabled !== false;
+  G.tutorialEnabled = !isEnabled;
+  if (G.tutorialEnabled) {
+    notify('📘 Tutorial eingeblendet.', 'success');
+  } else {
+    notify('📘 Tutorial ausgeblendet.', 'warning');
+  }
+  if (typeof renderTutorialBox === 'function') renderTutorialBox();
+  if (typeof renderTutorialToggleButton === 'function') renderTutorialToggleButton();
+}
+
 const DEBUG_CHEAT_USD_STEPS = [
   10000,
   50000,
@@ -1093,6 +1105,7 @@ function init() {
   if (!Number.isFinite(G.storyMissionIndex) || G.storyMissionIndex < 0) G.storyMissionIndex = 0;
   if (!G.storyMissionsClaimed || typeof G.storyMissionsClaimed !== 'object') G.storyMissionsClaimed = {};
   if (!Number.isFinite(G.tutorialStep) || G.tutorialStep < 0) G.tutorialStep = 0;
+  if (typeof G.tutorialEnabled !== 'boolean') G.tutorialEnabled = true;
   if (typeof G.tutorialCompleted !== 'boolean') G.tutorialCompleted = false;
   if (!G.miningStreaks) {
     G.miningStreaks = { BTC:0, ETH:0, LTC:0, BNB:0 };
@@ -1313,6 +1326,8 @@ function init() {
   }
   const debugBtn = document.getElementById('debug-toggle-btn');
   if (debugBtn) debugBtn.addEventListener('click', toggleDebugOverlay);
+  const tutorialBtn = document.getElementById('tutorial-toggle-btn');
+  if (tutorialBtn) tutorialBtn.addEventListener('click', toggleTutorialMode);
   const saveExportBtn = document.getElementById('save-export-btn');
   if (saveExportBtn) saveExportBtn.addEventListener('click', exportSaveSnapshot);
   const saveImportBtn = document.getElementById('save-import-btn');

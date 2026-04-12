@@ -898,7 +898,35 @@ function updateHeader() {
   set('hd-net',   'Net: $' + fmtNum(G.totalEarned));
   set('hd-clock', fmtClock());
   set('hd-chips', G.chips + ' 💎');
+  renderTutorialToggleButton();
   renderDebugOverlay();
+}
+
+function renderTutorialToggleButton() {
+  const btn = document.getElementById('tutorial-toggle-btn');
+  if (!btn) return;
+  const enabled = G.tutorialEnabled !== false;
+  const stepCount = Array.isArray(window.TUTORIAL_STEPS) ? window.TUTORIAL_STEPS.length : 0;
+  const step = Math.max(0, Number(G.tutorialStep || 0));
+
+  if (!enabled) {
+    btn.textContent = '📘 Tutorial AUS';
+    btn.title = 'Tutorial ist pausiert und wird nicht angezeigt.';
+    btn.style.background = 'var(--panel2)';
+    return;
+  }
+  if (G.tutorialCompleted) {
+    btn.textContent = '📘 Tutorial fertig';
+    btn.title = 'Tutorial abgeschlossen. Per Klick kannst du es ausblenden.';
+    btn.style.background = 'linear-gradient(135deg, rgba(74,222,128,0.24), rgba(59,179,255,0.22))';
+    return;
+  }
+
+  const safeStepCount = Math.max(1, stepCount);
+  const shownStep = Math.min(safeStepCount, step + 1);
+  btn.textContent = '📘 Tutorial ' + shownStep + '/' + safeStepCount;
+  btn.title = 'Klicke, um das Tutorial ein- oder auszublenden.';
+  btn.style.background = 'linear-gradient(135deg, rgba(59,179,255,0.24), rgba(124,92,255,0.20))';
 }
 
 function renderDebugOverlay() {
@@ -949,7 +977,7 @@ function renderTutorialBox() {
   const box = document.getElementById('tutorial-box');
   if (!box) return;
   const steps = window.TUTORIAL_STEPS || [];
-  if (!steps.length || G.tutorialCompleted) {
+  if (!steps.length || G.tutorialEnabled === false || G.tutorialCompleted) {
     box.style.display = 'none';
     box.innerHTML = '';
     return;

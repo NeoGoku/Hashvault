@@ -50,7 +50,7 @@ const SAVE_FIELDS = [
   // v5.1 additions (Features):
   'dailyChallenges','challengeProgress',
   'goalsClaimed','storyMissionIndex','storyMissionsClaimed',
-  'tutorialStep','tutorialCompleted',
+  'tutorialStep','tutorialEnabled','tutorialCompleted',
   'npcTraders','npcUsedToday',
   'rigEnergy','miningStreaks',
   'rigMods','unlockedMods','modLevels','modParts',
@@ -227,6 +227,7 @@ function sanitizeLoadedSavePayload(input) {
   out.challengeProgress = ensureObject(out.challengeProgress);
   out.goalsClaimed = ensureObject(out.goalsClaimed);
   out.storyMissionsClaimed = ensureObject(out.storyMissionsClaimed);
+  out.tutorialEnabled = out.tutorialEnabled !== false;
   out.npcTraders = ensureObject(out.npcTraders);
   out.npcUsedToday = ensureObject(out.npcUsedToday);
   out.modLevels = ensureObject(out.modLevels);

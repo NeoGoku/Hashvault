@@ -111,6 +111,7 @@ const DEFAULT_STATE = {
   storyMissionIndex: 0,
   storyMissionsClaimed: {},
   tutorialStep: 0,
+  tutorialEnabled: true,
   tutorialCompleted: false,
 
   // ── NPC Traders ───────────────────────────────────────────────

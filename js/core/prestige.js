@@ -31,6 +31,7 @@ function doPrestige() {
         contractsDone:  G.contractsDone,
         storyMissionIndex: Number(G.storyMissionIndex || 0),
         storyMissionsClaimed: JSON.parse(JSON.stringify(G.storyMissionsClaimed || {})),
+        tutorialEnabled: G.tutorialEnabled !== false,
         tutorialCompleted: !!G.tutorialCompleted,
       };
 
@@ -58,6 +59,7 @@ function doPrestige() {
       G.contractsDone  = saved.contractsDone;
       G.storyMissionIndex = saved.storyMissionIndex;
       G.storyMissionsClaimed = saved.storyMissionsClaimed;
+      G.tutorialEnabled = saved.tutorialEnabled;
       G.tutorialCompleted = saved.tutorialCompleted;
       G.unlockedLocationTier = Math.min(4, 1 + Math.floor(saved.prestigeCount / 2));
       G.locationId = 'home_pc';

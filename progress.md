@@ -542,3 +542,24 @@ Original prompt: Lass uns hier weitermachen am Projekt.
   - Build angehoben:
     - `index.html` BUILD_ID -> `20260411v20`
     - `version.json` buildId -> `20260411v20`
+
+- 2026-04-12: Tutorial-Ausbau + Toggle umgesetzt.
+  - Header erweitert: neuer `📘 Tutorial`-Button direkt neben `🧪 Debug` (`index.html`).
+  - Neuer persistenter State `tutorialEnabled` in `DEFAULT_STATE`, Save-Feldern und Save-Sanitizer integriert (`state.js`, `save.js`).
+  - Prestige-Reset bewahrt jetzt auch `tutorialEnabled` wie den bisherigen Tutorial-Fortschritt (`prestige.js`).
+  - UI-Render erweitert:
+    - `renderTutorialToggleButton()` zeigt Status live (`AUS`, `fertig`, oder `Schritt x/y`).
+    - Tutorial-Box wird bei deaktiviertem Tutorial konsequent ausgeblendet.
+  - Main-Logic erweitert:
+    - `toggleTutorialMode()` (an/aus) mit Notification.
+    - Button-Eventbinding fuer `tutorial-toggle-btn`.
+    - Init-Normalisierung: fehlender Wert -> `tutorialEnabled = true`.
+  - Tutorial von 11 auf 48 Schritte erweitert (`features.js`) inkl. robusten Helpern fuer Progress-Checks (Rigs/Staff/Crew/Location/Goals/Story/Prestige etc.).
+  - Tutorial-Progress robust gemacht:
+    - pausiert vollstaendig, wenn Tutorial aus ist.
+    - reduziert Notification-Spam bei Bulk-Abschluss (nur erste 2 + Sammelhinweis).
+    - Abschlussbelohnung auf +$12.000, +4 Chips, +20 Mod-Parts angepasst.
+
+- 2026-04-12: Verifikation
+  - `npm test` erfolgreich (Syntax + Regression Smoke).
+  - Build-ID angehoben: `20260412v1` (`index.html`, `version.json`) fuer sauberes Cache-Busting.
