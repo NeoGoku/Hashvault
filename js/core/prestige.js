@@ -1,6 +1,6 @@
 // ============================================================
 // CORE — Prestige-System
-// Schwelle: $2.000.000 = 1 Chip
+// Schwelle: $3.500.000 = 1 Chip
 // Benötigt: state.js, gameLoop.js, render.js, notifications.js
 // ============================================================
 
@@ -16,12 +16,13 @@ function doPrestige() {
   showModal(
     '✨ Prestige bestätigen',
     'Du erhältst ' + chips + ' Chip(s).\n' +
-    'Das Spiel wird zurückgesetzt — Achievements, Chips & Streak bleiben erhalten.',
+    'Das Spiel wird zurückgesetzt — Achievements, Chips, Skilltree & Streak bleiben erhalten.',
     () => {
       // Was wird gerettet
       const saved = {
         chips:          G.chips + chips,
         chipShop:       JSON.parse(JSON.stringify(G.chipShop)),
+        prestigeSkills: JSON.parse(JSON.stringify(G.prestigeSkills || {})),
         dailyStreak:    G.dailyStreak,
         lastDaily:      G.lastDaily,
         prestigeCount:  G.prestigeCount + 1,
@@ -50,6 +51,7 @@ function doPrestige() {
       G.usd            = startCash;
       G.chips          = saved.chips;
       G.chipShop       = saved.chipShop;
+      G.prestigeSkills = saved.prestigeSkills;
       G.dailyStreak    = saved.dailyStreak;
       G.lastDaily      = saved.lastDaily;
       G.prestigeCount  = saved.prestigeCount;
@@ -83,6 +85,44 @@ function doPrestige() {
     }
   );
 }
+
+function buyPrestigeSkill(id) {
+  const skill = (window.PRESTIGE_SKILLS || []).find((entry) => entry.id === id);
+  if (!skill) return;
+
+  const current = (typeof window.getPrestigeSkillLevel === 'function')
+    ? getPrestigeSkillLevel(id)
+    : Math.max(0, Number(((G.prestigeSkills || {})[id]) || 0));
+  if (current >= Number(skill.max || 1)) {
+    notify('Skill ist bereits auf Maximum.', 'error');
+    return;
+  }
+
+  const reqState = (typeof window.getPrestigeSkillRequirementState === 'function')
+    ? getPrestigeSkillRequirementState(skill)
+    : { ok: true, text: '' };
+  if (!reqState.ok) {
+    notify('Voraussetzung fehlt: ' + reqState.text, 'error');
+    return;
+  }
+
+  const cost = (typeof window.getPrestigeSkillCost === 'function')
+    ? getPrestigeSkillCost(id, current + 1)
+    : Math.max(1, Number(skill.cost || 1));
+  if (Number(G.chips || 0) < cost) {
+    notify('Nicht genug Chips! 💎', 'error');
+    return;
+  }
+
+  G.chips -= cost;
+  G.prestigeSkills = G.prestigeSkills || {};
+  G.prestigeSkills[id] = current + 1;
+  computeMultipliers();
+  renderAll();
+  saveGame();
+  notify('💠 ' + skill.name + ' auf Lv ' + (current + 1) + ' ausgebaut.', 'gold');
+}
+window.buyPrestigeSkill = buyPrestigeSkill;
 
 // ── Chip kaufen (alle 3 Kategorien) ──────────────────────────
 function buyChipItem(id) {

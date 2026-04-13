@@ -792,6 +792,38 @@ function renderPrestige() {
   const crewWageCut = Math.max(0, (1 - Math.max(0.55, Number(G._prestigeCrewWageMult || 1))) * 100);
   const shopCostCut = Math.max(0, (1 - Math.max(0.6, Number(G._prestigeShopCostMult || 1))) * 100);
   const shopSlotBonus = Math.min(6, Math.floor(pCount / 2));
+  const collectionState = (typeof window.getActiveCollectionBonuses === 'function')
+    ? getActiveCollectionBonuses()
+    : { activeSets: [], totalCompleted: 0 };
+  const prestigeSkillFx = (typeof window.getPrestigeSkillEffects === 'function')
+    ? getPrestigeSkillEffects()
+    : {};
+  const allSets = Array.isArray(window.COLLECTION_SETS) ? window.COLLECTION_SETS : [];
+  const skills = Array.isArray(window.PRESTIGE_SKILLS) ? window.PRESTIGE_SKILLS : [];
+  const fmtSkillEffect = (skill, nextLevel) => {
+    const effect = (skill && skill.effect) || {};
+    const parts = [];
+    Object.keys(effect).forEach((key) => {
+      const raw = Number(effect[key] || 0);
+      if (!Number.isFinite(raw)) return;
+      if (key === 'opsCostMult') parts.push('-' + fmtNum((1 - raw) * 100, 1) + '% Ops');
+      else if (key === 'buildCostMult') parts.push('-' + fmtNum((1 - raw) * 100, 1) + '% Build');
+      else if (key === 'researchCostMult') parts.push('-' + fmtNum((1 - raw) * 100, 1) + '% Research');
+      else if (key === 'powerCapMult') parts.push('+' + fmtNum((raw - 1) * 100, 1) + '% Grid');
+      else if (key === 'powerUsageMult') parts.push('-' + fmtNum((1 - raw) * 100, 1) + '% kW');
+      else if (key === 'coolingMult') parts.push('+' + fmtNum((raw - 1) * 100, 1) + '% Cooling');
+      else if (key === 'automationMult') parts.push('+' + fmtNum((raw - 1) * 100, 1) + '% Auto');
+      else if (key === 'outagePrepMult') parts.push('+' + fmtNum((raw - 1) * 100, 1) + '% Outage');
+      else if (key === 'crewEffMult') parts.push('+' + fmtNum((raw - 1) * 100, 1) + '% Crew');
+      else if (key === 'crewWageMult') parts.push('-' + fmtNum((1 - raw) * 100, 1) + '% Loehne');
+      else if (key === 'hpsMult') parts.push('+' + fmtNum((raw - 1) * 100, 1) + '% H/s');
+      else if (key === 'clickMult') parts.push('+' + fmtNum((raw - 1) * 100, 1) + '% Klick');
+      else if (key === 'marketFloorAdd') parts.push('+' + fmtNum(raw * 100, 1) + '% Floor');
+      else if (key === 'contractBonus') parts.push('+' + fmtNum(raw * 100, 1) + '% Contracts');
+      else if (key === 'collectionBonusMult') parts.push('+' + fmtNum((raw - 1) * 100, 1) + '% Set-Staerke');
+    });
+    return parts.join(' · ') || ('Lv ' + nextLevel);
+  };
 
   const prestigeFx = document.createElement('div');
   prestigeFx.className = 'chip-section';
@@ -807,8 +839,104 @@ function renderPrestige() {
     '<div class="power-list-item"><span>Crew-Effizienz</span><strong>+' + fmtNum(crewEffBoost, 1) + '%</strong></div>' +
     '<div class="power-list-item"><span>Crew-Lohnkosten</span><strong>-' + fmtNum(crewWageCut, 1) + '%</strong></div>' +
     '<div class="power-list-item"><span>Standort-Shop Kosten</span><strong>-' + fmtNum(shopCostCut, 1) + '%</strong></div>' +
-    '<div class="power-list-item"><span>Standort-Shop Slots</span><strong>+' + fmtNum(shopSlotBonus, 0) + '</strong></div>';
+    '<div class="power-list-item"><span>Standort-Shop Slots</span><strong>+' + fmtNum(shopSlotBonus, 0) + '</strong></div>' +
+    '<div class="power-list-item"><span>Aktive Sets</span><strong>' + fmtNum(collectionState.totalCompleted || 0, 0) + '/' + fmtNum(allSets.length, 0) + '</strong></div>' +
+    '<div class="power-list-item"><span>Skilltree-Bonus</span><strong>+' + fmtNum((Math.max(1, Number(prestigeSkillFx.collectionBonusMult || 1)) - 1) * 100, 1) + '% Set-Staerke</strong></div>';
   grid.appendChild(prestigeFx);
+
+  const collectionSummary = document.createElement('div');
+  collectionSummary.className = 'chip-section';
+  collectionSummary.innerHTML =
+    '<div class="chip-section-title">🧩 Sammlungen & Set-Boni</div>' +
+    '<div class="chip-section-sub">Sets werden automatisch aktiv, sobald du alle Bedingungen erfuellt hast.</div>';
+  if (collectionState.activeSets && collectionState.activeSets.length) {
+    collectionState.activeSets.forEach((set) => {
+      const row = document.createElement('div');
+      row.className = 'power-list-item';
+      row.innerHTML = '<span>' + (set.icon || '🧩') + ' ' + set.name + '</span><strong>' + String(set.rewardText || 'Aktiv') + '</strong>';
+      collectionSummary.appendChild(row);
+    });
+  } else {
+    collectionSummary.innerHTML += '<div class="power-list-item"><span>Noch kein Set aktiv</span><strong>Arbeite auf erste Kombinationen hin</strong></div>';
+  }
+  grid.appendChild(collectionSummary);
+
+  const collectionGridSec = document.createElement('div');
+  collectionGridSec.className = 'chip-section';
+  collectionGridSec.innerHTML =
+    '<div class="chip-section-title">📦 Set-Fortschritt</div>' +
+    '<div class="chip-section-sub">Jedes Set greift als permanenter Betriebsbonus in laufende Runs.</div>';
+  const collectionGrid = document.createElement('div');
+  collectionGrid.className = 'chip-grid';
+  allSets.forEach((set) => {
+    const status = (typeof window.getCollectionSetStatus === 'function')
+      ? getCollectionSetStatus(set.id)
+      : null;
+    if (!status) return;
+    const doneCount = status.progress.filter((row) => row.done).length;
+    const card = document.createElement('div');
+    card.className = 'chip-item' + (status.active ? ' chip-unlocked' : '');
+    card.innerHTML =
+      '<div class="chip-item-header">' +
+        '<div class="chip-item-name">' + (status.icon || '🧩') + ' ' + status.name + '</div>' +
+        '<span class="chip-owned">' + doneCount + '/' + status.progress.length + '</span>' +
+      '</div>' +
+      '<div class="chip-item-desc">' + status.desc + '</div>' +
+      '<div class="chip-item-desc" style="color:var(--text);margin-top:6px;"><strong>Bonus:</strong> ' + status.rewardText + '</div>' +
+      status.progress.map((row) => (
+        '<div class="power-list-item"><span>' + row.label + '</span><strong>' + fmtNum(row.current, 0) + '/' + fmtNum(row.target, 0) + '</strong></div>'
+      )).join('') +
+      '<button class="chip-btn ' + (status.active ? 'chip-btn-done' : '') + '" disabled>' + (status.active ? '✓ Aktiv' : 'Im Aufbau') + '</button>';
+    collectionGrid.appendChild(card);
+  });
+  collectionGridSec.appendChild(collectionGrid);
+  grid.appendChild(collectionGridSec);
+
+  const groups = [];
+  skills.forEach((skill) => {
+    if (!groups.includes(skill.group)) groups.push(skill.group);
+  });
+  groups.forEach((groupName) => {
+    const section = document.createElement('div');
+    section.className = 'chip-section';
+    section.innerHTML =
+      '<div class="chip-section-title">🌳 Skilltree · ' + groupName + '</div>' +
+      '<div class="chip-section-sub">Dauerhafte Chip-Investitionen fuer alle naechsten Runs.</div>';
+    const treeGrid = document.createElement('div');
+    treeGrid.className = 'chip-grid';
+
+    skills.filter((skill) => skill.group === groupName).forEach((skill) => {
+      const level = (typeof window.getPrestigeSkillLevel === 'function') ? getPrestigeSkillLevel(skill.id) : 0;
+      const maxLevel = Math.max(1, Number(skill.max || 1));
+      const nextLevel = Math.min(maxLevel, level + 1);
+      const reqState = (typeof window.getPrestigeSkillRequirementState === 'function')
+        ? getPrestigeSkillRequirementState(skill)
+        : { ok: true, text: '' };
+      const cost = (typeof window.getPrestigeSkillCost === 'function')
+        ? getPrestigeSkillCost(skill.id, level + 1)
+        : Number(skill.cost || 1);
+      const canBuy = level < maxLevel && reqState.ok && Number(G.chips || 0) >= cost;
+      const card = document.createElement('div');
+      card.className = 'chip-item' + (level >= maxLevel ? ' chip-maxed' : (level > 0 ? ' chip-unlocked' : ''));
+      card.innerHTML =
+        '<div class="chip-item-header">' +
+          '<div class="chip-item-name">' + (skill.icon || '💠') + ' ' + skill.name + '</div>' +
+          '<span class="chip-owned">Lv ' + level + '/' + maxLevel + '</span>' +
+        '</div>' +
+        '<div class="chip-item-desc">' + String(skill.desc || '') + '</div>' +
+        '<div class="chip-item-desc" style="color:var(--text);margin-top:6px;"><strong>Naechstes Level:</strong> ' + fmtSkillEffect(skill, nextLevel) + '</div>' +
+        (reqState.text ? '<div class="chip-item-desc" style="margin-top:6px;">Voraussetzung: ' + reqState.text + '</div>' : '') +
+        (
+          level >= maxLevel
+            ? '<button class="chip-btn chip-btn-done" disabled>✓ MAX</button>'
+            : '<button class="chip-btn" ' + (canBuy ? '' : 'disabled') + ' onclick="buyPrestigeSkill(\'' + skill.id + '\')">💎 ' + fmtNum(cost, 0) + ' investieren</button>'
+        );
+      treeGrid.appendChild(card);
+    });
+
+    section.appendChild(treeGrid);
+    grid.appendChild(section);
+  });
 
   // ── Aktive Zeitboosts anzeigen ──────────────────────────
   const now    = Date.now();

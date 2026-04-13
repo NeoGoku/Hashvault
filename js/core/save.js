@@ -35,7 +35,7 @@ const SAVE_FIELDS = [
   'rigs','upgrades','research','staff',
   'achievements','chipShop','contracts',
   'contractsDone','contractRefresh',
-  'prestige','prestigeCount','chips',
+  'prestige','prestigeCount','chips','prestigeSkills','collectionSetCompletions',
   'profileName',
   'selectedCoin','autoSell','autoSellCoins',
   'uiRigSort','uiRigOwnedOnly','debugOverlay','debugCheatUsd',
@@ -227,6 +227,7 @@ function sanitizeLoadedSavePayload(input) {
   out.prestige = toNum(out.prestige, 0, 0, 1e9, false);
   out.prestigeCount = toNum(out.prestigeCount, 0, 0, 10000, true);
   out.chips = toNum(out.chips, 0, 0, 1e8, true);
+  out.collectionSetCompletions = toNum(out.collectionSetCompletions, 0, 0, 999, true);
   out.modParts = toNum(out.modParts, 0, 0, 1e9, true);
   out.totalRigs = toNum(out.totalRigs, 0, 0, 1e7, true);
   out.layoutSwitchCount = toNum(out.layoutSwitchCount, 0, 0, 1e8, true);
@@ -347,6 +348,10 @@ function sanitizeLoadedSavePayload(input) {
   out.chipShop = ensureObject(out.chipShop);
   Object.keys(out.chipShop).forEach((chipId) => {
     out.chipShop[chipId] = toNum(out.chipShop[chipId], 0, 0, 9999, true);
+  });
+  out.prestigeSkills = ensureObject(out.prestigeSkills);
+  Object.keys(out.prestigeSkills).forEach((skillId) => {
+    out.prestigeSkills[skillId] = toNum(out.prestigeSkills[skillId], 0, 0, 99, true);
   });
 
   out.contracts = Array.isArray(out.contracts) ? out.contracts.filter((c) => c && typeof c === 'object').slice(0, 30) : [];

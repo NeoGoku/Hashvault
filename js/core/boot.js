@@ -34,6 +34,8 @@ const BOOT_JS_MODULES = [
   'js/data/locations.js',
   'js/data/locationShop.js',
   'js/data/rigCrew.js',
+  'js/data/collections.js',
+  'js/data/prestigeSkills.js',
 
   'js/ui/notifications.js',
 
@@ -69,8 +71,8 @@ const BOOT_CHANGELOG = [
   {
     build: String(window.__HV_BUILD_ID || BOOT_ASSET_VERSION),
     date: '2026-04-12',
-    title: 'Tutorial-Fuehrung + Cache-Haertung',
-    body: 'Gefuehrtes Tutorial mit Spotlight/Sprungzielen, Power-Advisor und hart versionierten Builds fuer konsistente Live-Deploys.',
+    title: 'Sets + Prestige-Skilltree',
+    body: 'Sammlungsboni fuer Rig-/Standort-Meilensteine und ein permanenter Chip-Skilltree fuer Economy, Grid, Crew und Markt.',
   },
   {
     build: '20260412v16',

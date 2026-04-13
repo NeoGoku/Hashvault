@@ -943,3 +943,27 @@ Original prompt: Lass uns hier weitermachen am Projekt.
   - Build angehoben:
     - `index.html` BUILD_ID -> `20260412v20`
     - `version.json` buildId -> `20260412v20`
+
+- 2026-04-13: Sammlungen / Set-Boni und Prestige-Skilltree integriert.
+  - Neue Datenmodule:
+    - `js/data/collections.js`
+    - `js/data/prestigeSkills.js`
+  - Meta-Hub im Prestige-Reiter erweitert:
+    - aktive Set-Boni
+    - Set-Fortschritt fuer alle Sammlungen
+    - Prestige-Skilltree mit Economy/Grid/Crew/Market/Legacy-Nodes
+    - bestehender Chip-Shop darunter beibehalten
+  - Multiplikatoren sauber in `computeMultipliers()` verdrahtet:
+    - H/s
+    - Klick-Multiplikator
+    - Build-/Research-/Ops-Kosten
+    - Crew-Effizienz / Crew-Lohn
+    - Markt-Floor
+    - Cooling / Power-Usage / Outage-Automation
+  - Prestige behaelt jetzt auch den Skilltree ueber Resets.
+  - Prestige-Text auf $3.5M pro Chip vereinheitlicht.
+  - Build angehoben:
+    - `index.html` BUILD_ID -> `20260413v23`
+    - `version.json` buildId -> `20260413v23`
+  - Verifikation:
+    - `npm test` erfolgreich (Syntax + Regression Smoke)

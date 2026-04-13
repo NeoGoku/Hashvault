@@ -720,6 +720,31 @@ function computeMultipliers() {
   hm *= Math.max(0.2, Number(G._shopHpsMult || 1));
 
   const prestigeCount = Math.max(0, Number(G.prestigeCount || 0));
+  const prestigeSkillFx = (typeof window.getPrestigeSkillEffects === 'function')
+    ? getPrestigeSkillEffects()
+    : {};
+  const collectionRaw = (typeof window.getActiveCollectionBonuses === 'function')
+    ? getActiveCollectionBonuses()
+    : { totalCompleted: 0, effects: {} };
+  const collectionScale = Math.max(1, Number(prestigeSkillFx.collectionBonusMult || 1));
+  const scaleCollectionMult = (raw) => 1 + (Math.max(0.1, Number(raw || 1)) - 1) * collectionScale;
+  const collectionFx = {
+    hpsMult: scaleCollectionMult(collectionRaw.effects && collectionRaw.effects.hpsMult),
+    clickMult: scaleCollectionMult(collectionRaw.effects && collectionRaw.effects.clickMult),
+    powerUsageMult: scaleCollectionMult(collectionRaw.effects && collectionRaw.effects.powerUsageMult),
+    powerCapMult: scaleCollectionMult(collectionRaw.effects && collectionRaw.effects.powerCapMult),
+    coolingMult: scaleCollectionMult(collectionRaw.effects && collectionRaw.effects.coolingMult),
+    opsCostMult: scaleCollectionMult(collectionRaw.effects && collectionRaw.effects.opsCostMult),
+    buildCostMult: scaleCollectionMult(collectionRaw.effects && collectionRaw.effects.buildCostMult),
+    researchCostMult: scaleCollectionMult(collectionRaw.effects && collectionRaw.effects.researchCostMult),
+    researchSpeedMult: scaleCollectionMult(collectionRaw.effects && collectionRaw.effects.researchSpeedMult),
+    crewEffMult: scaleCollectionMult(collectionRaw.effects && collectionRaw.effects.crewEffMult),
+    crewWageMult: scaleCollectionMult(collectionRaw.effects && collectionRaw.effects.crewWageMult),
+    automationMult: scaleCollectionMult(collectionRaw.effects && collectionRaw.effects.automationMult),
+    outagePrepMult: scaleCollectionMult(collectionRaw.effects && collectionRaw.effects.outagePrepMult),
+    marketFloorAdd: Number((collectionRaw.effects && collectionRaw.effects.marketFloorAdd) || 0) * collectionScale,
+    contractBonus: Number((collectionRaw.effects && collectionRaw.effects.contractBonus) || 0) * collectionScale,
+  };
   const powerCapMult = 1 + prestigeCount * Number(ECONOMY_BALANCE.prestigePowerCapPerLevel || 0.04);
   const opsCostMult = Math.max(
     Number(ECONOMY_BALANCE.minOpsCostMult || 0.55),
@@ -754,6 +779,22 @@ function computeMultipliers() {
   const ecoResearchCostMult = 0.94 + ecoPhase * 0.72;
   const ecoConvPenalty = 1 + ecoPhase * 0.95;
   const ecoPassiveMult = 1 - ecoPhase * 0.28;
+  const finalPowerCapMult = powerCapMult * Math.max(1, Number(prestigeSkillFx.powerCapMult || 1)) * Math.max(1, Number(collectionFx.powerCapMult || 1));
+  const finalOpsCostMult = opsCostMult * Math.max(0.65, Number(prestigeSkillFx.opsCostMult || 1)) * Math.max(0.65, Number(collectionFx.opsCostMult || 1));
+  const finalBuildCostMult = buildCostMult * Math.max(0.65, Number(prestigeSkillFx.buildCostMult || 1)) * Math.max(0.65, Number(collectionFx.buildCostMult || 1));
+  const finalResearchCostMult = researchCostMult * Math.max(0.65, Number(prestigeSkillFx.researchCostMult || 1)) * Math.max(0.65, Number(collectionFx.researchCostMult || 1));
+  const finalCrewEffMult = crewEffMult * Math.max(1, Number(prestigeSkillFx.crewEffMult || 1)) * Math.max(1, Number(collectionFx.crewEffMult || 1));
+  const finalCrewWageMult = crewWageMult * Math.max(0.65, Number(prestigeSkillFx.crewWageMult || 1)) * Math.max(0.65, Number(collectionFx.crewWageMult || 1));
+  const finalMarketFloorMult = Math.min(
+    0.92,
+    marketFloorMult + Math.max(0, Number(prestigeSkillFx.marketFloorAdd || 0)) + Math.max(0, Number(collectionFx.marketFloorAdd || 0))
+  );
+  hm *= Math.max(1, Number(prestigeSkillFx.hpsMult || 1)) * Math.max(1, Number(collectionFx.hpsMult || 1));
+  cm *= Math.max(1, Number(prestigeSkillFx.clickMult || 1)) * Math.max(1, Number(collectionFx.clickMult || 1));
+  cbon += Math.max(0, Number(prestigeSkillFx.contractBonus || 0)) + Math.max(0, Number(collectionFx.contractBonus || 0));
+  researchSpeedBonus +=
+    (Math.max(1, Number(prestigeSkillFx.researchSpeedMult || 1)) - 1) +
+    (Math.max(1, Number(collectionFx.researchSpeedMult || 1)) - 1);
 
   // ── Schreibe berechnete Werte ─────────────────────────────
   G._hpsMult           = Math.max(0.01, hm);
@@ -769,15 +810,25 @@ function computeMultipliers() {
   G._researchSpeedMult = 1 + researchSpeedBonus;
   G._locationMoveBoostActive = moveBoostActive;
   G._locationMoveBoostMult = moveBoostMult;
-  G._prestigePowerCapMult = powerCapMult;
-  G._opsCostMult = opsCostMult;
+  G._prestigePowerCapMult = finalPowerCapMult;
+  G._prestigeAutomationMult = Math.max(1, Number(prestigeSkillFx.automationMult || 1));
+  G._prestigeOutagePrepMult = Math.max(1, Number(prestigeSkillFx.outagePrepMult || 1));
+  G._opsCostMult = finalOpsCostMult;
   G._opsBnbDiscount = getBnbOpsDiscount();
-  G._buildCostMult = buildCostMult * ecoBuildCostMult;
-  G._researchCostMult = researchCostMult * ecoResearchCostMult;
-  G._prestigeCrewEffMult = crewEffMult;
-  G._prestigeCrewWageMult = crewWageMult;
+  G._buildCostMult = finalBuildCostMult * ecoBuildCostMult;
+  G._researchCostMult = finalResearchCostMult * ecoResearchCostMult;
+  G._prestigeCrewEffMult = finalCrewEffMult;
+  G._prestigeCrewWageMult = finalCrewWageMult;
   G._prestigeShopCostMult = shopCostMult;
-  G._marketFloorMult = marketFloorMult;
+  G._marketFloorMult = finalMarketFloorMult;
+  G._collectionPowerUsageMult = Math.max(0.65, Number(prestigeSkillFx.powerUsageMult || 1)) * Math.max(0.65, Number(collectionFx.powerUsageMult || 1));
+  G._collectionCoolingMult = Math.max(1, Number(prestigeSkillFx.coolingMult || 1)) * Math.max(1, Number(collectionFx.coolingMult || 1));
+  G._collectionPowerCapMult = Math.max(1, Number(collectionFx.powerCapMult || 1));
+  G._collectionHpsMult = Math.max(1, Number(collectionFx.hpsMult || 1));
+  G._collectionClickMult = Math.max(1, Number(collectionFx.clickMult || 1));
+  G._collectionResearchSpeedMult = Math.max(1, Number(collectionFx.researchSpeedMult || 1));
+  G._collectionContractBonus = Math.max(0, Number(collectionFx.contractBonus || 0));
+  G.collectionSetCompletions = Math.max(0, Number(collectionRaw.totalCompleted || 0));
   G._ecoPhase = ecoPhase;
 }
 
@@ -1375,8 +1426,8 @@ function updatePowerOutageDecision(dt) {
       if (autoPlan !== 'off') {
         const ageSec = Math.max(0, (Date.now() - Number(G.powerOutage.createdAt || Date.now())) / 1000);
         const crewOps = getRigCrewPowerOpsSummary();
-        const outagePrep = Math.max(0.78, Number(crewOps.outagePrepMult || 1));
-        const automationAssist = Math.max(0.82, Number(crewOps.automationAssistMult || 1));
+        const outagePrep = Math.max(0.78, Number(crewOps.outagePrepMult || 1)) * Math.max(1, Number(G._prestigeOutagePrepMult || 1));
+        const automationAssist = Math.max(0.82, Number(crewOps.automationAssistMult || 1)) * Math.max(1, Number(G._prestigeAutomationMult || 1));
         const autoDelay = Math.max(2, Number(POWER_AUTOMATION_BALANCE.outageAutoDelaySec || 6) / Math.max(0.82, outagePrep * automationAssist * 0.5));
         if (ageSec >= autoDelay) {
           const autoPick = pickPowerOutageOptionByPlan(autoPlan, G.powerOutage.options);
@@ -1418,7 +1469,7 @@ function updatePowerOutageDecision(dt) {
     );
     const riskOutageMult = Math.max(0.25, Number((riskMeta && riskMeta.outageMult) || 1));
     const crewOps = getRigCrewPowerOpsSummary();
-    const outagePrepMult = Math.max(0.78, Number(crewOps.outagePrepMult || 1));
+    const outagePrepMult = Math.max(0.78, Number(crewOps.outagePrepMult || 1)) * Math.max(1, Number(G._prestigeOutagePrepMult || 1));
     const spawnChancePerSec = Math.max(0.0002, Math.min(0.04, (baseSpawnChancePerSec * riskOutageMult) / outagePrepMult));
     G._powerOutageSpawnChancePerSec = spawnChancePerSec;
     if (Math.random() < spawnChancePerSec * safeDt) {
@@ -1551,6 +1602,9 @@ function getPowerForecastSnapshot() {
     batteryStrategySavingsUsd: Math.max(0, Number(G._powerBatteryStrategySavingsUsd || 0)),
     tariffPolicyChanges: Math.max(0, Number(G.powerTariffPolicyChanges || 0)),
     tariffPolicySyncs: Math.max(0, Number(G.powerTariffPolicySyncs || 0)),
+    collectionSets: Math.max(0, Number(G.collectionSetCompletions || 0)),
+    prestigeAutomationMult: Math.max(1, Number(G._prestigeAutomationMult || 1)),
+    prestigeOutagePrepMult: Math.max(1, Number(G._prestigeOutagePrepMult || 1)),
     recommendation,
   };
 }
@@ -1614,7 +1668,7 @@ function updatePowerTariffPolicy(dt) {
   const safeDt = Math.max(0, Number(dt || 0));
   if (safeDt <= 0) return;
   const crewOps = getRigCrewPowerOpsSummary();
-  const automationAssist = Math.max(0.82, Number(crewOps.automationAssistMult || 1));
+  const automationAssist = Math.max(0.82, Number(crewOps.automationAssistMult || 1)) * Math.max(1, Number(G._prestigeAutomationMult || 1));
   G.powerTariffPolicyCooldown = Math.max(0, Number(G.powerTariffPolicyCooldown || 0) - safeDt * automationAssist);
   if (Number(G.powerTariffPolicyCooldown || 0) > 0) return;
 
@@ -1648,7 +1702,7 @@ function updatePowerRiskAutomation(dt) {
   if (safeDt <= 0) return;
 
   const crewOps = getRigCrewPowerOpsSummary();
-  const automationAssist = Math.max(0.82, Number(crewOps.automationAssistMult || 1));
+  const automationAssist = Math.max(0.82, Number(crewOps.automationAssistMult || 1)) * Math.max(1, Number(G._prestigeAutomationMult || 1));
   G.powerRiskAutoCooldown = Math.max(0, Number(G.powerRiskAutoCooldown || 0) - safeDt * automationAssist);
   if (Number(G.powerRiskAutoCooldown || 0) > 0) return;
 
@@ -1692,7 +1746,7 @@ function updatePowerCommandLink(dt) {
   const safeDt = Math.max(0, Number(dt || 0));
   if (safeDt <= 0) return;
   const crewOps = getRigCrewPowerOpsSummary();
-  const automationAssist = Math.max(0.82, Number(crewOps.automationAssistMult || 1));
+  const automationAssist = Math.max(0.82, Number(crewOps.automationAssistMult || 1)) * Math.max(1, Number(G._prestigeAutomationMult || 1));
   G.powerCommandCooldown = Math.max(0, Number(G.powerCommandCooldown || 0) - safeDt * automationAssist);
   if (Number(G.powerCommandCooldown || 0) > 0) return;
 
@@ -1715,7 +1769,7 @@ function updateThermalSystem(dt) {
 
   const baseCooling = Math.max(0.05, Number(COOLING_BALANCE.baseCoolingPerSec || 0.55));
   const levelCooling = Math.max(0.01, Number(COOLING_BALANCE.levelCoolingPerSec || 0.24)) * Math.max(0, Number(G.coolingInfraLevel || 0));
-  const coolingPerSec = (baseCooling + levelCooling) * Math.max(0.4, Number(modeMeta.coolingMult || 1)) * Math.max(0.6, Number(G._locMaintenanceMult || 1));
+  const coolingPerSec = (baseCooling + levelCooling) * Math.max(0.4, Number(modeMeta.coolingMult || 1)) * Math.max(0.6, Number(G._locMaintenanceMult || 1)) * Math.max(1, Number(G._collectionCoolingMult || 1));
 
   const baseCoolingPower = Math.max(0.02, Number(COOLING_BALANCE.basePowerKw || 0.12));
   const coolingPowerLevel = Math.max(0.01, Number(COOLING_BALANCE.levelPowerKw || 0.08)) * Math.max(0, Number(G.coolingInfraLevel || 0));
@@ -2066,7 +2120,7 @@ function getRigPowerUsageKw(rigId, count = 1) {
     : { drainMult: 1 };
   const thermalPowerMult = Math.max(0.65, Number(thermal.drainMult || 1));
   const maintenance = getRigMaintenanceStats(rigId);
-  return ((watt * qty) / 1000) * Number(G._locPowerUsageMult || 1) * thermalPowerMult * Math.max(0.8, Number(maintenance.powerUsageMult || 1));
+  return ((watt * qty) / 1000) * Number(G._locPowerUsageMult || 1) * thermalPowerMult * Math.max(0.8, Number(maintenance.powerUsageMult || 1)) * Math.max(0.65, Number(G._collectionPowerUsageMult || 1));
 }
 window.getRigPowerUsageKw = getRigPowerUsageKw;
 

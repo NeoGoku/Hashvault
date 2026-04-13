@@ -42,6 +42,8 @@ const DEFAULT_STATE = {
   prestige:        0,
   prestigeCount:   0,
   chips:           0,
+  prestigeSkills:  {},
+  collectionSetCompletions: 0,
 
   // UI-Status
   profileName:     '',
@@ -249,11 +251,20 @@ const DEFAULT_STATE = {
   marketEventDrift: {},      // {coin: event drift return/sec}
   marketEventDriftTimer: {}, // {coin: remaining sec}
   _prestigePowerCapMult: 1,
+  _prestigeAutomationMult: 1,
+  _prestigeOutagePrepMult: 1,
   _opsCostMult: 1,
   _opsBnbDiscount: 0,
   _buildCostMult: 1,
   _researchCostMult: 1,
   _marketFloorMult: 0.45,
+  _collectionPowerUsageMult: 1,
+  _collectionCoolingMult: 1,
+  _collectionPowerCapMult: 1,
+  _collectionHpsMult: 1,
+  _collectionClickMult: 1,
+  _collectionResearchSpeedMult: 1,
+  _collectionContractBonus: 0,
 
   // ── Mining Streaks ────────────────────────────────────────────
   miningStreaks: {},      // {coin: hoursConsecutive}
