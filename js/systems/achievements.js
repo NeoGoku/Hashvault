@@ -10,10 +10,17 @@ function checkAchievements() {
     try {
       if (a.check(G)) {
         G.achievements.push(a.id);
-        notify(
-          '🏆 Achievement: ' + a.name + (a.rewardText ? ' (' + a.rewardText + ')' : ''),
-          'gold'
-        );
+        if (typeof window.notifyAchievement === 'function') {
+          notifyAchievement(
+            '🏆 Achievement: ' + a.name + (a.rewardText ? ' (' + a.rewardText + ')' : ''),
+            a.id
+          );
+        } else {
+          notify(
+            '🏆 Achievement: ' + a.name + (a.rewardText ? ' (' + a.rewardText + ')' : ''),
+            'gold'
+          );
+        }
         computeMultipliers();
         newUnlocks = true;
       }

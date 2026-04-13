@@ -719,6 +719,7 @@ function renderAchievements() {
     if (done) unlocked++;
     const div = document.createElement('div');
     div.className = 'ach-card' + (done ? ' unlocked' : ' locked');
+    div.dataset.achievementId = a.id;
     div.innerHTML = `
       <div class="ach-icon">${done ? a.icon : '🔒'}</div>
       <div class="ach-name">${done ? a.name : '???'}</div>
@@ -734,6 +735,23 @@ function renderAchievements() {
   if (badge) badge.style.display = unlocked > (G._lastAchCount || 0) ? 'inline' : 'none';
   G._lastAchCount = unlocked;
 }
+
+function focusAchievementById(achievementId) {
+  if (!achievementId) return;
+  if (typeof switchTab === 'function') switchTab('achievements');
+  if (typeof renderAchievements === 'function') renderAchievements();
+  setTimeout(() => {
+    const el = document.querySelector('.ach-card[data-achievement-id="' + achievementId + '"]');
+    if (!el) return;
+    if (typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    el.classList.remove('tutorial-pulse');
+    void el.offsetWidth;
+    el.classList.add('tutorial-pulse');
+  }, 80);
+}
+window.focusAchievementById = focusAchievementById;
 
 // ── Prestige / Chip-Shop ─────────────────────────────────────
 function renderPrestige() {

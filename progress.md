@@ -888,3 +888,22 @@ Original prompt: Lass uns hier weitermachen am Projekt.
   - Build angehoben:
     - `index.html` BUILD_ID -> `20260412v19`
     - `version.json` buildId -> `20260412v19`
+
+- 2026-04-12: Bootscreen/Trust/Protection-Pass umgesetzt.
+  - Startbildschirm aufgeraeumt:
+    - redundanten Text entfernt
+    - Start/Save-Slot Tabs entfernt
+    - `No-Cache Reload` aus dem Startscreen entfernt
+    - stattdessen Buttons `Save Slots` und `Changelog`
+  - Build/Trust sichtbar:
+    - geladener Build im Loader, Startscreen und Changelog sichtbar
+    - Changelog-Overlay mit den letzten wichtigen Builds ergaenzt
+  - Achievement-UX verbessert:
+    - Achievement-Toast ist klickbar
+    - Klick springt in den Achievement-Reiter und markiert den gerade freigeschalteten Eintrag
+  - Speicherschutz fuer Web:
+    - Rechtsklick, Auswahl, Copy/Cut ausserhalb von Eingabefeldern blockiert
+    - globale `user-select: none` Absicherung fuer Nicht-Input-Bereiche
+  - Build angehoben:
+    - `index.html` BUILD_ID -> `20260412v20`
+    - `version.json` buildId -> `20260412v20`

@@ -18,7 +18,9 @@
   min-width: 220px; max-width: 300px;
   animation: slideIn .3s ease;
   box-shadow: 0 4px 12px rgba(0,0,0,.4);
+  cursor: default;
 }
+.notif.clickable { cursor: pointer; }
 .notif.success { border-color: var(--green); }
 .notif.gold    { border-color: var(--gold); }
 .notif.error   { border-color: var(--red); }

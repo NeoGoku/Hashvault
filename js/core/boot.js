@@ -5,7 +5,7 @@
 
 window.HV_BOOT_MANAGED = true;
 
-const BOOT_ASSET_VERSION = String(window.__HV_BUILD_ID || '20260412v19');
+const BOOT_ASSET_VERSION = String(window.__HV_BUILD_ID || '20260412v20');
 const BOOT_SESSION_TOKEN = String(window.__HV_BUST || (BOOT_ASSET_VERSION + '-session'));
 const BOOT_SLOT_COUNT = 3;
 const BOOT_META_KEY = 'hashvault_slots_meta_v1';
@@ -63,6 +63,27 @@ const BOOT_STEPS = [
   { id: 'boot-step-struct', label: 'Strukturen laden', at: 52 },
   { id: 'boot-step-assets', label: 'Assets vorbereiten', at: 78 },
   { id: 'boot-step-ready', label: 'Startmenue bereit', at: 100 },
+];
+
+const BOOT_CHANGELOG = [
+  {
+    build: String(window.__HV_BUILD_ID || BOOT_ASSET_VERSION),
+    date: '2026-04-12',
+    title: 'Tutorial-Fuehrung + Cache-Haertung',
+    body: 'Gefuehrtes Tutorial mit Spotlight/Sprungzielen, Power-Advisor und hart versionierten Builds fuer konsistente Live-Deploys.',
+  },
+  {
+    build: '20260412v16',
+    date: '2026-04-12',
+    title: 'Grid / Akku / Tarif-Automation',
+    body: 'Grid-Control, Akku-Strategien, Tarif-Policy und Forecast-System im Power-Reiter erweitert.',
+  },
+  {
+    build: '20260412v12',
+    date: '2026-04-12',
+    title: 'Power-Roadmap Phase 1-5',
+    body: 'Cooling-Auto, Outage-Plan, Forecast, Risk-Profile und Grid-Auto integriert.',
+  },
 ];
 
 const Boot = {
@@ -134,14 +155,13 @@ function bindBootEvents() {
     switchBootTab('saves');
     showBootToast('Kein gueltiger Save gefunden. Bitte Slot waehlen.');
   });
-  on('boot-btn-hard-reload', () => {
-    hardReloadNoCache();
-  });
+  on('boot-btn-saves', () => switchBootTab('saves'));
+  on('boot-btn-changelog', openChangelogModal);
   on('boot-btn-exit', () => showBootToast('Verlassen ist im Browser nicht verfuegbar.'));
-  on('boot-tab-start', () => switchBootTab('start'));
-  on('boot-tab-saves', () => switchBootTab('saves'));
   on('boot-back-start', () => switchBootTab('start'));
   on('boot-new-cancel', closeNewGameModal);
+  on('boot-changelog-close', closeChangelogModal);
+  fillBootBuildLabels();
 }
 
 async function runRealLoader() {
@@ -239,6 +259,7 @@ function showBootMenu() {
   if (menu) menu.classList.add('active');
 
   switchBootTab('start');
+  renderBootChangelog();
   renderBootSlots();
 }
 
@@ -254,13 +275,41 @@ function switchBootTab(tabName) {
 
   const paneStart = document.getElementById('boot-pane-start');
   const paneSaves = document.getElementById('boot-pane-saves');
-  const tabStart = document.getElementById('boot-tab-start');
-  const tabSaves = document.getElementById('boot-tab-saves');
 
   if (paneStart) paneStart.classList.toggle('active', showStart);
   if (paneSaves) paneSaves.classList.toggle('active', !showStart);
-  if (tabStart) tabStart.classList.toggle('active', showStart);
-  if (tabSaves) tabSaves.classList.toggle('active', !showStart);
+}
+
+function fillBootBuildLabels() {
+  const build = String(window.__HV_BUILD_ID || BOOT_ASSET_VERSION);
+  ['boot-build-id-loading', 'boot-build-id-start', 'boot-build-id-modal'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = build;
+  });
+}
+
+function renderBootChangelog() {
+  const list = document.getElementById('boot-changelog-list');
+  if (!list) return;
+  list.innerHTML = BOOT_CHANGELOG.map((item) => (
+    '<div class="boot-changelog-item">' +
+      '<div class="boot-changelog-head"><span>Build ' + esc(item.build) + '</span><span>' + esc(item.date) + '</span></div>' +
+      '<div class="boot-changelog-title">' + esc(item.title) + '</div>' +
+      '<div class="boot-changelog-body">' + esc(item.body) + '</div>' +
+    '</div>'
+  )).join('');
+}
+
+function openChangelogModal() {
+  const overlay = document.getElementById('boot-changelog-overlay');
+  if (!overlay) return;
+  renderBootChangelog();
+  overlay.classList.add('show');
+}
+
+function closeChangelogModal() {
+  const overlay = document.getElementById('boot-changelog-overlay');
+  if (overlay) overlay.classList.remove('show');
 }
 
 function openNewGameModal() {

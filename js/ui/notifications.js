@@ -61,9 +61,11 @@ function fmtTime(s) {
 }
 
 // ── Toast-Notification ───────────────────────────────────────
-function notify(msg, type = 'info') {
+function notify(msg, type = 'info', opts = null) {
   const container = document.getElementById('notif-container');
   if (!container) return;
+  const options = (opts && typeof opts === 'object' && !Array.isArray(opts)) ? opts : {};
+  const timeoutMs = Number.isFinite(opts) ? Number(opts) : Math.max(800, Number(options.duration || 3500));
 
   const el = document.createElement('div');
   el.className = 'notif' +
@@ -71,6 +73,14 @@ function notify(msg, type = 'info') {
      type === 'success' ? ' success' :
      type === 'error'   ? ' error'   : '');
   el.textContent = msg;
+  if (typeof options.onClick === 'function') {
+    el.classList.add('clickable');
+    el.title = options.title || 'Zum Detail springen';
+    el.addEventListener('click', () => {
+      try { options.onClick(); } catch {}
+      el.remove();
+    });
+  }
   container.appendChild(el);
 
   // Auto-fade nach 3.5s
@@ -78,7 +88,7 @@ function notify(msg, type = 'info') {
     el.style.opacity    = '0';
     el.style.transition = 'opacity .4s';
     setTimeout(() => el.remove(), 400);
-  }, 3500);
+  }, timeoutMs);
 
   // Max 5 gleichzeitige Toasts
   while (container.children.length > 5) {
@@ -87,6 +97,19 @@ function notify(msg, type = 'info') {
 
   playUiTone(type);
 }
+
+function notifyAchievement(msg, achievementId) {
+  notify(msg, 'gold', {
+    duration: 5500,
+    title: 'Achievement anzeigen',
+    onClick: () => {
+      if (typeof window.focusAchievementById === 'function') {
+        window.focusAchievementById(achievementId);
+      }
+    },
+  });
+}
+window.notifyAchievement = notifyAchievement;
 
 // ── Float-Text beim Klicken ──────────────────────────────────
 function floatText(x, y, text) {

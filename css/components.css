@@ -1395,6 +1395,17 @@
   gap: 8px;
 }
 
+.boot-build-line {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.boot-row-stack {
+  display: grid;
+  gap: 4px;
+}
+
 .boot-step {
   display: flex;
   justify-content: space-between;
@@ -1403,29 +1414,6 @@
 }
 
 .boot-step.done { color: var(--green); }
-
-.boot-tabs {
-  margin-top: 10px;
-  display: flex;
-  gap: 8px;
-}
-
-.boot-tab {
-  background: var(--panel2);
-  border: 1px solid var(--border);
-  color: var(--muted);
-  border-radius: 10px;
-  padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.boot-tab.active {
-  color: #fff;
-  border-color: rgba(0,212,255,.5);
-  background: linear-gradient(135deg, #1e3254, #273f69);
-}
 
 .boot-pane { display: none; margin-top: 14px; }
 .boot-pane.active { display: block; }
@@ -1451,6 +1439,43 @@
   padding: 12px;
   display: grid;
   gap: 8px;
+}
+
+.boot-changelog-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  max-height: 48vh;
+  overflow: auto;
+}
+
+.boot-changelog-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel2);
+  padding: 12px;
+}
+
+.boot-changelog-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.boot-changelog-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.boot-changelog-body {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #d6e3f1;
 }
 
 .boot-slot-head {

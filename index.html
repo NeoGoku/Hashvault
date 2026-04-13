@@ -9,7 +9,7 @@
 <title>HashVault Pro</title>
 <script>
 (function() {
-  const BUILD_ID = '20260412v19';
+  const BUILD_ID = '20260412v20';
   const BUILD_KEY = '__hv_build_id';
   const prevBuild = localStorage.getItem(BUILD_KEY);
   const isNewBuild = prevBuild !== BUILD_ID;
@@ -28,6 +28,23 @@
       .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
       .catch(() => {});
   }
+
+  const allowTextInteraction = (target) => {
+    if (!target || !(target.closest)) return false;
+    return !!target.closest('input, textarea, [contenteditable="true"]');
+  };
+  document.addEventListener('contextmenu', (ev) => {
+    if (!allowTextInteraction(ev.target)) ev.preventDefault();
+  });
+  document.addEventListener('selectstart', (ev) => {
+    if (!allowTextInteraction(ev.target)) ev.preventDefault();
+  });
+  document.addEventListener('copy', (ev) => {
+    if (!allowTextInteraction(ev.target)) ev.preventDefault();
+  });
+  document.addEventListener('cut', (ev) => {
+    if (!allowTextInteraction(ev.target)) ev.preventDefault();
+  });
 
   // Bei neuem Build genau einmal "harte" Navigation mit Marker erzwingen.
   if (isNewBuild) {
@@ -85,29 +102,24 @@
           <span id="boot-progress-text">0%</span>
         </div>
         <div class="boot-progress"><div id="boot-progress-fill" class="boot-progress-fill"></div></div>
+        <div class="boot-build-line">Live-Modulpruefung aktiv · Build <span id="boot-build-id-loading"></span></div>
         <div id="boot-step-list" class="boot-steps"></div>
       </div>
     </section>
 
     <section id="boot-start-screen" class="boot-screen">
       <div class="boot-card">
-        <div class="boot-row">
-          <div>
-            <strong>Startbildschirm</strong>
-            <div style="font-size:13px;color:var(--muted);margin-top:4px;">Saves nur im Reiter Save Slots verwalten.</div>
-          </div>
-        </div>
-
-        <div class="boot-tabs">
-          <button id="boot-tab-start" class="boot-tab active" type="button">Start</button>
-          <button id="boot-tab-saves" class="boot-tab" type="button">Save Slots</button>
+        <div class="boot-row boot-row-stack">
+          <strong>HashVault Pro</strong>
+          <div class="boot-build-line">Aktiver Build <span id="boot-build-id-start"></span></div>
         </div>
 
         <div id="boot-pane-start" class="boot-pane active">
           <div class="boot-actions">
             <button id="boot-btn-new" class="buy-btn" type="button">Neues Spiel</button>
             <button id="boot-btn-load" class="buy-btn" type="button">Spielstand laden</button>
-            <button id="boot-btn-hard-reload" class="buy-btn" type="button">No-Cache Reload</button>
+            <button id="boot-btn-saves" class="buy-btn" type="button">Save Slots</button>
+            <button id="boot-btn-changelog" class="buy-btn" type="button">Changelog</button>
             <button id="boot-btn-exit" class="buy-btn" style="background:linear-gradient(135deg, #7a2a3d, #3f1a26);" type="button">Verlassen</button>
           </div>
         </div>
@@ -136,6 +148,17 @@
     <div id="boot-new-slot-grid" class="boot-slot-grid"></div>
     <div style="margin-top:12px;display:flex;justify-content:flex-end;">
       <button id="boot-new-cancel" class="buy-btn" style="max-width:140px;" type="button">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<div id="boot-changelog-overlay" class="boot-overlay">
+  <div class="boot-modal">
+    <h2>Changelog</h2>
+    <p>Geladener Build: <strong id="boot-build-id-modal"></strong></p>
+    <div id="boot-changelog-list" class="boot-changelog-list"></div>
+    <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+      <button id="boot-changelog-close" class="buy-btn" style="max-width:140px;" type="button">Schliessen</button>
     </div>
   </div>
 </div>
