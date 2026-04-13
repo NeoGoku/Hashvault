@@ -9,7 +9,7 @@
 <title>HashVault Pro</title>
 <script>
 (function() {
-  const BUILD_ID = '20260413v23';
+  const BUILD_ID = '20260413v24';
   const BUILD_KEY = '__hv_build_id';
   const prevBuild = localStorage.getItem(BUILD_KEY);
   const isNewBuild = prevBuild !== BUILD_ID;
@@ -194,6 +194,7 @@
   <div class="tab" data-tab="crew">🛠️ Rig Crew</div>
   <div class="tab" data-tab="missions">📋 Missionen <span class="badge" id="mission-badge" style="display:none">!</span></div>
   <div class="tab" data-tab="traders">🤝 Traders</div>
+  <div class="tab" data-tab="collections">🧩 Sammlungen</div>
   <div class="tab" data-tab="achievements">🏆 Achiev. <span class="badge" id="ach-badge" style="display:none">!</span></div>
   <div class="tab" data-tab="prestige">💎 Prestige</div>
 </div>
@@ -582,6 +583,15 @@
     <span id="ach-count" style="font-size:13px;color:var(--muted);"></span>
   </div>
   <div class="ach-grid" id="ach-grid"></div>
+</div>
+
+<!-- COLLECTIONS PANEL -->
+<div id="collections-panel" class="panel">
+  <div class="panel-header">
+    <h2>🧩 Sammlungen & Set-Boni</h2>
+    <span id="collection-count" style="font-size:13px;color:var(--muted);"></span>
+  </div>
+  <div class="chip-shop-grid" style="padding:16px 20px 20px;" id="collections-grid"></div>
 </div>
 
 <!-- PRESTIGE PANEL -->

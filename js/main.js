@@ -23,6 +23,7 @@ function switchTab(tabName) {
     case 'crew':         renderRigCrew();      break;
     case 'missions':     renderMissions();     break;
     case 'traders':      renderTraders();      break;
+    case 'collections':  renderCollections();  break;
     case 'achievements': renderAchievements(); break;
     case 'prestige':     renderPrestige();     break;
   }

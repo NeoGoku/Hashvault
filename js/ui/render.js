@@ -773,6 +773,71 @@ function focusAchievementById(achievementId) {
 }
 window.focusAchievementById = focusAchievementById;
 
+function renderCollections() {
+  const root = document.getElementById('collections-grid');
+  const countEl = document.getElementById('collection-count');
+  if (!root) return;
+  root.innerHTML = '';
+
+  const collectionState = (typeof window.getActiveCollectionBonuses === 'function')
+    ? getActiveCollectionBonuses()
+    : { activeSets: [], totalCompleted: 0 };
+  const allSets = Array.isArray(window.COLLECTION_SETS) ? window.COLLECTION_SETS : [];
+
+  if (countEl) {
+    countEl.textContent = fmtNum(collectionState.totalCompleted || 0, 0) + '/' + fmtNum(allSets.length, 0) + ' aktiv';
+  }
+
+  const summary = document.createElement('div');
+  summary.className = 'chip-section';
+  summary.innerHTML =
+    '<div class="chip-section-title">✅ Aktive Set-Boni</div>' +
+    '<div class="chip-section-sub">Sets werden automatisch aktiv, sobald alle Bedingungen erfuellt sind.</div>';
+  if (collectionState.activeSets && collectionState.activeSets.length) {
+    collectionState.activeSets.forEach((set) => {
+      const row = document.createElement('div');
+      row.className = 'power-list-item';
+      row.innerHTML = '<span>' + (set.icon || '🧩') + ' ' + set.name + '</span><strong>' + String(set.rewardText || 'Aktiv') + '</strong>';
+      summary.appendChild(row);
+    });
+  } else {
+    summary.innerHTML += '<div class="power-list-item"><span>Noch kein Set aktiv</span><strong>Baue auf erste Kombinationen hin</strong></div>';
+  }
+  root.appendChild(summary);
+
+  const progressSec = document.createElement('div');
+  progressSec.className = 'chip-section';
+  progressSec.innerHTML =
+    '<div class="chip-section-title">📦 Set-Fortschritt</div>' +
+    '<div class="chip-section-sub">Alle Sets und ihre aktuellen Bedingungen.</div>';
+  const setGrid = document.createElement('div');
+  setGrid.className = 'chip-grid';
+  allSets.forEach((set) => {
+    const status = (typeof window.getCollectionSetStatus === 'function')
+      ? getCollectionSetStatus(set.id)
+      : null;
+    if (!status) return;
+    const doneCount = status.progress.filter((row) => row.done).length;
+    const card = document.createElement('div');
+    card.className = 'chip-item' + (status.active ? ' chip-unlocked' : '');
+    card.innerHTML =
+      '<div class="chip-item-header">' +
+        '<div class="chip-item-name">' + (status.icon || '🧩') + ' ' + status.name + '</div>' +
+        '<span class="chip-owned">' + doneCount + '/' + status.progress.length + '</span>' +
+      '</div>' +
+      '<div class="chip-item-desc">' + status.desc + '</div>' +
+      '<div class="chip-item-desc" style="color:var(--text);margin-top:6px;"><strong>Bonus:</strong> ' + status.rewardText + '</div>' +
+      status.progress.map((row) => (
+        '<div class="power-list-item"><span>' + row.label + '</span><strong>' + fmtNum(row.current, 0) + '/' + fmtNum(row.target, 0) + '</strong></div>'
+      )).join('') +
+      '<button class="chip-btn ' + (status.active ? 'chip-btn-done' : '') + '" disabled>' + (status.active ? '✓ Aktiv' : 'Im Aufbau') + '</button>';
+    setGrid.appendChild(card);
+  });
+  progressSec.appendChild(setGrid);
+  root.appendChild(progressSec);
+}
+window.renderCollections = renderCollections;
+
 // ── Prestige / Chip-Shop ─────────────────────────────────────
 function renderPrestige() {
   const chipsEl = document.getElementById('hd-chips');
@@ -843,54 +908,6 @@ function renderPrestige() {
     '<div class="power-list-item"><span>Aktive Sets</span><strong>' + fmtNum(collectionState.totalCompleted || 0, 0) + '/' + fmtNum(allSets.length, 0) + '</strong></div>' +
     '<div class="power-list-item"><span>Skilltree-Bonus</span><strong>+' + fmtNum((Math.max(1, Number(prestigeSkillFx.collectionBonusMult || 1)) - 1) * 100, 1) + '% Set-Staerke</strong></div>';
   grid.appendChild(prestigeFx);
-
-  const collectionSummary = document.createElement('div');
-  collectionSummary.className = 'chip-section';
-  collectionSummary.innerHTML =
-    '<div class="chip-section-title">🧩 Sammlungen & Set-Boni</div>' +
-    '<div class="chip-section-sub">Sets werden automatisch aktiv, sobald du alle Bedingungen erfuellt hast.</div>';
-  if (collectionState.activeSets && collectionState.activeSets.length) {
-    collectionState.activeSets.forEach((set) => {
-      const row = document.createElement('div');
-      row.className = 'power-list-item';
-      row.innerHTML = '<span>' + (set.icon || '🧩') + ' ' + set.name + '</span><strong>' + String(set.rewardText || 'Aktiv') + '</strong>';
-      collectionSummary.appendChild(row);
-    });
-  } else {
-    collectionSummary.innerHTML += '<div class="power-list-item"><span>Noch kein Set aktiv</span><strong>Arbeite auf erste Kombinationen hin</strong></div>';
-  }
-  grid.appendChild(collectionSummary);
-
-  const collectionGridSec = document.createElement('div');
-  collectionGridSec.className = 'chip-section';
-  collectionGridSec.innerHTML =
-    '<div class="chip-section-title">📦 Set-Fortschritt</div>' +
-    '<div class="chip-section-sub">Jedes Set greift als permanenter Betriebsbonus in laufende Runs.</div>';
-  const collectionGrid = document.createElement('div');
-  collectionGrid.className = 'chip-grid';
-  allSets.forEach((set) => {
-    const status = (typeof window.getCollectionSetStatus === 'function')
-      ? getCollectionSetStatus(set.id)
-      : null;
-    if (!status) return;
-    const doneCount = status.progress.filter((row) => row.done).length;
-    const card = document.createElement('div');
-    card.className = 'chip-item' + (status.active ? ' chip-unlocked' : '');
-    card.innerHTML =
-      '<div class="chip-item-header">' +
-        '<div class="chip-item-name">' + (status.icon || '🧩') + ' ' + status.name + '</div>' +
-        '<span class="chip-owned">' + doneCount + '/' + status.progress.length + '</span>' +
-      '</div>' +
-      '<div class="chip-item-desc">' + status.desc + '</div>' +
-      '<div class="chip-item-desc" style="color:var(--text);margin-top:6px;"><strong>Bonus:</strong> ' + status.rewardText + '</div>' +
-      status.progress.map((row) => (
-        '<div class="power-list-item"><span>' + row.label + '</span><strong>' + fmtNum(row.current, 0) + '/' + fmtNum(row.target, 0) + '</strong></div>'
-      )).join('') +
-      '<button class="chip-btn ' + (status.active ? 'chip-btn-done' : '') + '" disabled>' + (status.active ? '✓ Aktiv' : 'Im Aufbau') + '</button>';
-    collectionGrid.appendChild(card);
-  });
-  collectionGridSec.appendChild(collectionGrid);
-  grid.appendChild(collectionGridSec);
 
   const groups = [];
   skills.forEach((skill) => {
@@ -1058,6 +1075,7 @@ function renderAll() {
   renderRigCrew();
   renderMissions();
   renderTraders();
+  renderCollections();
   renderAchievements();
   renderPrestige();
   updateHeader();

@@ -967,3 +967,14 @@ Original prompt: Lass uns hier weitermachen am Projekt.
     - `version.json` buildId -> `20260413v23`
   - Verifikation:
     - `npm test` erfolgreich (Syntax + Regression Smoke)
+
+- 2026-04-13: Sammlungen als eigener Reiter ausgelagert.
+  - Neuer Tab: `🧩 Sammlungen`.
+  - Neues Panel: `#collections-panel` mit eigenem Grid `#collections-grid`.
+  - Neue Render-Funktion: `renderCollections()` (aktive Sets + kompletter Set-Fortschritt).
+  - `switchTab()` um `collections` erweitert.
+  - `renderAll()` und aktiver GameLoop-Refresh um Collections-Panel erweitert.
+  - Set-Boni sind damit nicht mehr im Prestige-Reiter als eigene Sektionen, sondern im dedizierten Reiter sichtbar.
+  - Build angehoben:
+    - `index.html` BUILD_ID -> `20260413v24`
+    - `version.json` buildId -> `20260413v24`

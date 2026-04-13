@@ -3624,6 +3624,8 @@ function gameTick() {
   if (document.getElementById('upgrades-panel').classList.contains('active'))   renderUpgrades(_currentFilter || 'all');
   const missionsPanel = document.getElementById('missions-panel');
   if (missionsPanel && missionsPanel.classList.contains('active')) updateContractTimer();
+  const collectionsPanel = document.getElementById('collections-panel');
+  if (collectionsPanel && collectionsPanel.classList.contains('active') && typeof renderCollections === 'function') renderCollections();
   if (document.getElementById('prestige-panel').classList.contains('active'))   renderPrestige();
 
   // ── Prestige-Button ───────────────────────────────────────
