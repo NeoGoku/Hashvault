@@ -12,7 +12,7 @@ const DEFAULT_STATE = {
   totalEarned:  0,
   totalClicks:  0,
   coins:        { BTC:0, ETH:0, LTC:0, BNB:0 },
-  coinReserves: { BTC:0.2, ETH:1.2, LTC:1.8, BNB:2.4 },
+  coinReserves: { BTC:0, ETH:0, LTC:0, BNB:0 },
 
   // Markt
   prices:       { BTC:80, ETH:35, LTC:15, BNB:25 },

@@ -1,5 +1,18 @@
 Original prompt: Lass uns hier weitermachen am Projekt.
 
+- 2026-04-13: Echte Wallet-Phase umgesetzt.
+  - `coinReserves` semantisch von technischer Reserve auf echte Wallet-Bestaende umgestellt; Default jetzt `0` fuer alle Coins.
+  - Neuer Reiter `Wallet` mit Uebersicht und Coin-Karten:
+    - Gesamt/Frei/In Wallet
+    - APY
+    - erwarteter Tagesertrag
+    - Einzahlen 25% / Alles
+    - Auszahlen 25% / Alles
+  - Neue Helper in `gameLoop.js`: `getWalletBalance`, `depositCoinToWallet`, `withdrawCoinFromWallet`.
+  - Wallet-Zinsen laufen jetzt nur auf Wallet-Bestaende, nicht mehr auf den kompletten Coin-Bestand.
+  - Markt-UI angepasst: `Reserve` umbenannt zu `Wallet`.
+  - Build-Version angehoben: `20260413v28`.
+
 - 2026-04-13: Phase 3 umgesetzt (Markt + Live-News + Wallet-Zins).
   - Markt-Stabilisierung gegen Floor-Sticking:
     - Soft-Floor-Drift pro Coin (`marketFloorDrift`) mit Reversion.

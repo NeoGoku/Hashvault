@@ -9,7 +9,7 @@
 <title>HashVault Pro</title>
 <script>
 (function() {
-  const BUILD_ID = '20260413v27';
+  const BUILD_ID = '20260413v28';
   const BUILD_KEY = '__hv_build_id';
   const prevBuild = localStorage.getItem(BUILD_KEY);
   const isNewBuild = prevBuild !== BUILD_ID;
@@ -189,6 +189,7 @@
   <div class="tab" data-tab="location">🏢 Standort</div>
   <div class="tab" data-tab="upgrades">🔧 Upgrades <span class="badge" id="upg-badge" style="display:none">!</span></div>
   <div class="tab" data-tab="market">📈 Market</div>
+  <div class="tab" data-tab="wallet">🏦 Wallet</div>
   <div class="tab" data-tab="research">🔬 Research</div>
   <div class="tab" data-tab="staff">👥 Staff</div>
   <div class="tab" data-tab="crew">🛠️ Rig Crew</div>
@@ -498,6 +499,15 @@
     💡 Verkaufe Coins fuer USD — kaufe Rigs, Upgrades, Staff &amp; Research!
   </div>
   <div class="market-grid" style="padding:0 20px 20px;" id="market-grid"></div>
+</div>
+
+<!-- RESEARCH PANEL -->
+<div id="wallet-panel" class="panel">
+  <div class="panel-header">
+    <h2>🏦 Wallet</h2>
+    <span style="font-size:13px;color:var(--muted);">Coins einzahlen und taeglich Zinsen kassieren</span>
+  </div>
+  <div class="power-grid" style="padding:0 20px 20px;" id="wallet-grid"></div>
 </div>
 
 <!-- RESEARCH PANEL -->

@@ -316,7 +316,7 @@ function renderMarket() {
   Object.entries(COIN_DATA).forEach(([coin, data]) => {
     const price   = G.prices[coin];
     const balance = G.coins[coin] || 0;
-    const reserve = (typeof getCoinReserve === 'function') ? getCoinReserve(coin) : 0;
+    const reserve = (typeof getWalletBalance === 'function') ? getWalletBalance(coin) : ((typeof getCoinReserve === 'function') ? getCoinReserve(coin) : 0);
     const freeBalance = (typeof getAvailableCoinBalance === 'function')
       ? getAvailableCoinBalance(coin)
       : Math.max(0, Number(balance || 0) - Number(reserve || 0));
@@ -380,7 +380,7 @@ function renderMarket() {
         Balance: <span>${fmtNum(balance, 4)} ${coin}</span>
         = <span style="color:var(--gold)">$${fmtNum(balance * price * G._priceMult, 2)}</span>
       </div>
-      <div class="coin-miners">Reserve: ${fmtNum(reserve, 4)} ${coin} · Frei: ${fmtNum(freeBalance, 4)} ${coin}</div>
+      <div class="coin-miners">Wallet: ${fmtNum(reserve, 4)} ${coin} · Frei: ${fmtNum(freeBalance, 4)} ${coin}</div>
       <div class="sell-btns">
         <button class="sell-btn half" ${canSellAny ? '' : 'disabled'} onclick="sellCoins('${coin}', 0.5)">Sell 50%</button>
         <button class="sell-btn all" ${canSellAny ? '' : 'disabled'} onclick="sellCoins('${coin}', 1)">Sell ALL</button>
@@ -388,6 +388,54 @@ function renderMarket() {
       <canvas class="price-chart" id="chart-${coin}" height="60"></canvas>`;
     grid.appendChild(div);
     requestAnimationFrame(() => drawChart(coin, data.color));
+  });
+}
+
+function renderWallet() {
+  const grid = document.getElementById('wallet-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  const totalWalletUsd = Object.keys(COIN_DATA || {}).reduce((sum, coin) => {
+    const bal = (typeof getWalletBalance === 'function') ? getWalletBalance(coin) : 0;
+    return sum + bal * Math.max(0, Number((G.prices || {})[coin] || 0));
+  }, 0);
+  const top = document.createElement('div');
+  top.className = 'power-card';
+  top.innerHTML = `
+    <h3>Wallet-Uebersicht</h3>
+    <div class="power-list">
+      <div class="power-row"><span>Status</span><strong>${G.walletYieldEnabled !== false ? 'Zinsen aktiv' : 'Zinsen pausiert'}</strong></div>
+      <div class="power-row"><span>Wallet-Wert</span><strong>$${fmtNum(totalWalletUsd, 2)}</strong></div>
+      <div class="power-row"><span>Bisherige Zinsen</span><strong>$${fmtNum(Number(G.walletYieldAccruedUsd || 0), 2)}</strong></div>
+      <div class="power-row"><span>Letzte Gutschrift</span><strong>${Math.max(0, Number(G.walletYieldLastDay || 0)) > 0 ? ('Tag ' + fmtNum(G.walletYieldLastDay, 0)) : 'Noch keine'}</strong></div>
+    </div>`;
+  grid.appendChild(top);
+
+  Object.entries(COIN_DATA).forEach(([coin, data]) => {
+    const total = Math.max(0, Number((G.coins || {})[coin] || 0));
+    const wallet = (typeof getWalletBalance === 'function') ? getWalletBalance(coin) : 0;
+    const free = (typeof getAvailableCoinBalance === 'function') ? getAvailableCoinBalance(coin) : Math.max(0, total - wallet);
+    const dailyRate = (typeof getWalletDailyRate === 'function') ? getWalletDailyRate(coin) : 0;
+    const estYield = wallet * dailyRate;
+    const card = document.createElement('div');
+    card.className = 'power-card';
+    card.innerHTML = `
+      <h3>${data.symbol} ${data.name}</h3>
+      <div class="power-list">
+        <div class="power-row"><span>Gesamt</span><strong>${fmtNum(total, 4)} ${coin}</strong></div>
+        <div class="power-row"><span>Frei</span><strong>${fmtNum(free, 4)} ${coin}</strong></div>
+        <div class="power-row"><span>In Wallet</span><strong>${fmtNum(wallet, 4)} ${coin}</strong></div>
+        <div class="power-row"><span>APY</span><strong>${fmtNum(Number(data.walletApy || 0) * 100, 2)}%</strong></div>
+        <div class="power-row"><span>Erwartet / Tag</span><strong>+${fmtNum(estYield, 4)} ${coin}</strong></div>
+      </div>
+      <div class="power-actions" style="margin-top:8px;">
+        <button class="buy-btn" ${free > 0.0009 ? '' : 'disabled'} onclick="moveCoinToWallet('${coin}', 0.25)">25% einzahlen</button>
+        <button class="buy-btn" ${free > 0.0009 ? '' : 'disabled'} onclick="moveCoinToWallet('${coin}', 1)">Alles einzahlen</button>
+        <button class="buy-btn" ${wallet > 0.0009 ? '' : 'disabled'} onclick="moveCoinFromWallet('${coin}', 0.25)">25% auszahlen</button>
+        <button class="buy-btn" ${wallet > 0.0009 ? '' : 'disabled'} onclick="moveCoinFromWallet('${coin}', 1)">Alles auszahlen</button>
+      </div>`;
+    grid.appendChild(card);
   });
 }
 
@@ -1078,6 +1126,7 @@ function renderAll() {
   renderUpgrades();
   renderPowerPanel();
   renderMarket();
+  renderWallet();
   renderResearch();
   renderStaff();
   renderRigCrew();

@@ -92,7 +92,7 @@ const ECONOMY_BALANCE = {
 window.HV_ECONOMY_BALANCE = ECONOMY_BALANCE;
 
 const COIN_UTILITY_BALANCE = {
-  reserveDefaults: { BTC: 0.2, ETH: 1.2, LTC: 1.8, BNB: 2.4 },
+  reserveDefaults: { BTC: 0, ETH: 0, LTC: 0, BNB: 0 },
   researchEthUsdRate: 0.12,
   researchEthMin: 0.08,
   repairLtcUsdRate: 0.18,
@@ -477,6 +477,11 @@ function getCoinReserve(coin) {
 }
 window.getCoinReserve = getCoinReserve;
 
+function getWalletBalance(coin) {
+  return getCoinReserve(coin);
+}
+window.getWalletBalance = getWalletBalance;
+
 function getAvailableCoinBalance(coin) {
   const key = String(coin || 'BTC').toUpperCase();
   const total = Math.max(0, Number((G.coins || {})[key] || 0));
@@ -484,6 +489,28 @@ function getAvailableCoinBalance(coin) {
   return Math.max(0, total - reserve);
 }
 window.getAvailableCoinBalance = getAvailableCoinBalance;
+
+function depositCoinToWallet(coin, amount) {
+  const key = String(coin || 'BTC').toUpperCase();
+  const move = Math.max(0, Number(amount || 0));
+  if (!COIN_DATA[key] || move <= 0) return false;
+  const free = getAvailableCoinBalance(key);
+  if (free + 1e-9 < move) return false;
+  G.coinReserves[key] = Math.max(0, Number((G.coinReserves || {})[key] || 0) + move);
+  return true;
+}
+window.depositCoinToWallet = depositCoinToWallet;
+
+function withdrawCoinFromWallet(coin, amount) {
+  const key = String(coin || 'BTC').toUpperCase();
+  const move = Math.max(0, Number(amount || 0));
+  if (!COIN_DATA[key] || move <= 0) return false;
+  const wallet = getCoinReserve(key);
+  if (wallet + 1e-9 < move) return false;
+  G.coinReserves[key] = Math.max(0, wallet - move);
+  return true;
+}
+window.withdrawCoinFromWallet = withdrawCoinFromWallet;
 
 function spendCoin(coin, amount, reason) {
   const key = String(coin || 'BTC').toUpperCase();
@@ -611,7 +638,7 @@ function settleWalletYieldForDay(dayNo) {
   const rates = [];
   let totalUsd = 0;
   Object.keys(COIN_DATA || {}).forEach((coin) => {
-    const bal = Math.max(0, Number((G.coins || {})[coin] || 0));
+    const bal = Math.max(0, getWalletBalance(coin));
     if (bal <= 0) return;
     const rate = getWalletDailyRate(coin);
     if (rate <= 0) return;
