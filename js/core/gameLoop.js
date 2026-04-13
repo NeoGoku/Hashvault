@@ -57,19 +57,19 @@ const LOAN_PLANS = [
 window.HV_LOAN_PLANS = LOAN_PLANS;
 
 const RIG_CREW_SPECS = {
-  balanced: { label: 'Balanced', cap: 1.00, repair: 1.00, crash: 1.00, wage: 1.00 },
-  repair: { label: 'Repair', cap: 0.96, repair: 1.18, crash: 1.00, wage: 1.04 },
-  safety: { label: 'Safety', cap: 0.95, repair: 0.98, crash: 1.22, wage: 1.06 },
-  efficiency: { label: 'Efficiency', cap: 1.12, repair: 0.92, crash: 0.94, wage: 0.92 },
+  balanced: { label: 'Balanced', cap: 1.00, repair: 1.00, crash: 1.00, wage: 1.00, power: 1.00, cooling: 1.00, automation: 1.00, outage: 1.00, heat: 1.00 },
+  repair: { label: 'Repair', cap: 0.96, repair: 1.18, crash: 1.00, wage: 1.04, power: 1.02, cooling: 1.08, automation: 0.98, outage: 1.03, heat: 1.05 },
+  safety: { label: 'Safety', cap: 0.95, repair: 0.98, crash: 1.22, wage: 1.06, power: 0.99, cooling: 1.12, automation: 1.05, outage: 1.16, heat: 1.08 },
+  efficiency: { label: 'Efficiency', cap: 1.12, repair: 0.92, crash: 0.94, wage: 0.92, power: 1.14, cooling: 1.06, automation: 1.04, outage: 0.96, heat: 1.06 },
 };
 window.HV_RIG_CREW_SPECS = RIG_CREW_SPECS;
 
 const RIG_CREW_FOCUS = {
-  balanced: { label: 'Balanced', icon: '⚖️', cap: 1.00, repair: 1.00, crash: 1.00, wage: 1.00 },
-  throughput: { label: 'Durchsatz', icon: '🚀', cap: 1.10, repair: 0.88, crash: 0.90, wage: 1.08 },
-  maintenance: { label: 'Wartung', icon: '🔧', cap: 0.96, repair: 1.20, crash: 1.00, wage: 1.04 },
-  safety: { label: 'Safety', icon: '🛡️', cap: 0.92, repair: 0.95, crash: 1.22, wage: 1.06 },
-  frugal: { label: 'Sparsam', icon: '💼', cap: 0.94, repair: 0.90, crash: 1.02, wage: 0.88 },
+  balanced: { label: 'Balanced', icon: '⚖️', cap: 1.00, repair: 1.00, crash: 1.00, wage: 1.00, power: 1.00, cooling: 1.00, automation: 1.00, outage: 1.00, heat: 1.00 },
+  throughput: { label: 'Durchsatz', icon: '🚀', cap: 1.10, repair: 0.88, crash: 0.90, wage: 1.08, power: 0.92, cooling: 0.92, automation: 1.06, outage: 0.94, heat: 0.92 },
+  maintenance: { label: 'Wartung', icon: '🔧', cap: 0.96, repair: 1.20, crash: 1.00, wage: 1.04, power: 1.04, cooling: 1.14, automation: 1.00, outage: 1.04, heat: 1.10 },
+  safety: { label: 'Safety', icon: '🛡️', cap: 0.92, repair: 0.95, crash: 1.22, wage: 1.06, power: 0.98, cooling: 1.08, automation: 1.04, outage: 1.15, heat: 1.08 },
+  frugal: { label: 'Sparsam', icon: '💼', cap: 0.94, repair: 0.90, crash: 1.02, wage: 0.88, power: 1.16, cooling: 1.02, automation: 0.98, outage: 0.97, heat: 1.04 },
 };
 window.HV_RIG_CREW_FOCUS = RIG_CREW_FOCUS;
 
@@ -1374,7 +1374,10 @@ function updatePowerOutageDecision(dt) {
       const autoPlan = String(G.powerOutageAutoPlan || 'balanced');
       if (autoPlan !== 'off') {
         const ageSec = Math.max(0, (Date.now() - Number(G.powerOutage.createdAt || Date.now())) / 1000);
-        const autoDelay = Math.max(2, Number(POWER_AUTOMATION_BALANCE.outageAutoDelaySec || 6));
+        const crewOps = getRigCrewPowerOpsSummary();
+        const outagePrep = Math.max(0.78, Number(crewOps.outagePrepMult || 1));
+        const automationAssist = Math.max(0.82, Number(crewOps.automationAssistMult || 1));
+        const autoDelay = Math.max(2, Number(POWER_AUTOMATION_BALANCE.outageAutoDelaySec || 6) / Math.max(0.82, outagePrep * automationAssist * 0.5));
         if (ageSec >= autoDelay) {
           const autoPick = pickPowerOutageOptionByPlan(autoPlan, G.powerOutage.options);
           if (autoPick) resolvePowerOutageOption(autoPick.id, true);
@@ -1414,7 +1417,9 @@ function updatePowerOutageDecision(dt) {
       )
     );
     const riskOutageMult = Math.max(0.25, Number((riskMeta && riskMeta.outageMult) || 1));
-    const spawnChancePerSec = Math.max(0.0002, Math.min(0.04, baseSpawnChancePerSec * riskOutageMult));
+    const crewOps = getRigCrewPowerOpsSummary();
+    const outagePrepMult = Math.max(0.78, Number(crewOps.outagePrepMult || 1));
+    const spawnChancePerSec = Math.max(0.0002, Math.min(0.04, (baseSpawnChancePerSec * riskOutageMult) / outagePrepMult));
     G._powerOutageSpawnChancePerSec = spawnChancePerSec;
     if (Math.random() < spawnChancePerSec * safeDt) {
       spawnPowerOutageEvent();
@@ -1454,6 +1459,7 @@ function getPowerForecastSnapshot() {
   const pricePerKwh = Math.max(0.01, Number(G.powerPriceCurrent || G.powerPriceBase || POWER_BALANCE.basePricePerKwh || 0.2));
   const provider = getPowerProviderById(G.powerProviderId);
   const heat = getRigHeatSummary();
+  const crewOps = getRigCrewPowerOpsSummary();
 
   const avgHeat = Math.max(0, Number(heat.avgHeat || 0));
   const maxHeat = Math.max(0, Number(heat.maxHeat || 0));
@@ -1529,6 +1535,11 @@ function getPowerForecastSnapshot() {
     dailyEnergyKwh,
     dailyEnergyCost,
     projectedPowerDayCost,
+    crewPowerUsageMult: Math.max(0.5, Number(crewOps.powerUsageMult || 1)),
+    crewHeatGainMult: Math.max(0.5, Number(crewOps.heatGainMult || 1)),
+    crewCoolingAssistMult: Math.max(0.5, Number(crewOps.coolingAssistMult || 1)),
+    crewAutomationAssistMult: Math.max(0.5, Number(crewOps.automationAssistMult || 1)),
+    crewOutagePrepMult: Math.max(0.5, Number(crewOps.outagePrepMult || 1)),
     outagesSeen: Math.max(0, Number(G.outageEventsSeen || 0)),
     outagesAuto: Math.max(0, Number(G.outageAutoResolved || 0)),
     outagesManual: Math.max(0, Number(G.outageManualResolved || 0)),
@@ -1602,7 +1613,9 @@ function updatePowerTariffPolicy(dt) {
   if (!policy || policy.id === 'off') return;
   const safeDt = Math.max(0, Number(dt || 0));
   if (safeDt <= 0) return;
-  G.powerTariffPolicyCooldown = Math.max(0, Number(G.powerTariffPolicyCooldown || 0) - safeDt);
+  const crewOps = getRigCrewPowerOpsSummary();
+  const automationAssist = Math.max(0.82, Number(crewOps.automationAssistMult || 1));
+  G.powerTariffPolicyCooldown = Math.max(0, Number(G.powerTariffPolicyCooldown || 0) - safeDt * automationAssist);
   if (Number(G.powerTariffPolicyCooldown || 0) > 0) return;
 
   const tariffLabel = String(G.powerTariffLabel || 'Tag');
@@ -1623,7 +1636,7 @@ function updatePowerTariffPolicy(dt) {
   if (!changed) return;
 
   G.powerTariffPolicySyncs = Math.max(0, Number(G.powerTariffPolicySyncs || 0)) + 1;
-  G.powerTariffPolicyCooldown = 45;
+  G.powerTariffPolicyCooldown = 45 / automationAssist;
   notify('⏱️ Tarif-Policy: ' + (policy.label || policy.id) + ' auf ' + tariffLabel + ' synchronisiert.', 'success');
 }
 
@@ -1634,7 +1647,9 @@ function updatePowerRiskAutomation(dt) {
   const safeDt = Math.max(0, Number(dt || 0));
   if (safeDt <= 0) return;
 
-  G.powerRiskAutoCooldown = Math.max(0, Number(G.powerRiskAutoCooldown || 0) - safeDt);
+  const crewOps = getRigCrewPowerOpsSummary();
+  const automationAssist = Math.max(0.82, Number(crewOps.automationAssistMult || 1));
+  G.powerRiskAutoCooldown = Math.max(0, Number(G.powerRiskAutoCooldown || 0) - safeDt * automationAssist);
   if (Number(G.powerRiskAutoCooldown || 0) > 0) return;
 
   const forecast = getPowerForecastSnapshot();
@@ -1658,7 +1673,7 @@ function updatePowerRiskAutomation(dt) {
   G.powerRiskProfile = target;
   G.powerRiskProfileChanges = Math.max(0, Number(G.powerRiskProfileChanges || 0)) + 1;
   G.powerRiskAutoSwitches = Math.max(0, Number(G.powerRiskAutoSwitches || 0)) + 1;
-  G.powerRiskAutoCooldown = (mode === 'assist') ? 80 : 60;
+  G.powerRiskAutoCooldown = ((mode === 'assist') ? 80 : 60) / automationAssist;
   const label = String((POWER_RISK_PROFILES[target] || {}).label || target);
   notify('🤖 Grid-Auto schaltet auf ' + label + '.', 'success');
 }
@@ -1676,8 +1691,9 @@ function updatePowerCommandLink(dt) {
   if (!G.powerCommandLinkEnabled) return;
   const safeDt = Math.max(0, Number(dt || 0));
   if (safeDt <= 0) return;
-
-  G.powerCommandCooldown = Math.max(0, Number(G.powerCommandCooldown || 0) - safeDt);
+  const crewOps = getRigCrewPowerOpsSummary();
+  const automationAssist = Math.max(0.82, Number(crewOps.automationAssistMult || 1));
+  G.powerCommandCooldown = Math.max(0, Number(G.powerCommandCooldown || 0) - safeDt * automationAssist);
   if (Number(G.powerCommandCooldown || 0) > 0) return;
 
   const desiredPlan = getOutagePlanForRiskProfile(G.powerRiskProfile);
@@ -1686,7 +1702,7 @@ function updatePowerCommandLink(dt) {
 
   G.powerOutageAutoPlan = desiredPlan;
   G.powerCommandSyncs = Math.max(0, Number(G.powerCommandSyncs || 0)) + 1;
-  G.powerCommandCooldown = 18;
+  G.powerCommandCooldown = 18 / automationAssist;
 }
 
 function updateThermalSystem(dt) {
@@ -1719,9 +1735,9 @@ function updateThermalSystem(dt) {
     const layoutHeat = Math.max(0.45, Number(G._layoutHeatMult || 1));
     const rigKw = Math.max(0, Number(rig.powerW || 0) * count / 1000);
     const loadHeat = 1 + Math.max(0, loadRatio - 0.88) * 0.8;
-    const coverageCool = 1 + Math.max(0, Number(maintenance.coverage || 0)) * 0.3;
+    const coverageCool = (1 + Math.max(0, Number(maintenance.coverage || 0)) * 0.3) * Math.max(0.82, Number(maintenance.coolingAssistMult || 1));
 
-    const gain = rigKw * 0.22 * layoutHeat * loadHeat * safeDt;
+    const gain = rigKw * 0.22 * layoutHeat * loadHeat * Math.max(0.8, Number(maintenance.heatGainMult || 1)) * safeDt;
     const drop = coolingPerSec * coverageCool * safeDt;
     heat = Math.max(0, Math.min(100, heat + gain - drop));
     G.rigHeat[rigId] = heat;
@@ -1863,7 +1879,10 @@ function getRigMaintenanceStats(rigId) {
   ensureRigStaffState();
   const rigCount = Math.max(0, Number((G.rigs || {})[rigId] || 0));
   if (rigCount <= 0) {
-    return { rigCount: 0, capacity: 0, coverage: 1, uncoveredRatio: 0, repairPerSec: 0, crashReduction: 0 };
+    return {
+      rigCount: 0, capacity: 0, coverage: 1, uncoveredRatio: 0, repairPerSec: 0, crashReduction: 0,
+      powerUsageMult: 1, heatGainMult: 1, coolingAssistMult: 1, automationAssistMult: 1, outagePrepMult: 1
+    };
   }
 
   const assigned = G.rigStaffAssignments[rigId] || {};
@@ -1871,6 +1890,11 @@ function getRigMaintenanceStats(rigId) {
   let capacity = 0;
   let repairPerSecTotal = 0;
   let crashReductionTotal = 0;
+  let powerSupportTotal = 0;
+  let coolingSupportTotal = 0;
+  let automationSupportTotal = 0;
+  let outageSupportTotal = 0;
+  let heatDisciplineTotal = 0;
   const staffEffMult = Math.max(0.5, Number(G._shopStaffEffMult || 1));
   const prestigeCrewEff = Math.max(0.65, Number(G._prestigeCrewEffMult || 1));
   (window.RIG_STAFF_TIERS || []).forEach((tier) => {
@@ -1882,9 +1906,15 @@ function getRigMaintenanceStats(rigId) {
     const lvlCap = 1 + (lv - 1) * 0.03;
     const lvlRepair = 1 + (lv - 1) * 0.05;
     const lvlCrash = 1 + (lv - 1) * 0.04;
+    const lvlOps = 1 + (lv - 1) * 0.035;
     capacity += count * Number(tier.rigsPerUnit || 0) * lvlCap * Number(spec.cap || 1) * Number(focus.cap || 1) * staffEffMult * prestigeCrewEff;
     repairPerSecTotal += count * Number(tier.repairPerSec || 0) * lvlRepair * Number(spec.repair || 1) * Number(focus.repair || 1) * staffEffMult * prestigeCrewEff;
     crashReductionTotal += count * Number(tier.crashReduction || 0) * lvlCrash * Number(spec.crash || 1) * Number(focus.crash || 1) * Math.max(0.65, staffEffMult) * Math.max(0.75, prestigeCrewEff);
+    powerSupportTotal += count * lvlOps * Number(spec.power || 1) * Number(focus.power || 1) * Math.max(0.7, staffEffMult) * Math.max(0.75, prestigeCrewEff);
+    coolingSupportTotal += count * lvlOps * Number(spec.cooling || 1) * Number(focus.cooling || 1) * Math.max(0.7, staffEffMult) * Math.max(0.75, prestigeCrewEff);
+    automationSupportTotal += count * lvlOps * Number(spec.automation || 1) * Number(focus.automation || 1) * Math.max(0.75, staffEffMult) * Math.max(0.8, prestigeCrewEff);
+    outageSupportTotal += count * lvlOps * Number(spec.outage || 1) * Number(focus.outage || 1) * Math.max(0.75, staffEffMult) * Math.max(0.8, prestigeCrewEff);
+    heatDisciplineTotal += count * lvlOps * Number(spec.heat || 1) * Number(focus.heat || 1) * Math.max(0.7, staffEffMult) * Math.max(0.75, prestigeCrewEff);
   });
 
   const coverage = Math.max(0, Math.min(1, capacity / rigCount));
@@ -1892,9 +1922,54 @@ function getRigMaintenanceStats(rigId) {
   const maintMult = Math.max(0.5, Number(G._locMaintenanceMult || 1));
   const repairPerSec = (repairPerSecTotal * maintMult) / Math.max(1, rigCount);
   const crashReduction = Math.min(0.85, crashReductionTotal * coverage * maintMult);
+  const powerSupport = powerSupportTotal / Math.max(1, rigCount);
+  const coolingSupport = coolingSupportTotal / Math.max(1, rigCount);
+  const automationSupport = automationSupportTotal / Math.max(1, rigCount);
+  const outageSupport = outageSupportTotal / Math.max(1, rigCount);
+  const heatDiscipline = heatDisciplineTotal / Math.max(1, rigCount);
+  const powerUsageMult = Math.max(0.82, Math.min(1.08, 1 - (powerSupport - 1) * 0.22 * coverage));
+  const heatGainMult = Math.max(0.80, Math.min(1.12, 1 - (heatDiscipline - 1) * 0.26 * coverage));
+  const coolingAssistMult = Math.max(0.82, Math.min(1.28, 1 + (coolingSupport - 1) * 0.30 * coverage));
+  const automationAssistMult = Math.max(0.82, Math.min(1.28, 1 + (automationSupport - 1) * 0.28 * coverage));
+  const outagePrepMult = Math.max(0.78, Math.min(1.25, 1 + (outageSupport - 1) * 0.34 * coverage));
 
-  return { rigCount, capacity, coverage, uncoveredRatio, repairPerSec, crashReduction };
+  return {
+    rigCount, capacity, coverage, uncoveredRatio, repairPerSec, crashReduction,
+    powerUsageMult, heatGainMult, coolingAssistMult, automationAssistMult, outagePrepMult
+  };
 }
+
+function getRigCrewPowerOpsSummary() {
+  ensureRigStaffState();
+  const rows = (RIGS || []).filter((rig) => Number((G.rigs || {})[rig.id] || 0) > 0);
+  if (!rows.length) {
+    return { powerUsageMult: 1, heatGainMult: 1, coolingAssistMult: 1, automationAssistMult: 1, outagePrepMult: 1 };
+  }
+  let totalWeight = 0;
+  let powerUsageWeighted = 0;
+  let heatWeighted = 0;
+  let coolingWeighted = 0;
+  let automationWeighted = 0;
+  let outageWeighted = 0;
+  rows.forEach((rig) => {
+    const weight = Math.max(1, Number((G.rigs || {})[rig.id] || 0));
+    const stats = getRigMaintenanceStats(rig.id);
+    totalWeight += weight;
+    powerUsageWeighted += Number(stats.powerUsageMult || 1) * weight;
+    heatWeighted += Number(stats.heatGainMult || 1) * weight;
+    coolingWeighted += Number(stats.coolingAssistMult || 1) * weight;
+    automationWeighted += Number(stats.automationAssistMult || 1) * weight;
+    outageWeighted += Number(stats.outagePrepMult || 1) * weight;
+  });
+  return {
+    powerUsageMult: powerUsageWeighted / totalWeight,
+    heatGainMult: heatWeighted / totalWeight,
+    coolingAssistMult: coolingWeighted / totalWeight,
+    automationAssistMult: automationWeighted / totalWeight,
+    outagePrepMult: outageWeighted / totalWeight,
+  };
+}
+window.getRigCrewPowerOpsSummary = getRigCrewPowerOpsSummary;
 
 function getGlobalRigStaffCoverage() {
   ensureRigStaffState();
@@ -1990,7 +2065,8 @@ function getRigPowerUsageKw(rigId, count = 1) {
     ? getRigThermalEffects(rigId)
     : { drainMult: 1 };
   const thermalPowerMult = Math.max(0.65, Number(thermal.drainMult || 1));
-  return ((watt * qty) / 1000) * Number(G._locPowerUsageMult || 1) * thermalPowerMult;
+  const maintenance = getRigMaintenanceStats(rigId);
+  return ((watt * qty) / 1000) * Number(G._locPowerUsageMult || 1) * thermalPowerMult * Math.max(0.8, Number(maintenance.powerUsageMult || 1));
 }
 window.getRigPowerUsageKw = getRigPowerUsageKw;
 
@@ -2101,8 +2177,9 @@ function getTotalPowerUsageKw() {
       ? getRigThermalEffects(r.id)
       : { drainMult: 1 };
     const thermalPowerMult = Math.max(0.65, Number(thermal.drainMult || 1));
+    const maintenance = getRigMaintenanceStats(r.id);
     const watt = Number(r.powerW || 0) * Math.max(0.4, Math.min(2.2, energyMult)) * thermalPowerMult;
-    kw += (watt * count) / 1000;
+    kw += ((watt * count) / 1000) * Math.max(0.8, Number(maintenance.powerUsageMult || 1));
   });
   kw += Math.max(0, Number(G.coolingPowerKw || 0));
   return kw * Number(G._locPowerUsageMult || 1);

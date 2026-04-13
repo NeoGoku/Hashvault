@@ -233,6 +233,27 @@ Original prompt: Lass uns hier weitermachen am Projekt.
     - Zusatzerklaerung fuer Bereich `Achievements` eingebaut.
   - Build-Version angehoben: `20260412v21`.
 
+- 2026-04-12: Rig-Crew auf Power-System erweitert.
+  - Crew-Spezialisierungen und Fokusprofile geben jetzt zusaetzlich Power-/Thermik-/Automation-Boni:
+    - Stromverbrauch
+    - Heat-Aufbau
+    - Cooling-Unterstuetzung
+    - Automation-Reaktionsgeschwindigkeit
+    - Ausfall-Vorbereitung
+  - `getRigMaintenanceStats()` liefert dafuer neue Multiplikatoren je Rig-Typ.
+  - Neue globale Aggregation `getRigCrewPowerOpsSummary()` fuer Forecast, Automation und Outage-Handling.
+  - Power-Loop integriert:
+    - geringerer Stromverbrauch pro Rig bei guter Crew
+    - weniger Heat-Aufbau / bessere Cooling-Wirkung
+    - schnellere Risk-/Tarif-/Command-Link-Automation
+    - schnellere Auto-Reaktion bei Stromausfaellen
+    - reduzierte Spawn-Chance fuer Outages durch gute Crew-Abdeckung
+  - UI erweitert:
+    - Rig-Crew-Reiter zeigt nun Power/Heat/Cooling/Automation/Outage-Boni im Kopfbereich
+    - pro Rig-Typ werden zusaetzlich kW-/Heat-/Automation-Effekte angezeigt
+    - Forecast & Risk zeigt Crew-Einfluss auf Power-Control
+  - Build-Version angehoben: `20260412v22`.
+
 - 2026-04-06: Verifikation
   - `node --check` erfolgreich fuer: `state.js`, `save.js`, `gameLoop.js`, `market.js`, `research.js`, `mining.js`, `main.js`, `render.js`.
   - HTTP-Smoketest: `http://127.0.0.1:8765/index.html` antwortet `200 OK`.

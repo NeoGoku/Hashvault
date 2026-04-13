@@ -521,6 +521,14 @@ function renderRigCrew() {
         return sum + Number(stats.crashReduction || 0);
       }, 0) / activeRigCount
     : 0;
+  const crewPowerOps = (typeof window.getRigCrewPowerOpsSummary === 'function')
+    ? getRigCrewPowerOpsSummary()
+    : { powerUsageMult: 1, heatGainMult: 1, coolingAssistMult: 1, automationAssistMult: 1, outagePrepMult: 1 };
+  const powerCutPct = Math.max(0, (1 - Number(crewPowerOps.powerUsageMult || 1)) * 100);
+  const heatCutPct = Math.max(0, (1 - Number(crewPowerOps.heatGainMult || 1)) * 100);
+  const coolingBoostPct = Math.max(0, (Number(crewPowerOps.coolingAssistMult || 1) - 1) * 100);
+  const automationBoostPct = Math.max(0, (Number(crewPowerOps.automationAssistMult || 1) - 1) * 100);
+  const outagePrepPct = Math.max(0, (Number(crewPowerOps.outagePrepMult || 1) - 1) * 100);
   const crewWrap = document.createElement('div');
   crewWrap.className = 'ops-staff-wrap';
   crewWrap.innerHTML = `
@@ -533,6 +541,15 @@ function renderRigCrew() {
       <div class="ops-staff-meta" style="margin-top:6px;">
         <span>Avg Repair: +${fmtNum(avgRepair, 2)}%/s</span>
         <span>Avg Crash-Cut: ${fmtNum(avgCrashCut * 100, 1)}%</span>
+      </div>
+      <div class="ops-staff-meta" style="margin-top:6px;">
+        <span>Power: ${powerCutPct > 0 ? '-' : '+'}${fmtNum(Math.abs(powerCutPct), 1)}%</span>
+        <span>Heat: ${heatCutPct > 0 ? '-' : '+'}${fmtNum(Math.abs(heatCutPct), 1)}%</span>
+        <span>Cooling: +${fmtNum(coolingBoostPct, 1)}%</span>
+      </div>
+      <div class="ops-staff-meta" style="margin-top:6px;">
+        <span>Automation: +${fmtNum(automationBoostPct, 1)}%</span>
+        <span>Outage Prep: +${fmtNum(outagePrepPct, 1)}%</span>
       </div>
     </div>`;
 
@@ -635,7 +652,10 @@ function renderRigCrew() {
       </select>
       <small style="display:block;color:var(--muted);margin-top:2px;">${focus.icon || ''} ${focus.label || ''}</small>
     </span>`;
-    cells += `<span>${fmtNum(stats.coverage * 100, 0)}% | +${fmtNum(stats.repairPerSec, 2)}%/s</span>`;
+    const powerPct = (1 - Number(stats.powerUsageMult || 1)) * 100;
+    const heatPct = (1 - Number(stats.heatGainMult || 1)) * 100;
+    const autoPct = (Number(stats.automationAssistMult || 1) - 1) * 100;
+    cells += `<span>${fmtNum(stats.coverage * 100, 0)}% | +${fmtNum(stats.repairPerSec, 2)}%/s<br><small style="color:var(--muted)">kW ${powerPct >= 0 ? '-' : '+'}${fmtNum(Math.abs(powerPct), 1)}% · Heat ${heatPct >= 0 ? '-' : '+'}${fmtNum(Math.abs(heatPct), 1)}% · Auto +${fmtNum(Math.max(0, autoPct), 1)}%</small></span>`;
 
     row.innerHTML = cells;
     assignGrid.appendChild(row);
@@ -1986,6 +2006,9 @@ function renderPowerPanel() {
         <div class="power-row"><span>Akku-Strategie</span><strong>${forecast.batteryStrategyLabel || 'Balanced'}</strong></div>
         <div class="power-row"><span>Tarif-Policy</span><strong>${forecast.tariffPolicyLabel || 'Aus'}</strong></div>
         <div class="power-row"><span>Advisor Setup</span><strong>${recommended ? [recommended.riskProfile, recommended.batteryStrategy, recommended.tariffPolicy].join(' / ') : '—'}</strong></div>
+        <div class="power-row"><span>Crew Power-Control</span><strong>kW ${((1 - Number(forecast.crewPowerUsageMult || 1)) * 100) >= 0 ? '-' : '+'}${fmtNum(Math.abs((1 - Number(forecast.crewPowerUsageMult || 1)) * 100), 1)}% · Heat ${((1 - Number(forecast.crewHeatGainMult || 1)) * 100) >= 0 ? '-' : '+'}${fmtNum(Math.abs((1 - Number(forecast.crewHeatGainMult || 1)) * 100), 1)}%</strong></div>
+        <div class="power-row"><span>Crew Automation</span><strong>Cooling +${fmtNum(Math.max(0, (Number(forecast.crewCoolingAssistMult || 1) - 1) * 100), 1)}% · Auto +${fmtNum(Math.max(0, (Number(forecast.crewAutomationAssistMult || 1) - 1) * 100), 1)}%</strong></div>
+        <div class="power-row"><span>Crew Outage-Prep</span><strong>+${fmtNum(Math.max(0, (Number(forecast.crewOutagePrepMult || 1) - 1) * 100), 1)}%</strong></div>
         <div class="power-row"><span>Stromkosten / Tag (Forecast)</span><strong>$${fmtNum(forecast.projectedPowerDayCost || 0, 2)}</strong></div>
         <div class="power-row"><span>Akku-Savings gesamt</span><strong>$${fmtNum(forecast.batteryStrategySavingsUsd || 0, 2)}</strong></div>
         <div class="power-row"><span>Outages (Total / Auto / Manuell)</span><strong>${fmtNum(forecast.outagesSeen || 0, 0)} / ${fmtNum(forecast.outagesAuto || 0, 0)} / ${fmtNum(forecast.outagesManual || 0, 0)}</strong></div>
