@@ -269,6 +269,7 @@ function setPowerProvider(providerId) {
   }
   G.usd -= cost;
   G.powerProviderId = next.id;
+  G.powerProviderChanges = Math.max(0, Number(G.powerProviderChanges || 0)) + 1;
   G.powerProviderLockedUntilDay = dayNow + Math.max(0, Number(next.lockDays || 0));
   notify('🔌 Anbieter gewechselt: ' + next.name, 'success');
   if (typeof renderPowerPanel === 'function') renderPowerPanel();
@@ -777,7 +778,9 @@ function setCoolingAutoProfile(profileId) {
   const allowed = ['off', 'safe', 'balanced', 'aggressive'];
   const next = String(profileId || 'balanced');
   if (!allowed.includes(next)) return;
+  if (String(G.coolingAutoProfile || 'balanced') === next) return;
   G.coolingAutoProfile = next;
+  G.coolingAutoProfileChanges = Math.max(0, Number(G.coolingAutoProfileChanges || 0)) + 1;
   const labels = {
     off: 'Aus',
     safe: 'Sicher',
@@ -792,7 +795,9 @@ function setPowerOutageAutoPlan(planId) {
   const allowed = ['off', 'safe', 'balanced', 'greedy'];
   const next = String(planId || 'balanced');
   if (!allowed.includes(next)) return;
+  if (String(G.powerOutageAutoPlan || 'balanced') === next) return;
   G.powerOutageAutoPlan = next;
+  G.powerOutagePlanChanges = Math.max(0, Number(G.powerOutagePlanChanges || 0)) + 1;
   const labels = {
     off: 'Manuell',
     safe: 'Safety',
@@ -826,6 +831,7 @@ function setPowerRiskAutoMode(modeId) {
   if (!allowed.includes(next)) return;
   if (String(G.powerRiskAutoMode || 'off') === next) return;
   G.powerRiskAutoMode = next;
+  G.powerRiskAutoModeChanges = Math.max(0, Number(G.powerRiskAutoModeChanges || 0)) + 1;
   G.powerRiskAutoCooldown = 0;
   const labels = { off: 'Aus', assist: 'Assist', full: 'Full' };
   notify('🤖 Grid-Auto: ' + (labels[next] || next), 'success');
@@ -836,6 +842,7 @@ function setPowerCommandLink(enabled) {
   const next = !!enabled;
   if (!!G.powerCommandLinkEnabled === next) return;
   G.powerCommandLinkEnabled = next;
+  G.powerCommandLinkChanges = Math.max(0, Number(G.powerCommandLinkChanges || 0)) + 1;
   G.powerCommandCooldown = 0;
   notify(next ? '🔗 Command-Link aktiviert.' : '⛔ Command-Link deaktiviert.', 'success');
   if (typeof renderPowerPanel === 'function') renderPowerPanel();
@@ -1570,9 +1577,14 @@ function init() {
   if (!Number.isFinite(G.outageAutoResolved) || G.outageAutoResolved < 0) G.outageAutoResolved = 0;
   if (!Number.isFinite(G.outageManualResolved) || G.outageManualResolved < 0) G.outageManualResolved = 0;
   if (!Number.isFinite(G.powerRiskProfileChanges) || G.powerRiskProfileChanges < 0) G.powerRiskProfileChanges = 0;
+  if (!Number.isFinite(G.powerRiskAutoModeChanges) || G.powerRiskAutoModeChanges < 0) G.powerRiskAutoModeChanges = 0;
+  if (!Number.isFinite(G.powerCommandLinkChanges) || G.powerCommandLinkChanges < 0) G.powerCommandLinkChanges = 0;
   if (!Number.isFinite(G.powerRiskAutoSwitches) || G.powerRiskAutoSwitches < 0) G.powerRiskAutoSwitches = 0;
   if (!Number.isFinite(G.powerCommandSyncs) || G.powerCommandSyncs < 0) G.powerCommandSyncs = 0;
   if (!Number.isFinite(G.powerLoadGuardActions) || G.powerLoadGuardActions < 0) G.powerLoadGuardActions = 0;
+  if (!Number.isFinite(G.powerProviderChanges) || G.powerProviderChanges < 0) G.powerProviderChanges = 0;
+  if (!Number.isFinite(G.powerOutagePlanChanges) || G.powerOutagePlanChanges < 0) G.powerOutagePlanChanges = 0;
+  if (!Number.isFinite(G.coolingAutoProfileChanges) || G.coolingAutoProfileChanges < 0) G.coolingAutoProfileChanges = 0;
   if (!Number.isFinite(G.powerBatteryStrategyChanges) || G.powerBatteryStrategyChanges < 0) G.powerBatteryStrategyChanges = 0;
   if (!Number.isFinite(G.powerTariffPolicyChanges) || G.powerTariffPolicyChanges < 0) G.powerTariffPolicyChanges = 0;
   if (!Number.isFinite(G.powerTariffPolicySyncs) || G.powerTariffPolicySyncs < 0) G.powerTariffPolicySyncs = 0;

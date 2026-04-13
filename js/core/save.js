@@ -44,8 +44,8 @@ const SAVE_FIELDS = [
   'activeResearch','researchProgress','totalRigs',
   'layoutSwitchCount','coolingModeChanges','outageDecisions',
   'outageEventsSeen','outageAutoResolved','outageManualResolved',
-  'powerRiskProfileChanges','powerRiskAutoSwitches','powerCommandSyncs',
-  'powerLoadGuardActions','powerBatteryStrategyChanges','powerTariffPolicyChanges','powerTariffPolicySyncs','powerAdvisorRuns',
+  'powerRiskProfileChanges','powerRiskAutoModeChanges','powerCommandLinkChanges','powerRiskAutoSwitches','powerCommandSyncs',
+  'powerLoadGuardActions','powerProviderChanges','powerOutagePlanChanges','coolingAutoProfileChanges','powerBatteryStrategyChanges','powerTariffPolicyChanges','powerTariffPolicySyncs','powerAdvisorRuns',
   // v5 additions:
   'rigTargets','rigHashPools','rigLayoutByLocation','rigHeat','rigBuildPresetSelected','totalCoinsMined',
   'recentEvents','activeEvent',
@@ -236,9 +236,14 @@ function sanitizeLoadedSavePayload(input) {
   out.outageAutoResolved = toNum(out.outageAutoResolved, 0, 0, 1e8, true);
   out.outageManualResolved = toNum(out.outageManualResolved, 0, 0, 1e8, true);
   out.powerRiskProfileChanges = toNum(out.powerRiskProfileChanges, 0, 0, 1e8, true);
+  out.powerRiskAutoModeChanges = toNum(out.powerRiskAutoModeChanges, 0, 0, 1e8, true);
+  out.powerCommandLinkChanges = toNum(out.powerCommandLinkChanges, 0, 0, 1e8, true);
   out.powerRiskAutoSwitches = toNum(out.powerRiskAutoSwitches, 0, 0, 1e8, true);
   out.powerCommandSyncs = toNum(out.powerCommandSyncs, 0, 0, 1e8, true);
   out.powerLoadGuardActions = toNum(out.powerLoadGuardActions, 0, 0, 1e8, true);
+  out.powerProviderChanges = toNum(out.powerProviderChanges, 0, 0, 1e8, true);
+  out.powerOutagePlanChanges = toNum(out.powerOutagePlanChanges, 0, 0, 1e8, true);
+  out.coolingAutoProfileChanges = toNum(out.coolingAutoProfileChanges, 0, 0, 1e8, true);
   out.powerBatteryStrategyChanges = toNum(out.powerBatteryStrategyChanges, 0, 0, 1e8, true);
   out.powerTariffPolicyChanges = toNum(out.powerTariffPolicyChanges, 0, 0, 1e8, true);
   out.powerTariffPolicySyncs = toNum(out.powerTariffPolicySyncs, 0, 0, 1e8, true);

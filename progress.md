@@ -218,6 +218,21 @@ Original prompt: Lass uns hier weitermachen am Projekt.
     - "Alle reparieren" zeigt Gesamtpreis (USD+LTC) und deaktiviert bei zu wenig Ressourcen.
     - Power-Buttons zeigen USD+BTC-Kosten; Power-Panel zeigt aktuellen BNB-Ops-Rabatt.
 
+- 2026-04-12: Tutorial-Refresh fuer neuen Feature-Stand abgeschlossen.
+  - Persistente Tutorial-Counter fuer fragile Power-Schritte verdrahtet:
+    - `powerProviderChanges`
+    - `coolingAutoProfileChanges`
+    - `powerOutagePlanChanges`
+    - `powerRiskAutoModeChanges`
+    - `powerCommandLinkChanges`
+  - `main.js` incrementiert diese Counter jetzt direkt bei Benutzeraktionen statt ueber fragile Zustandsvergleiche.
+  - Tutorial-Schrittliste in `features.js` bleibt auf 56 Schritten, deckt jetzt aber explizit Power/Automation/Standort/Prestige-Systeme ab.
+  - `render.js` Guide-Mapping an die neue Schrittreihenfolge angepasst:
+    - Achievements verweisen jetzt korrekt auf den `achievements`-Reiter statt `missions`.
+    - Neue Ziele fuer Cooling, Outage-Plan, Standort-Shop, Layout, Load Guard, Akku-Strategie, Tarif-Policy, Grid-Profil, Grid-Auto, Command-Link und Advisor.
+    - Zusatzerklaerung fuer Bereich `Achievements` eingebaut.
+  - Build-Version angehoben: `20260412v21`.
+
 - 2026-04-06: Verifikation
   - `node --check` erfolgreich fuer: `state.js`, `save.js`, `gameLoop.js`, `market.js`, `research.js`, `mining.js`, `main.js`, `render.js`.
   - HTTP-Smoketest: `http://127.0.0.1:8765/index.html` antwortet `200 OK`.

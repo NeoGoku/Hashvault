@@ -398,6 +398,26 @@ function getTutorialAchievementCount() {
   return Array.isArray(G.achievements) ? G.achievements.length : 0;
 }
 
+function getTutorialProviderChanges() {
+  return Math.max(0, Number(G.powerProviderChanges || 0));
+}
+
+function getTutorialCoolingAutoChanges() {
+  return Math.max(0, Number(G.coolingAutoProfileChanges || 0));
+}
+
+function getTutorialOutagePlanChanges() {
+  return Math.max(0, Number(G.powerOutagePlanChanges || 0));
+}
+
+function getTutorialRiskAutoModeChanges() {
+  return Math.max(0, Number(G.powerRiskAutoModeChanges || 0));
+}
+
+function getTutorialCommandLinkChanges() {
+  return Math.max(0, Number(G.powerCommandLinkChanges || 0));
+}
+
 function hasTutorialRigTarget() {
   return Object.values(G.rigTargets || {}).some((coin) => typeof coin === 'string' && coin);
 }
@@ -438,31 +458,39 @@ const TUTORIAL_STEPS = [
   { id: 't21', title: 'Missions-Flow lernen', desc: 'Schliesse insgesamt 3 Contracts ab.', check: () => Number(G.contractsDone || 0) >= 3 },
   { id: 't22', title: 'Daily claimen', desc: 'Loese mindestens eine Daily Challenge ein.', check: () => getTutorialDailyClaims() >= 1 },
   { id: 't23', title: 'Erste Achievements sammeln', desc: 'Erreiche 5 Achievements.', check: () => getTutorialAchievementCount() >= 5 },
-  { id: 't24', title: 'Bekanntheit steigern', desc: 'Erreiche 12 Achievements.', check: () => getTutorialAchievementCount() >= 12 },
-  { id: 't25', title: 'Stromnetz ausbauen I', desc: 'Erreiche Power-Infra Level 1.', check: () => Number(G.powerInfraLevel || 0) >= 1 },
-  { id: 't26', title: 'Stromnetz ausbauen II', desc: 'Erreiche Power-Infra Level 3.', check: () => Number(G.powerInfraLevel || 0) >= 3 },
-  { id: 't27', title: 'Anbieter wechseln', desc: 'Wechsle einmal aktiv den Stromanbieter.', check: () => String(G.powerProviderId || 'spot') !== 'spot' },
-  { id: 't28', title: 'Erster Umzug', desc: 'Ziehe in einen Standort mit Tier 2 oder hoeher.', check: () => getTutorialLocationTier() >= 2 },
-  { id: 't29', title: 'Standort-Shop testen', desc: 'Kaufe mindestens 1 Standort-Item.', check: () => getTutorialLocationShopCount() >= 1 },
-  { id: 't30', title: 'Standort optimieren', desc: 'Besitze insgesamt mindestens 4 Standort-Items.', check: () => getTutorialLocationShopCount() >= 4 },
-  { id: 't31', title: 'Kleine Rig-Farm', desc: 'Erreiche insgesamt 6 Rigs.', check: () => getTutorialTotalRigs() >= 6 },
-  { id: 't32', title: 'Rack-Reihe aufbauen', desc: 'Erreiche insgesamt 12 Rigs.', check: () => getTutorialTotalRigs() >= 12 },
-  { id: 't33', title: 'GPU-Linie erweitern', desc: 'Besitze 8x GPU Miner Mk1.', check: () => getTutorialRigOwned('gpu1') >= 8 },
-  { id: 't34', title: 'ASIC-Einstieg', desc: 'Kaufe mindestens 1x ASIC Nano.', check: () => getTutorialRigOwned('asic1') >= 1 },
-  { id: 't35', title: 'Coin-Durchsatz steigern', desc: 'Mine insgesamt mindestens 120 Coins.', check: () => Number(G.totalCoinsMined || 0) >= 120 },
-  { id: 't36', title: 'Modding freischalten', desc: 'Schalte mindestens 1 Rig-Mod frei.', check: () => getTutorialUnlockedMods() >= 1 },
-  { id: 't37', title: 'Mod-Level verbessern', desc: 'Bringe einen Mod auf Level 1 oder hoeher.', check: () => hasTutorialModLevel() },
-  { id: 't38', title: 'Part-Lager fuellen', desc: 'Halte mindestens 25 Mod-Parts.', check: () => Number(G.modParts || 0) >= 25 },
-  { id: 't39', title: 'Goal-System verstehen', desc: 'Claim mindestens 3 Goals.', check: () => getTutorialGoalClaims() >= 3 },
-  { id: 't40', title: 'Langfristige Ziele pushen', desc: 'Claim mindestens 8 Goals.', check: () => getTutorialGoalClaims() >= 8 },
-  { id: 't41', title: 'Storyline voranbringen', desc: 'Claim mindestens 4 Story-Missionen.', check: () => getTutorialStoryClaims() >= 4 },
-  { id: 't42', title: 'Storyline vertiefen', desc: 'Claim mindestens 8 Story-Missionen.', check: () => getTutorialStoryClaims() >= 8 },
-  { id: 't43', title: 'Operationsbudget aufbauen', desc: 'Erreiche insgesamt $200.000 Umsatz.', check: () => Number(G.totalEarned || 0) >= 200000 },
-  { id: 't44', title: 'Hash-Leistung industrialisieren', desc: 'Erreiche 5.000.000 Gesamt-Hashes.', check: () => Number(G.totalHashes || 0) >= 5000000 },
-  { id: 't45', title: 'Standort Tier 3', desc: 'Ziehe in einen Standort mit Tier 3 oder hoeher.', check: () => getTutorialLocationTier() >= 3 },
-  { id: 't46', title: 'Chip-Reserve aufbauen', desc: 'Halte mindestens 5 Prestige-Chips.', check: () => Number(G.chips || 0) >= 5 },
-  { id: 't47', title: 'Erstes Prestige ausloesen', desc: 'Fuehre mindestens 1 Prestige durch.', check: () => Number(G.prestigeCount || 0) >= 1 },
-  { id: 't48', title: 'Nach Prestige neu skalieren', desc: 'Baue nach Prestige wieder mindestens 5 Rigs auf.', check: () => Number(G.prestigeCount || 0) >= 1 && getTutorialTotalRigs() >= 5 },
+  { id: 't24', title: 'Stromnetz aufbauen', desc: 'Erreiche Power-Infra Level 1.', check: () => Number(G.powerInfraLevel || 0) >= 1 },
+  { id: 't25', title: 'Notstrom freischalten', desc: 'Baue mindestens 1 Akku-Level aus.', check: () => Number(G.powerBatteryTier || 0) >= 1 },
+  { id: 't26', title: 'Anbieter wechseln', desc: 'Wechsle einmal aktiv den Stromanbieter.', check: () => getTutorialProviderChanges() >= 1 },
+  { id: 't27', title: 'Cooling ausbauen', desc: 'Erreiche Cooling-Level 1.', check: () => Number(G.coolingInfraLevel || 0) >= 1 },
+  { id: 't28', title: 'Cooling-Modus verstehen', desc: 'Aendere den Cooling-Modus mindestens einmal.', check: () => Number(G.coolingModeChanges || 0) >= 1 },
+  { id: 't29', title: 'Cooling-Auto testen', desc: 'Aendere das Cooling-Auto-Profil mindestens einmal.', check: () => getTutorialCoolingAutoChanges() >= 1 },
+  { id: 't30', title: 'Ausfallplan setzen', desc: 'Aendere den Netz-Ausfall-Autoplan mindestens einmal.', check: () => getTutorialOutagePlanChanges() >= 1 },
+  { id: 't31', title: 'Erster Umzug', desc: 'Ziehe in einen Standort mit Tier 2 oder hoeher.', check: () => getTutorialLocationTier() >= 2 },
+  { id: 't32', title: 'Standort-Shop testen', desc: 'Kaufe mindestens 1 Standort-Item.', check: () => getTutorialLocationShopCount() >= 1 },
+  { id: 't33', title: 'Layout umstellen', desc: 'Wechsle mindestens einmal das Rig-Layout.', check: () => Number(G.layoutSwitchCount || 0) >= 1 },
+  { id: 't34', title: 'Kleine Rig-Farm', desc: 'Erreiche insgesamt 6 Rigs.', check: () => getTutorialTotalRigs() >= 6 },
+  { id: 't35', title: 'Rack-Reihe aufbauen', desc: 'Erreiche insgesamt 12 Rigs.', check: () => getTutorialTotalRigs() >= 12 },
+  { id: 't36', title: 'GPU-Linie erweitern', desc: 'Besitze 8x GPU Miner Mk1.', check: () => getTutorialRigOwned('gpu1') >= 8 },
+  { id: 't37', title: 'ASIC-Einstieg', desc: 'Kaufe mindestens 1x ASIC Nano.', check: () => getTutorialRigOwned('asic1') >= 1 },
+  { id: 't38', title: 'Modding freischalten', desc: 'Schalte mindestens 1 Rig-Mod frei.', check: () => getTutorialUnlockedMods() >= 1 },
+  { id: 't39', title: 'Mod-Level verbessern', desc: 'Bringe einen Mod auf Level 1 oder hoeher.', check: () => hasTutorialModLevel() },
+  { id: 't40', title: 'Part-Lager fuellen', desc: 'Halte mindestens 25 Mod-Parts.', check: () => Number(G.modParts || 0) >= 25 },
+  { id: 't41', title: 'Load Guard aktivieren', desc: 'Schalte den Load Guard ein.', check: () => !!G.powerLoadGuardEnabled },
+  { id: 't42', title: 'Akku-Strategie wechseln', desc: 'Aendere die Akku-Strategie mindestens einmal.', check: () => Number(G.powerBatteryStrategyChanges || 0) >= 1 },
+  { id: 't43', title: 'Tarif-Policy setzen', desc: 'Aendere die Tarif-Policy mindestens einmal.', check: () => Number(G.powerTariffPolicyChanges || 0) >= 1 },
+  { id: 't44', title: 'Grid-Profil wechseln', desc: 'Aendere das Grid-Control-Profil mindestens einmal.', check: () => Number(G.powerRiskProfileChanges || 0) >= 1 },
+  { id: 't45', title: 'Grid-Auto einschalten', desc: 'Aendere den Grid-Auto-Modus mindestens einmal.', check: () => getTutorialRiskAutoModeChanges() >= 1 },
+  { id: 't46', title: 'Command-Link pruefen', desc: 'Schalte den Command-Link mindestens einmal um.', check: () => getTutorialCommandLinkChanges() >= 1 },
+  { id: 't47', title: 'Power-Advisor nutzen', desc: 'Wende den Power-Advisor mindestens einmal an.', check: () => Number(G.powerAdvisorRuns || 0) >= 1 },
+  { id: 't48', title: 'Goal-System verstehen', desc: 'Claim mindestens 3 Goals.', check: () => getTutorialGoalClaims() >= 3 },
+  { id: 't49', title: 'Storyline voranbringen', desc: 'Claim mindestens 4 Story-Missionen.', check: () => getTutorialStoryClaims() >= 4 },
+  { id: 't50', title: 'Coin-Durchsatz steigern', desc: 'Mine insgesamt mindestens 120 Coins.', check: () => Number(G.totalCoinsMined || 0) >= 120 },
+  { id: 't51', title: 'Operationsbudget aufbauen', desc: 'Erreiche insgesamt $200.000 Umsatz.', check: () => Number(G.totalEarned || 0) >= 200000 },
+  { id: 't52', title: 'Hash-Leistung industrialisieren', desc: 'Erreiche 5.000.000 Gesamt-Hashes.', check: () => Number(G.totalHashes || 0) >= 5000000 },
+  { id: 't53', title: 'Standort Tier 3', desc: 'Ziehe in einen Standort mit Tier 3 oder hoeher.', check: () => getTutorialLocationTier() >= 3 },
+  { id: 't54', title: 'Chip-Reserve aufbauen', desc: 'Halte mindestens 5 Prestige-Chips.', check: () => Number(G.chips || 0) >= 5 },
+  { id: 't55', title: 'Erstes Prestige ausloesen', desc: 'Fuehre mindestens 1 Prestige durch.', check: () => Number(G.prestigeCount || 0) >= 1 },
+  { id: 't56', title: 'Nach Prestige neu skalieren', desc: 'Baue nach Prestige wieder mindestens 5 Rigs auf.', check: () => Number(G.prestigeCount || 0) >= 1 && getTutorialTotalRigs() >= 5 },
 ];
 window.TUTORIAL_STEPS = TUTORIAL_STEPS;
 
