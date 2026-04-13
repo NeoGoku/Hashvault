@@ -109,6 +109,7 @@ const DEFAULT_STATE = {
   activeEvent:   null, // {msg, fx, endsAt} aktuelles Ereignis
   _eventTimer:   0,
   _nextEventIn:  200,  // Sekunden bis nächstes Event (zufällig 180-360)
+  _newsTickerTimer: 95,
 
   // Auto-Klicker-Akkumulator (intern, wird nicht gespeichert)
   _autoClickAccum: 0,
@@ -248,9 +249,13 @@ const DEFAULT_STATE = {
   marketShockTimer: 0,
   marketShockDir: 0,
   marketShockAmp: 0,
+  marketFloorDrift: {},      // {coin: floor drift offset}
   marketMomentum: {},        // {coin: momentum return/sec}
   marketEventDrift: {},      // {coin: event drift return/sec}
   marketEventDriftTimer: {}, // {coin: remaining sec}
+  walletYieldEnabled: true,
+  walletYieldAccruedUsd: 0,
+  walletYieldLastDay: 0,
   _prestigePowerCapMult: 1,
   _prestigeAutomationMult: 1,
   _prestigeOutagePrepMult: 1,

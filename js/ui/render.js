@@ -303,10 +303,14 @@ function renderMarket() {
   const shock = Number(G.marketShockTimer || 0) > 0;
   const nextPhase = Math.max(0, Number(G.marketRegimeTimer || 0));
   const floorPct = Math.round(Math.max(0, Number(G._marketFloorMult || 0.45)) * 100);
+  const walletYieldOn = G.walletYieldEnabled !== false;
+  const walletAccrued = Math.max(0, Number(G.walletYieldAccruedUsd || 0));
   trend.innerHTML = '📈 Regime: <strong style="color:var(--text)">' + regimeLabel + '</strong>' +
     ' · Zyklus: ' + (shock ? '<span style="color:var(--gold)">aktiv</span>' : 'ruhig') +
     ' · Wechsel in: ' + fmtTime(nextPhase) +
-    ' · Markt-Floor: ' + floorPct + '%';
+    ' · Markt-Floor: ' + floorPct + '%' +
+    ' · Wallet-Zins: ' + (walletYieldOn ? '<span style="color:var(--green)">AN</span>' : 'AUS') +
+    ' · Zins-Ertrag: $' + fmtNum(walletAccrued, 2);
   grid.appendChild(trend);
 
   Object.entries(COIN_DATA).forEach(([coin, data]) => {
@@ -345,6 +349,11 @@ function renderMarket() {
         : (coin === 'BTC'
           ? 'Utility: Power-Upgrades'
           : 'Utility: Ops-Rabatt (Holding)'));
+    const dailyYieldRate = (typeof window.getWalletDailyRate === 'function')
+      ? getWalletDailyRate(coin)
+      : Math.max(0, Number((data && data.walletApy) || 0) / 365);
+    const apyPct = Math.max(0, Number((data && data.walletApy) || 0) * 100);
+    const estDailyYield = Math.max(0, Number(balance || 0) * dailyYieldRate);
     const autoEnabled = !!autoMap[coin];
     const canSellAny = freeBalance > 0.009;
 
@@ -362,6 +371,7 @@ function renderMarket() {
       <div class="coin-miners">⛏️ ${minerText}</div>
       <div class="coin-miners">🧠 ${utilityRole}</div>
       <div class="coin-miners">🎛️ ${profile.yieldLabel || 'Standard'} · H/Coin ${fmtNum(convRateCoin, 0)} · Yield-Index ${yieldIndex}</div>
+      <div class="coin-miners">🏦 Wallet APY: ${fmtNum(apyPct, 2)}% · Erwartet/Tag: +${fmtNum(estDailyYield, 4)} ${coin}</div>
       <div class="coin-auto-row">
         <span>Auto-Sell ${coin}</span>
         <div class="toggle ${autoEnabled ? 'on' : ''}" onclick="toggleAutoSellCoin('${coin}')"></div>

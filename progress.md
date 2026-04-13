@@ -1,5 +1,20 @@
 Original prompt: Lass uns hier weitermachen am Projekt.
 
+- 2026-04-13: Phase 3 umgesetzt (Markt + Live-News + Wallet-Zins).
+  - Markt-Stabilisierung gegen Floor-Sticking:
+    - Soft-Floor-Drift pro Coin (`marketFloorDrift`) mit Reversion.
+    - Rebound-Mechanik bei Floor-Kontakt (kleiner Ruecksprung statt hartem Klemmen auf exaktem Floorpreis).
+  - Live-News erweitert:
+    - Mehr `none`-Events in `events.js`.
+    - Zusaetzlicher Ambient-News-Timer (`_newsTickerTimer`) sendet zwischen großen Events laufend Markt-/Grid-Ticker.
+  - Wallet-Zins-System:
+    - APY pro Coin in `COIN_DATA` (`walletApy`).
+    - Taegliche Zinsgutschrift auf gehaltene Coins (`settleWalletYieldForDay`) beim Tagesabschluss.
+    - Tracking: `walletYieldAccruedUsd`, `walletYieldLastDay`, `walletYieldEnabled`.
+    - Markt-UI zeigt Wallet-Zinsstatus, akkumulierten Ertrag und pro Coin APY + erwarteten Tagesertrag.
+  - Save/Load erweitert fuer neue Felder (`marketFloorDrift`, `_newsTickerTimer`, Wallet-Yield-Felder).
+  - Build-Version angehoben: `20260413v27`.
+
 - 2026-04-13: Phase 2 umgesetzt (UI-Reorganisation Standort/Power/Mine).
   - `Finanzen/Kredite` aus `Power` herausgezogen und in `Standort` als Karte `Betrieb & Finanzen` integriert (ohne neuen Hauptreiter).
   - `Rig-Layouts` von `Power` nach `Standort` verschoben.

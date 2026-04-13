@@ -190,4 +190,34 @@ const EVENTS = [
     msg:'🐋 Whale Alert: 50.000 BTC bewegt — Community rätselt über Absichten.',
     fx:{ t:'none' }
   },
+  {
+    id:'ev_n7', w:4,
+    msg:'🧾 On-Chain-Report: Transaktionsgebuehren sinken, Retail-Aktivitaet zieht leicht an.',
+    fx:{ t:'none' }
+  },
+  {
+    id:'ev_n8', w:4,
+    msg:'🏭 Hardware-News: Neue GPU-Serie angekuendigt, Effizienzwerte sorgen fuer Debatten.',
+    fx:{ t:'none' }
+  },
+  {
+    id:'ev_n9', w:3,
+    msg:'🌐 Mining-Pools melden hoehere Uptime — Hashrate verteilt sich breiter.',
+    fx:{ t:'none' }
+  },
+  {
+    id:'ev_n10', w:3,
+    msg:'🏦 Desk-Kommentar: Institutionelle Zufluesse bleiben stabil, Risikoappetit neutral.',
+    fx:{ t:'none' }
+  },
+  {
+    id:'ev_n11', w:3,
+    msg:'🔍 Analysten-Call: Marktstruktur wirkt gesuender, kurzfristig aber weiter volatil.',
+    fx:{ t:'none' }
+  },
+  {
+    id:'ev_n12', w:3,
+    msg:'📡 Macro-Ticker: Zinserwartungen unveraendert, Krypto reagiert gemischt.',
+    fx:{ t:'none' }
+  },
 ];

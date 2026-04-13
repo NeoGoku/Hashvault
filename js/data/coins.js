@@ -6,10 +6,10 @@
 const HASH_PER_COIN = 12000;
 
 const COIN_DATA = {
-  BTC: { name:'Bitcoin',   symbol:'₿', color:'#f7931a', basePrice: 80,  volatility: 0.025 },
-  ETH: { name:'Ethereum',  symbol:'Ξ', color:'#627eea', basePrice: 35,  volatility: 0.030 },
-  LTC: { name:'Litecoin',  symbol:'Ł', color:'#bfbbbb', basePrice: 15,  volatility: 0.040 },
-  BNB: { name:'BNB',       symbol:'⬡', color:'#f3ba2f', basePrice: 25,  volatility: 0.030 },
+  BTC: { name:'Bitcoin',   symbol:'₿', color:'#f7931a', basePrice: 80,  volatility: 0.025, walletApy: 0.045 },
+  ETH: { name:'Ethereum',  symbol:'Ξ', color:'#627eea', basePrice: 35,  volatility: 0.030, walletApy: 0.058 },
+  LTC: { name:'Litecoin',  symbol:'Ł', color:'#bfbbbb', basePrice: 15,  volatility: 0.040, walletApy: 0.072 },
+  BNB: { name:'BNB',       symbol:'⬡', color:'#f3ba2f', basePrice: 25,  volatility: 0.030, walletApy: 0.063 },
 };
 
 // Coin-Profile fuer klarere Rollen (Ertrag + Marktcharakter).

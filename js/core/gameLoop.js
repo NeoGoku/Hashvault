@@ -130,6 +130,11 @@ const MARKET_BALANCE = {
   eventImpulseDurationSecMin: 50,
   eventImpulseDurationSecMax: 105,
   eventImpulseCarry: 0.24,
+  floorDriftStepPerSec: 0.0009,
+  floorDriftDecayPerSec: 0.85,
+  floorReboundKickPerSec: 0.0032,
+  floorReboundMinPct: 0.0014,
+  floorReboundMaxPct: 0.0046,
 };
 window.HV_MARKET_BALANCE = MARKET_BALANCE;
 
@@ -589,6 +594,83 @@ function addMarketImpulse(coin, pctMove, durationSec) {
   });
 }
 window.addMarketImpulse = addMarketImpulse;
+
+function getWalletDailyRate(coin) {
+  const data = (COIN_DATA && COIN_DATA[coin]) ? COIN_DATA[coin] : null;
+  const apy = Math.max(0, Number((data && data.walletApy) || 0));
+  return Math.max(0, Math.min(0.025, apy / 365));
+}
+window.getWalletDailyRate = getWalletDailyRate;
+
+function settleWalletYieldForDay(dayNo) {
+  if (G.walletYieldEnabled === false) return;
+  const day = Math.max(1, Math.floor(Number(dayNo || G.worldDay || 1)));
+  const last = Math.max(0, Math.floor(Number(G.walletYieldLastDay || 0)));
+  if (day <= last) return;
+
+  const rates = [];
+  let totalUsd = 0;
+  Object.keys(COIN_DATA || {}).forEach((coin) => {
+    const bal = Math.max(0, Number((G.coins || {})[coin] || 0));
+    if (bal <= 0) return;
+    const rate = getWalletDailyRate(coin);
+    if (rate <= 0) return;
+    const reward = bal * rate;
+    if (reward <= 0) return;
+    G.coins[coin] = bal + reward;
+    const usd = reward * Math.max(0.000001, Number((G.prices || {})[coin] || 0));
+    totalUsd += usd;
+    rates.push(coin + ' +' + fmtNum(reward, 4));
+  });
+
+  G.walletYieldLastDay = day;
+  if (totalUsd > 0) {
+    G.walletYieldAccruedUsd = Math.max(0, Number(G.walletYieldAccruedUsd || 0) + totalUsd);
+    notify('🏦 Wallet-Zinsen T' + day + ': ' + rates.join(' · ') + ' (~$' + fmtNum(totalUsd, 2) + ')', 'success');
+  }
+}
+window.settleWalletYieldForDay = settleWalletYieldForDay;
+
+function emitAmbientLiveNews() {
+  const templates = [
+    '📡 Marktbriefing: Regime {REGIME}, Volatilitaet bleibt {VOL}.',
+    '📰 Orderflow: BTC-Dominanz bei {BTCDOM}% laut Desk-Schaetzung.',
+    '📊 Derivate-Desk meldet Funding-Spanne von {FUND}% bis {FUND2}%.',
+    '🌍 Miner-Update: Netzwerk-Hashrate {HASH} PH/s, Energiepreis {PRICE}$/kWh.',
+    '🏦 Macro-Ticker: Risikoappetit {RISK}, Liquiditaet bleibt {LIQ}.',
+    '⚙️ Infrastruktur: Grid-Auslastung {LOAD}% bei Tarif {TARIFF}.',
+    '🧠 Research-Desk: Altcoin-Beta {BETA}, Mean-Reversion im Fokus.',
+    '🐋 Whale-Watch: ungewoehnliche Wallet-Aktivitaet in {COIN}.',
+  ];
+  const regime = String(G.marketRegime || 'range');
+  const regimeLabel = regime === 'bull' ? 'bullish' : (regime === 'bear' ? 'bearish' : 'seitwaerts');
+  const vol = regime === 'range' ? 'moderat' : (regime === 'bull' ? 'erhoeht' : 'nervoes');
+  const load = Math.max(0, Math.min(999, Number((G._powerLoadRatio || 0) * 100)));
+  const hashPh = Math.max(50, Math.floor(180 + Number(getTotalHps() || 0) / 240));
+  const risk = regime === 'bear' ? 'defensiv' : (regime === 'bull' ? 'offensiv' : 'neutral');
+  const liq = Number(G.marketShockTimer || 0) > 0 ? 'duenn' : 'stabil';
+  const co = ['BTC', 'ETH', 'LTC', 'BNB'][Math.floor(Math.random() * 4)];
+  const msg = templates[Math.floor(Math.random() * templates.length)]
+    .replace('{REGIME}', regimeLabel)
+    .replace('{VOL}', vol)
+    .replace('{BTCDOM}', fmtNum(48 + Math.random() * 9, 1))
+    .replace('{FUND}', fmtNum(-0.03 + Math.random() * 0.06, 2))
+    .replace('{FUND2}', fmtNum(-0.03 + Math.random() * 0.06, 2))
+    .replace('{HASH}', String(hashPh))
+    .replace('{PRICE}', fmtNum(Number(G.powerPriceCurrent || 0.18), 3))
+    .replace('{RISK}', risk)
+    .replace('{LIQ}', liq)
+    .replace('{LOAD}', fmtNum(load, 0))
+    .replace('{TARIFF}', String(G.powerTariffLabel || 'Tag'))
+    .replace('{BETA}', fmtNum(0.85 + Math.random() * 0.55, 2))
+    .replace('{COIN}', co);
+
+  G.recentEvents = Array.isArray(G.recentEvents) ? G.recentEvents : [];
+  G.recentEvents.unshift({ msg, time: Date.now() });
+  if (G.recentEvents.length > 10) G.recentEvents.pop();
+  updateTicker(msg);
+}
+window.emitAmbientLiveNews = emitAmbientLiveNews;
 
 // ── Alle Boni aus Upgrades, Research, Staff, Achievements, Chips zusammenrechnen ──
 function computeMultipliers() {
@@ -2532,6 +2614,7 @@ function settleDailyOperationsBill(billDay) {
   const dayNo = Math.max(1, Math.floor(Number(billDay || G.worldDay || 1)));
   const lastDay = Math.max(0, Math.floor(Number(G.dailyLastBilledDay || 0)));
   if (dayNo <= lastDay) return;
+  settleWalletYieldForDay(dayNo);
 
   const usagePart = Number(G.powerBillAccrued || 0);
   const infraLevel = Number(G.powerInfraLevel || 0);
@@ -3550,6 +3633,7 @@ function gameTick() {
   const trendVolMult = Math.max(0.55, Number(G.marketRegimeVolMult || 1));
   const shockDir = Number(G.marketShockDir || 0);
   const shockAmp = Number(G.marketShockTimer || 0) > 0 ? Number(G.marketShockAmp || 0) : 0;
+  if (!G.marketFloorDrift || typeof G.marketFloorDrift !== 'object') G.marketFloorDrift = {};
 
   Object.keys(COIN_DATA).forEach(coin => {
     const c = COIN_DATA[coin];
@@ -3580,12 +3664,27 @@ function gameTick() {
     ) * profile.reversionMult;
     const totalReturnPerSec = trendDrift * 0.75 + profile.driftBias + eventDrift + meanRev + momentum;
     const nextPrice = price * Math.exp(totalReturnPerSec * dt);
-    const floor = Number(c.basePrice || 1) * Math.max(0.35, Number(G._marketFloorMult || 0.45));
+    const floorBase = Number(c.basePrice || 1) * Math.max(0.35, Number(G._marketFloorMult || 0.45));
+    let floorDrift = Number(G.marketFloorDrift[coin] || 0);
+    floorDrift = floorDrift * Math.exp(-Math.max(0.1, Number(MARKET_BALANCE.floorDriftDecayPerSec || 0.85)) * dt)
+      + (Math.random() - 0.5) * Number(MARKET_BALANCE.floorDriftStepPerSec || 0.0009) * dt;
+    floorDrift = Math.max(-0.06, Math.min(0.06, floorDrift));
+    const floor = floorBase * (1 + floorDrift);
     const ceiling = Number(c.basePrice || 1) * (9 + Math.min(6, Math.max(0, Number(G.prestigeCount || 0))));
-    G.marketMomentum[coin] = momentum;
+    let finalPrice = Math.max(floor, Math.min(ceiling, nextPrice));
+    let momentumFinal = momentum;
+    if (finalPrice <= floor * 1.0002) {
+      const reboundPct = (Number(MARKET_BALANCE.floorReboundMinPct || 0.0014) +
+        Math.random() * (Number(MARKET_BALANCE.floorReboundMaxPct || 0.0046) - Number(MARKET_BALANCE.floorReboundMinPct || 0.0014)));
+      finalPrice = Math.min(ceiling, floor * (1 + reboundPct));
+      const reboundKick = Math.max(0, Number(MARKET_BALANCE.floorReboundKickPerSec || 0.0032));
+      momentumFinal = Math.max(momentumFinal, reboundKick * profile.noiseMult);
+    }
+    G.marketFloorDrift[coin] = floorDrift;
+    G.marketMomentum[coin] = momentumFinal;
     G.marketEventDrift[coin] = eventDrift;
     G.marketEventDriftTimer[coin] = eventTimer;
-    G.prices[coin] = Math.max(floor, Math.min(ceiling, nextPrice));
+    G.prices[coin] = finalPrice;
     G.priceHistory[coin].push(G.prices[coin]);
     if (G.priceHistory[coin].length > 60) G.priceHistory[coin].shift();
   });
@@ -3596,6 +3695,12 @@ function gameTick() {
     G._eventTimer  = 0;
     G._nextEventIn = 180 + Math.random() * 180; // 3-6 Minuten
     fireRandomEvent();
+  }
+  G._newsTickerTimer = Number.isFinite(G._newsTickerTimer) ? Number(G._newsTickerTimer) : (75 + Math.random() * 70);
+  G._newsTickerTimer -= dt;
+  if (G._newsTickerTimer <= 0) {
+    G._newsTickerTimer = 65 + Math.random() * 95;
+    if (!(G.activeEvent && Number((G.activeEvent || {}).endsAt || 0) > Date.now())) emitAmbientLiveNews();
   }
 
   // ── Contract-Timer ────────────────────────────────────────

@@ -82,7 +82,9 @@ const SAVE_FIELDS = [
   'loans','nextLoanId','insuranceActive','insuranceTier','leasedRigs','lastFinanceBill',
   'worldDay','worldTimeMinutes','_timeScaleMinPerSec',
   'marketRegime','marketRegimeTimer','marketRegimeDrift','marketRegimeVolMult','marketShockTimer','marketShockDir','marketShockAmp',
-  'marketMomentum','marketEventDrift','marketEventDriftTimer',
+  'marketFloorDrift','marketMomentum','marketEventDrift','marketEventDriftTimer',
+  '_newsTickerTimer',
+  'walletYieldEnabled','walletYieldAccruedUsd','walletYieldLastDay',
   'hiredRigStaff','rigStaffAssignments','rigCrewProgress','rigCrewFocus','rigAutoRepair',
 ];
 
@@ -382,10 +384,16 @@ function sanitizeLoadedSavePayload(input) {
   out.marketShockTimer = toNum(out.marketShockTimer, 0, 0, 3000, false);
   out.marketShockDir = toNum(out.marketShockDir, 0, -1, 1, true);
   out.marketShockAmp = toNum(out.marketShockAmp, 0, 0, 1, false);
+  out.marketFloorDrift = ensureObject(out.marketFloorDrift);
   out.marketMomentum = ensureObject(out.marketMomentum);
   out.marketEventDrift = ensureObject(out.marketEventDrift);
   out.marketEventDriftTimer = ensureObject(out.marketEventDriftTimer);
+  out._newsTickerTimer = toNum(out._newsTickerTimer, 90, 10, 600, false);
+  out.walletYieldEnabled = out.walletYieldEnabled !== false;
+  out.walletYieldAccruedUsd = toNum(out.walletYieldAccruedUsd, 0, 0, 1e15, false);
+  out.walletYieldLastDay = toNum(out.walletYieldLastDay, 0, 0, 1e9, true);
   coinKeys.forEach((coin) => {
+    out.marketFloorDrift[coin] = toNum(out.marketFloorDrift[coin], 0, -0.06, 0.06, false);
     out.marketMomentum[coin] = toNum(out.marketMomentum[coin], 0, -0.5, 0.5, false);
     out.marketEventDrift[coin] = toNum(out.marketEventDrift[coin], 0, -0.5, 0.5, false);
     out.marketEventDriftTimer[coin] = toNum(out.marketEventDriftTimer[coin], 0, 0, 3600, false);
