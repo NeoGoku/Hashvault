@@ -1,5 +1,13 @@
 Original prompt: Lass uns hier weitermachen am Projekt.
 
+- 2026-04-13: Phase 2 umgesetzt (UI-Reorganisation Standort/Power/Mine).
+  - `Finanzen/Kredite` aus `Power` herausgezogen und in `Standort` als Karte `Betrieb & Finanzen` integriert (ohne neuen Hauptreiter).
+  - `Rig-Layouts` von `Power` nach `Standort` verschoben.
+  - `Thermik & Cooling` von `Power` nach `Standort` verschoben.
+  - `Stromnetz`-Karte im `Mine`-Reiter entfernt; Stromsteuerung ist jetzt im `Power`-Reiter gebuendelt.
+  - Tutorial-Ziele angepasst: Schritte `t27`, `t28`, `t32` zeigen jetzt auf `Standort`.
+  - Build-Version angehoben: `20260413v26`.
+
 - 2026-04-13: Phase 1 der neuen UX-/Bugfix-Runde umgesetzt.
   - Research-Lab von Markt-/Crypto-Skalierung entkoppelt: `getEffectiveResearchCost()` nutzt jetzt feste Basispreise.
   - Achievements: letztes freigeschaltetes Achievement wird persistiert (`lastAchievementId`) und im Achievement-Grid mit `Neu` markiert/visuell hervorgehoben.

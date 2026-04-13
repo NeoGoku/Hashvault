@@ -9,7 +9,7 @@
 <title>HashVault Pro</title>
 <script>
 (function() {
-  const BUILD_ID = '20260413v25';
+  const BUILD_ID = '20260413v26';
   const BUILD_KEY = '__hv_build_id';
   const prevBuild = localStorage.getItem(BUILD_KEY);
   const isNewBuild = prevBuild !== BUILD_ID;
@@ -250,14 +250,6 @@
       <div class="stat-row"><span>🕒 Ingame-Zeit</span><span class="val" id="s-clock">Tag 1 08:00</span></div>
     </div>
     <div class="stats-card">
-      <h3>⚡ Stromnetz</h3>
-      <div class="stat-row"><span>Infra-Level</span><span class="val" id="s-power-level">0</span></div>
-      <div class="stat-row"><span>Tarif</span><span class="val" id="s-power-tariff">Tag</span></div>
-      <div class="stat-row"><span>Grid-Event</span><span class="val" id="s-power-event">Stabil</span></div>
-      <button id="power-upgrade-btn" class="buy-btn" data-power-action="upgrade" type="button" style="margin-top:8px;">Kapazitaet +10.00 kW</button>
-      <button id="power-battery-upg-btn" class="buy-btn" data-power-action="batteryupg" type="button" style="margin-top:8px;background:linear-gradient(135deg, #3f6cbf, #2f4d8a);">Notstrom-Akku ausbauen</button>
-    </div>
-    <div class="stats-card">
       <h3>⏰ Offline-Einnahmen</h3>
       <div id="offline-info" style="font-size:12px;color:var(--muted)">Speichern fuer Offline-Modus</div>
     </div>
@@ -330,36 +322,6 @@
     <div class="power-card">
       <h3>Tarifzeiten</h3>
       <div id="power-tariff-list" class="power-list"></div>
-    </div>
-
-    <div class="power-card">
-      <h3>🧱 Rig-Layouts pro Standort</h3>
-      <div id="power-layout-info" class="power-list"></div>
-      <div class="power-actions" style="margin-top:8px;">
-        <select id="power-layout-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);"></select>
-        <button class="buy-btn" data-power-action="layout" type="button">Layout anwenden</button>
-      </div>
-    </div>
-
-    <div class="power-card">
-      <h3>🌡️ Thermik &amp; Cooling</h3>
-      <div id="power-thermal-info" class="power-list"></div>
-      <div class="power-actions" style="margin-top:8px;">
-        <select id="power-cooling-mode-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);">
-          <option value="eco">Eco</option>
-          <option value="balanced">Balanced</option>
-          <option value="turbo">Turbo</option>
-        </select>
-        <select id="power-cooling-auto-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);">
-          <option value="off">Cooling Auto: Aus</option>
-          <option value="safe">Cooling Auto: Sicher</option>
-          <option value="balanced">Cooling Auto: Balanced</option>
-          <option value="aggressive">Cooling Auto: Aggressiv Sparen</option>
-        </select>
-        <button class="buy-btn" data-power-action="coolmode" type="button">Cooling-Modus uebernehmen</button>
-        <button class="buy-btn" data-power-action="coolauto" type="button">Cooling-Auto uebernehmen</button>
-        <button class="buy-btn" data-power-action="coolingupg" type="button" style="background:linear-gradient(135deg,#2f86c9,#21588b);">Cooling-Ausbau</button>
-      </div>
     </div>
 
     <div class="power-card">
@@ -446,17 +408,6 @@
     </div>
 
     <div class="power-card">
-      <h3>🏦 Finanzen</h3>
-      <div id="power-finance-info" class="power-list"></div>
-      <div class="power-actions" style="margin-top:8px;">
-        <select id="loan-plan-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);"></select>
-        <button class="buy-btn" data-power-action="loan" type="button">Kredit aufnehmen</button>
-        <button class="buy-btn" data-power-action="repayloan" type="button">Kredit tilgen</button>
-        <button class="buy-btn" data-power-action="insurance" type="button">Versicherung umschalten</button>
-      </div>
-    </div>
-
-    <div class="power-card">
       <h3>Mod Tech</h3>
       <div id="power-mod-unlock-list" class="power-list"></div>
       <div id="power-mod-workshop" class="power-list" style="margin-top:10px;"></div>
@@ -489,6 +440,47 @@
       <h3>Standort-Shop</h3>
       <div id="power-location-shop-info" class="power-list"></div>
       <div id="power-location-shop-list" class="power-list" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="power-card">
+      <h3>🧱 Rig-Layouts pro Standort</h3>
+      <div id="power-layout-info" class="power-list"></div>
+      <div class="power-actions" style="margin-top:8px;">
+        <select id="power-layout-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);"></select>
+        <button class="buy-btn" data-power-action="layout" type="button">Layout anwenden</button>
+      </div>
+    </div>
+
+    <div class="power-card">
+      <h3>🌡️ Thermik &amp; Cooling</h3>
+      <div id="power-thermal-info" class="power-list"></div>
+      <div class="power-actions" style="margin-top:8px;">
+        <select id="power-cooling-mode-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);">
+          <option value="eco">Eco</option>
+          <option value="balanced">Balanced</option>
+          <option value="turbo">Turbo</option>
+        </select>
+        <select id="power-cooling-auto-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);">
+          <option value="off">Cooling Auto: Aus</option>
+          <option value="safe">Cooling Auto: Sicher</option>
+          <option value="balanced">Cooling Auto: Balanced</option>
+          <option value="aggressive">Cooling Auto: Aggressiv Sparen</option>
+        </select>
+        <button class="buy-btn" data-power-action="coolmode" type="button">Cooling-Modus uebernehmen</button>
+        <button class="buy-btn" data-power-action="coolauto" type="button">Cooling-Auto uebernehmen</button>
+        <button class="buy-btn" data-power-action="coolingupg" type="button" style="background:linear-gradient(135deg,#2f86c9,#21588b);">Cooling-Ausbau</button>
+      </div>
+    </div>
+
+    <div class="power-card">
+      <h3>🏦 Betrieb &amp; Finanzen</h3>
+      <div id="power-finance-info" class="power-list"></div>
+      <div class="power-actions" style="margin-top:8px;">
+        <select id="loan-plan-select" style="width:100%;padding:8px;border-radius:8px;background:var(--panel1);border:1px solid var(--border);color:var(--text);"></select>
+        <button class="buy-btn" data-power-action="loan" type="button">Kredit aufnehmen</button>
+        <button class="buy-btn" data-power-action="repayloan" type="button">Kredit tilgen</button>
+        <button class="buy-btn" data-power-action="insurance" type="button">Versicherung umschalten</button>
+      </div>
     </div>
   </div>
 </div>
