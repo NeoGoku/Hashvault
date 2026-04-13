@@ -845,8 +845,27 @@
 }
 .ach-card.unlocked { border-color: var(--gold); background: rgba(255,215,0,.06); }
 .ach-card.locked   { opacity: .4; }
+.ach-card.is-new {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(0,220,255,.26), 0 0 22px rgba(0,220,255,.12);
+}
 .ach-icon   { font-size: 28px; margin-bottom: 6px; }
 .ach-name   { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+.ach-new-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(0,220,255,.18), rgba(124,77,255,.16));
+  border: 1px solid rgba(0,220,255,.32);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
 .ach-desc   { font-size: 10px; color: var(--muted); }
 .ach-reward { font-size: 10px; color: var(--gold); margin-top: 4px; }
 

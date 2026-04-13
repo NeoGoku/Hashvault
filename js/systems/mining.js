@@ -270,42 +270,6 @@ function buyMax(rigId) {
   return buyRig(rigId, n);
 }
 
-function buyRigUntilCap(rigId) {
-  const rig = (RIGS || []).find((x) => x.id === rigId);
-  if (!rig) return 0;
-  const totalOwned = (typeof getTotalRigCount === 'function')
-    ? getTotalRigCount()
-    : Object.values(G.rigs || {}).reduce((sum, val) => sum + Number(val || 0), 0);
-  if (totalOwned < Number(rig.unlock || 0)) {
-    notify('🔒 ' + rig.name + ' erst ab ' + rig.unlock + ' Gesamt-Rigs.', 'warning');
-    return 0;
-  }
-  const cap = (typeof getCurrentLocationRigCap === 'function') ? getCurrentLocationRigCap() : Infinity;
-  const capLeft = Math.max(0, cap - totalOwned);
-  const powerLeft = (typeof getMaxRigBuyByPower === 'function') ? getMaxRigBuyByPower(rigId) : Infinity;
-  const hardTarget = Math.max(0, Math.floor(Math.min(capLeft, powerLeft)));
-  const affordable = Math.max(0, Number(getMaxBuyable(rigId) || 0));
-  const qty = Math.min(hardTarget, affordable);
-
-  if (hardTarget <= 0) {
-    notify('⚡ Kein Platz durch Standort- oder Stromlimit.', 'warning');
-    return 0;
-  }
-  if (qty <= 0) {
-    notify('💸 Fuer Cap-Fill reicht das Budget aktuell nicht.', 'warning');
-    return 0;
-  }
-
-  const bought = buyRig(rigId, qty, { silent: true });
-  if (bought > 0) {
-    const reason = bought >= hardTarget
-      ? 'Cap erreicht'
-      : (affordable < hardTarget ? 'durch Budget begrenzt' : 'Limit erreicht');
-    notify('📦 Cap-Fill: ' + rig.name + ' ×' + bought + ' gekauft (' + reason + ').', 'success');
-  }
-  return bought;
-}
-
 function getRigSellValue(rigId, qty = 1) {
   const r = RIGS.find((x) => x.id === rigId);
   if (!r) return 0;

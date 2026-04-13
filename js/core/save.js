@@ -36,6 +36,7 @@ const SAVE_FIELDS = [
   'achievements','chipShop','contracts',
   'contractsDone','contractRefresh',
   'prestige','prestigeCount','chips','prestigeSkills','collectionSetCompletions',
+  'lastAchievementId',
   'profileName',
   'selectedCoin','autoSell','autoSellCoins',
   'uiRigSort','uiRigOwnedOnly','debugOverlay','debugCheatUsd',
@@ -313,6 +314,7 @@ function sanitizeLoadedSavePayload(input) {
   out.upgrades = asUniqueStringArray(out.upgrades, 500);
   out.research = asUniqueStringArray(out.research, 500);
   out.achievements = asUniqueStringArray(out.achievements, 2000);
+  out.lastAchievementId = typeof out.lastAchievementId === 'string' ? out.lastAchievementId : '';
   out.unlockedMods = asUniqueStringArray(out.unlockedMods, 500);
   out.activeBoosts = Array.isArray(out.activeBoosts) ? out.activeBoosts.filter((b) => b && typeof b === 'object').slice(-80) : [];
   out.recentEvents = Array.isArray(out.recentEvents) ? out.recentEvents.filter((e) => e && typeof e === 'object').slice(-20) : [];

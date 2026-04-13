@@ -10,6 +10,7 @@ function checkAchievements() {
     try {
       if (a.check(G)) {
         G.achievements.push(a.id);
+        G.lastAchievementId = a.id;
         if (typeof window.notifyAchievement === 'function') {
           notifyAchievement(
             '🏆 Achievement: ' + a.name + (a.rewardText ? ' (' + a.rewardText + ')' : ''),

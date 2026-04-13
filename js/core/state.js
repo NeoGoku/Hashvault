@@ -133,6 +133,7 @@ const DEFAULT_STATE = {
   _researchSpeedMult:1,
   _difficulty:       1,   // 1.0 + prestigeCount * 0.15 (Mining-Schwierigkeit)
   _lastAchCount:     0,
+  lastAchievementId: '',
 
   // ── Daily Challenges ──────────────────────────────────────────
   dailyChallenges:   [],  // [{id, progress, completed}] - 3 pro Tag

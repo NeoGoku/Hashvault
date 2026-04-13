@@ -37,7 +37,9 @@ function updateMissionBadge() {
   const storyProgress = (typeof window.getStoryMissionProgress === 'function')
     ? getStoryMissionProgress()
     : null;
-  const storyDone = !!(storyProgress && storyProgress.mission && storyProgress.done);
+  const storyMission = storyProgress && storyProgress.mission ? storyProgress.mission : null;
+  const storyClaimed = !!(storyMission && G.storyMissionsClaimed && G.storyMissionsClaimed[storyMission.id]);
+  const storyDone = !!(storyMission && storyProgress.done && !storyClaimed);
   badge.style.display = (canClaimDaily || claimables > 0 || storyDone) ? 'inline' : 'none';
 }
 
@@ -70,8 +72,6 @@ function renderRigs() {
     const cost1    = getRigCost(r.id, 1);
     const cost5    = getRigCost(r.id, 5);
     const maxN     = getMaxBuyable(r.id);
-    const powerCapN = (typeof getMaxRigBuyByPower === 'function') ? Math.max(0, Number(getMaxRigBuyByPower(r.id) || 0)) : maxN;
-    const capFillN = Math.max(0, Math.min(maxN, capLeft, powerCapN));
     const costMax  = maxN > 0 ? getRigCost(r.id, maxN) : 0;
     const sellOne  = (typeof getRigSellValue === 'function') ? getRigSellValue(r.id, 1) : 0;
     const sellCooldownSec = (typeof getRigSellCooldownRemaining === 'function')
@@ -193,9 +193,6 @@ function renderRigs() {
             </button>
             <button class="buy-btn" ${G.usd >= cost5 && capLeft > 0 ? '' : 'disabled'} onclick="buyRig('${r.id}',5)">
               ×5<br><small>$${fmtNum(cost5)}</small>
-            </button>
-            <button class="buy-btn" ${capFillN > 0 ? '' : 'disabled'} onclick="buyRigUntilCap('${r.id}')">
-              Cap Fill<br><small>${capFillN > 0 ? ('×' + fmtNum(capFillN, 0)) : '--'}</small>
             </button>
             <button class="buy-btn max" ${maxN > 0 ? '' : 'disabled'} onclick="buyMax('${r.id}')">
               MAX(${maxN})<br><small>${maxN > 0 ? '$' + fmtNum(costMax) : '--'}</small>
@@ -736,13 +733,14 @@ function renderAchievements() {
 
   ACHIEVEMENTS.forEach(a => {
     const done = G.achievements.includes(a.id);
+    const isNew = done && G.lastAchievementId === a.id;
     if (done) unlocked++;
     const div = document.createElement('div');
-    div.className = 'ach-card' + (done ? ' unlocked' : ' locked');
+    div.className = 'ach-card' + (done ? ' unlocked' : ' locked') + (isNew ? ' is-new' : '');
     div.dataset.achievementId = a.id;
     div.innerHTML = `
       <div class="ach-icon">${done ? a.icon : '🔒'}</div>
-      <div class="ach-name">${done ? a.name : '???'}</div>
+      <div class="ach-name">${done ? a.name : '???'}${isNew ? ' <span class="ach-new-badge">Neu</span>' : ''}</div>
       <div class="ach-desc">${done ? a.desc : 'Unbekannt'}</div>
       ${done && a.rewardText ? `<div class="ach-reward">${a.rewardText}</div>` : ''}`;
     grid.appendChild(div);
@@ -1347,7 +1345,7 @@ const TUTORIAL_GUIDE_MAP = {
   t17: { tab: 'crew', selector: '#crew-grid select, #crew-grid .buy-btn', area: 'Rig Crew', focusLabel: 'Crew-Zuweisung', cta: 'Weise deine Crew einem Rig-Typ zu, damit Wartung und Performance greifen.' },
   t18: { tab: 'crew', selector: '#crew-grid .focus-btn, #crew-grid select', area: 'Rig Crew', focusLabel: 'Crew-Fokus', cta: 'Aendere den Fokus eines Rig-Typs auf etwas anderes als Balanced.' },
   t19: { tab: 'crew', selector: '#crew-grid .spec-btn, #crew-grid select', area: 'Rig Crew', focusLabel: 'Crew-Spezialisierung', cta: 'Jedes Crew-Tier kann spezialisiert werden. Setze eine bewusste Rolle.' },
-  t20: { tab: 'missions', selector: '#missions-panel .mission-card button, #missions-panel .contract-card button', area: 'Missionen', focusLabel: 'Contract-Claim', cta: 'Claim jetzt deinen ersten abgeschlossenen Contract.' },
+  t20: { tab: 'missions', selector: '#contract-grid .contract-card .accept-btn[onclick^=\"claimContract\"], #contract-grid .contract-card.active', area: 'Missionen', focusLabel: 'Contract-Claim', cta: 'Claim jetzt deinen ersten abgeschlossenen Contract.' },
   t21: { tab: 'missions', selector: '#missions-panel', area: 'Missionen', focusLabel: 'Contract-Liste', cta: 'Arbeite mehrere Contracts parallel ab. Drei Abschluesse genuegen.' },
   t22: { tab: 'missions', selector: '#missions-panel .challenge-card button, #missions-panel button', area: 'Missionen', focusLabel: 'Daily-Challenge', cta: 'Loese eine Daily Challenge ein. Das ist dein taeglicher Routine-Boost.' },
   t23: { tab: 'achievements', selector: '#ach-grid .achievement, #ach-grid .achievement-card, #ach-grid', area: 'Achievements', focusLabel: 'Achievements', cta: 'Erfolge und Meta-Ziele geben dir fruehe Struktur. Sammle die ersten fuenf.' },

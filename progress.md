@@ -1,5 +1,13 @@
 Original prompt: Lass uns hier weitermachen am Projekt.
 
+- 2026-04-13: Phase 1 der neuen UX-/Bugfix-Runde umgesetzt.
+  - Research-Lab von Markt-/Crypto-Skalierung entkoppelt: `getEffectiveResearchCost()` nutzt jetzt feste Basispreise.
+  - Achievements: letztes freigeschaltetes Achievement wird persistiert (`lastAchievementId`) und im Achievement-Grid mit `Neu` markiert/visuell hervorgehoben.
+  - Missions-Badge korrigiert: Story-Missionen triggern das `!` nur noch, wenn die aktuelle Story-Mission abgeschlossen aber noch nicht eingelöst ist.
+  - Tutorial Schritt 20 auf den echten Contract-Claim im Missions-Reiter umgebogen.
+  - `Cap Fill` aus den Rig-Karten entfernt; `MAX` bleibt als einziger Bulk-Buy-Button bestehen.
+  - Build-Version angehoben: `20260413v25`.
+
 - 2026-04-02: Skills `develop-web-game` und `playwright` aktiviert. Ziel: Smoke-Test fuer Startscreen + Save-Slot-Flow mit Playwright.
 
 - 2026-04-02: Automatischer Smoke-Test mit `develop-web-game` versucht.

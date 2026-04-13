@@ -2182,7 +2182,7 @@ window.getEffectiveUpgradeCost = getEffectiveUpgradeCost;
 function getEffectiveResearchCost(researchId) {
   const res = (RESEARCH || []).find((r) => r.id === researchId);
   if (!res) return Infinity;
-  return Math.ceil(Number(res.cost || 0) * Math.max(0.45, Number(G._researchCostMult || 1)));
+  return Math.ceil(Number(res.cost || 0));
 }
 window.getEffectiveResearchCost = getEffectiveResearchCost;
 
