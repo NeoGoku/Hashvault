@@ -1725,6 +1725,7 @@ function init() {
   if (!Array.isArray(G.walletYieldHistory)) G.walletYieldHistory = [];
   if (!Array.isArray(G.walletLedger)) G.walletLedger = [];
   if (!G.walletUnlockDay || typeof G.walletUnlockDay !== 'object') G.walletUnlockDay = {};
+  if (!G.walletHoldDays || typeof G.walletHoldDays !== 'object') G.walletHoldDays = {};
   if (typeof G.uiMissionFilter !== 'string' || !G.uiMissionFilter) G.uiMissionFilter = 'all';
   if (!Number.isFinite(G.prestigeSkillPurchases) || G.prestigeSkillPurchases < 0) G.prestigeSkillPurchases = 0;
   if (!Array.isArray(G.weeklyObjectives)) G.weeklyObjectives = [];

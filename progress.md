@@ -1,5 +1,24 @@
 Original prompt: Lass uns hier weitermachen am Projekt.
 
+- 2026-04-13: Wallet-Vertiefung mit Hold-Bonus umgesetzt.
+  - Neue Wallet-State-/Save-Felder:
+    - `walletHoldDays`
+  - Hold-Bonus pro Coin eingebaut:
+    - +1.5% APY-Multiplikator pro gehaltenem Tag ab Tag 2
+    - Cap bei +12%
+    - Bonus greift in `getWalletDailyRate()`
+  - Sperrfrist bleibt aktiv; vollstaendige Auszahlung auf 0 setzt Hold-Tage + Unlock wieder zurueck.
+  - Wallet-UI erweitert:
+    - `Tagesreport`-Karte mit letztem Zinsertrag und staerkster Coin
+    - pro Coin sichtbare `Hold-Bonus`- und `Hold-Tage`-Zeilen
+  - Yield-Historie speichert jetzt auch:
+    - `bestCoin`
+    - `bestUsd`
+  - Build-Version angehoben: `20260413v34`.
+  - Verifikation:
+    - `npm test` erfolgreich
+    - Syntaxchecks fuer `gameLoop.js`, `render.js`, `main.js` erfolgreich
+
 - 2026-04-13: Wallet-/Missionen-/Markt-Polish umgesetzt.
   - Wallet vertieft:
     - Sperrfrist pro Coin nach Einzahlung (`walletUnlockDay`), Auszahlungen vor Freigabe blockiert.

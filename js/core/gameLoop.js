@@ -489,6 +489,20 @@ function getWalletUnlockDay(coin) {
 }
 window.getWalletUnlockDay = getWalletUnlockDay;
 
+function getWalletHoldDays(coin) {
+  const key = String(coin || 'BTC').toUpperCase();
+  if (!G.walletHoldDays || typeof G.walletHoldDays !== 'object') G.walletHoldDays = {};
+  return Math.max(0, Number(G.walletHoldDays[key] || 0));
+}
+window.getWalletHoldDays = getWalletHoldDays;
+
+function getWalletHoldBonusMult(coin) {
+  const holdDays = getWalletHoldDays(coin);
+  const rawBonus = Math.max(0, holdDays - 1) * 0.015;
+  return 1 + Math.min(0.12, rawBonus);
+}
+window.getWalletHoldBonusMult = getWalletHoldBonusMult;
+
 function isWalletLocked(coin) {
   return Number(G.worldDay || 1) < getWalletUnlockDay(coin);
 }
@@ -508,10 +522,13 @@ function depositCoinToWallet(coin, amount) {
   if (!COIN_DATA[key] || move <= 0) return false;
   const free = getAvailableCoinBalance(key);
   if (free + 1e-9 < move) return false;
+  const hadWallet = getCoinReserve(key) > 0.0000001;
   const tier = getWalletTierMeta();
   const lockDays = Math.max(1, Number((tier && tier.lockDays) || 1));
   G.coinReserves[key] = Math.max(0, Number((G.coinReserves || {})[key] || 0) + move);
   G.walletUnlockDay = G.walletUnlockDay || {};
+  G.walletHoldDays = G.walletHoldDays || {};
+  if (!hadWallet) G.walletHoldDays[key] = 0;
   G.walletUnlockDay[key] = Math.max(
     getWalletUnlockDay(key),
     Math.floor(Number(G.worldDay || 1)) + lockDays
@@ -531,6 +548,11 @@ function withdrawCoinFromWallet(coin, amount) {
   if (wallet + 1e-9 < move) return false;
   if (isWalletLocked(key)) return false;
   G.coinReserves[key] = Math.max(0, wallet - move);
+  if (G.coinReserves[key] <= 0.0000001) {
+    G.coinReserves[key] = 0;
+    G.walletUnlockDay[key] = 0;
+    if (G.walletHoldDays && typeof G.walletHoldDays === 'object') G.walletHoldDays[key] = 0;
+  }
   if (typeof recordWalletLedgerEntry === 'function') {
     recordWalletLedgerEntry({ kind: 'withdraw', coin: key, amount: move });
   }
@@ -708,7 +730,8 @@ function getWalletDailyRate(coin) {
     : {};
   const skillMult = Math.max(1, Number(skillFx.walletYieldMult || 1));
   const tierMult = Math.max(1, Number((getWalletTierMeta() || {}).apyBonusMult || 1));
-  return Math.max(0, Math.min(0.025, apy * skillMult * tierMult / 365));
+  const holdMult = Math.max(1, Number(getWalletHoldBonusMult(coin) || 1));
+  return Math.max(0, Math.min(0.025, apy * skillMult * tierMult * holdMult / 365));
 }
 window.getWalletDailyRate = getWalletDailyRate;
 
@@ -720,9 +743,16 @@ function settleWalletYieldForDay(dayNo) {
 
   const rates = [];
   let totalUsd = 0;
+  let bestCoin = '';
+  let bestUsd = 0;
+  G.walletHoldDays = G.walletHoldDays || {};
   Object.keys(COIN_DATA || {}).forEach((coin) => {
     const bal = Math.max(0, getWalletBalance(coin));
-    if (bal <= 0) return;
+    if (bal <= 0) {
+      G.walletHoldDays[coin] = 0;
+      return;
+    }
+    G.walletHoldDays[coin] = getWalletHoldDays(coin) + 1;
     const rate = getWalletDailyRate(coin);
     if (rate <= 0) return;
     const reward = bal * rate;
@@ -731,7 +761,11 @@ function settleWalletYieldForDay(dayNo) {
     G.coinReserves[coin] = Math.max(0, Number((G.coinReserves || {})[coin] || 0) + reward);
     const usd = reward * Math.max(0.000001, Number((G.prices || {})[coin] || 0));
     totalUsd += usd;
-    rates.push(coin + ' +' + fmtNum(reward, 4));
+    if (usd > bestUsd) {
+      bestUsd = usd;
+      bestCoin = coin;
+    }
+    rates.push(coin + ' +' + fmtNum(reward, 4) + ' (' + fmtNum((getWalletHoldBonusMult(coin) - 1) * 100, 1) + '% Hold)');
   });
 
   G.walletYieldLastDay = day;
@@ -743,6 +777,8 @@ function settleWalletYieldForDay(dayNo) {
       totalUsd,
       tier: String((getWalletTierMeta() || {}).name || 'Starter Wallet'),
       walletUsd: Number(getWalletPortfolioUsd() || 0),
+      bestCoin,
+      bestUsd,
       parts: rates.slice(0, 8),
     });
     if (G.walletYieldHistory.length > 14) G.walletYieldHistory.length = 14;

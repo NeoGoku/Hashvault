@@ -424,6 +424,7 @@ function renderWallet() {
   const walletTier = (typeof window.getWalletTierMeta === 'function') ? getWalletTierMeta() : { name: 'Starter Wallet', apyBonusMult: 1, totalUsd: 0, nextTier: null };
   const history = Array.isArray(G.walletYieldHistory) ? G.walletYieldHistory : [];
   const ledger = Array.isArray(G.walletLedger) ? G.walletLedger : [];
+  const latestReport = history[0] || null;
   const top = document.createElement('div');
   top.className = 'power-card';
   top.innerHTML = `
@@ -442,6 +443,20 @@ function renderWallet() {
       <button class="buy-btn" disabled>${walletTier.nextTier ? ('Naechstes Tier: $' + fmtNum(Number(walletTier.nextTier.minUsd || 0), 0)) : 'Max Tier erreicht'}</button>
     </div>`;
   grid.appendChild(top);
+
+  const reportCard = document.createElement('div');
+  reportCard.className = 'power-card';
+  reportCard.innerHTML = '<h3>Tagesreport</h3>' + (
+    latestReport
+      ? '<div class="power-list">' +
+          '<div class="power-row"><span>Letzter Report</span><strong>Tag ' + fmtNum(Number(latestReport.day || 0), 0) + '</strong></div>' +
+          '<div class="power-row"><span>Zinsertrag</span><strong>$' + fmtNum(Number(latestReport.totalUsd || 0), 2) + '</strong></div>' +
+          '<div class="power-row"><span>Staerkste Coin</span><strong>' + (latestReport.bestCoin ? (latestReport.bestCoin + ' · $' + fmtNum(Number(latestReport.bestUsd || 0), 2)) : '—') + '</strong></div>' +
+          '<div class="power-list-item">Report basiert auf Tier ' + String(latestReport.tier || 'Wallet') + ' und dem jeweiligen Hold-Bonus.</div>' +
+        '</div>'
+      : '<div class="power-list-item">Noch kein Wallet-Tagesreport vorhanden.</div>'
+  );
+  grid.appendChild(reportCard);
 
   const tierCard = document.createElement('div');
   tierCard.className = 'power-card';
@@ -493,6 +508,8 @@ function renderWallet() {
     const estYield = wallet * dailyRate;
     const locked = (typeof isWalletLocked === 'function') ? isWalletLocked(coin) : false;
     const unlockDay = (typeof getWalletUnlockDay === 'function') ? getWalletUnlockDay(coin) : Number(G.worldDay || 1);
+    const holdDays = (typeof getWalletHoldDays === 'function') ? getWalletHoldDays(coin) : 0;
+    const holdBonusPct = (typeof getWalletHoldBonusMult === 'function') ? ((getWalletHoldBonusMult(coin) - 1) * 100) : 0;
     const card = document.createElement('div');
     card.className = 'power-card';
     card.innerHTML = `
@@ -502,6 +519,8 @@ function renderWallet() {
         <div class="power-row"><span>Frei</span><strong>${fmtNum(free, 4)} ${coin}</strong></div>
         <div class="power-row"><span>In Wallet</span><strong>${fmtNum(wallet, 4)} ${coin}</strong></div>
         <div class="power-row"><span>APY</span><strong>${fmtNum(Number(data.walletApy || 0) * 100, 2)}%</strong></div>
+        <div class="power-row"><span>Hold-Bonus</span><strong>+${fmtNum(holdBonusPct, 1)}%</strong></div>
+        <div class="power-row"><span>Hold-Tage</span><strong>${fmtNum(holdDays, 0)}</strong></div>
         <div class="power-row"><span>Erwartet / Tag</span><strong>+${fmtNum(estYield, 4)} ${coin}</strong></div>
         <div class="power-row"><span>Status</span><strong>${locked ? ('Gesperrt bis Tag ' + fmtNum(unlockDay, 0)) : 'Liquid'}</strong></div>
         <div class="power-row"><span>Nutzen</span><strong>${coin === 'BTC' ? 'Power-Upgrades' : (coin === 'ETH' ? 'Research' : (coin === 'LTC' ? 'Repair' : 'Ops-Rabatt'))}</strong></div>
