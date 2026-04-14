@@ -497,6 +497,9 @@ function depositCoinToWallet(coin, amount) {
   const free = getAvailableCoinBalance(key);
   if (free + 1e-9 < move) return false;
   G.coinReserves[key] = Math.max(0, Number((G.coinReserves || {})[key] || 0) + move);
+  if (typeof recordWalletLedgerEntry === 'function') {
+    recordWalletLedgerEntry({ kind: 'deposit', coin: key, amount: move });
+  }
   return true;
 }
 window.depositCoinToWallet = depositCoinToWallet;
@@ -508,16 +511,68 @@ function withdrawCoinFromWallet(coin, amount) {
   const wallet = getCoinReserve(key);
   if (wallet + 1e-9 < move) return false;
   G.coinReserves[key] = Math.max(0, wallet - move);
+  if (typeof recordWalletLedgerEntry === 'function') {
+    recordWalletLedgerEntry({ kind: 'withdraw', coin: key, amount: move });
+  }
   return true;
 }
 window.withdrawCoinFromWallet = withdrawCoinFromWallet;
+
+function getWalletPortfolioUsd() {
+  ensureCoinReserveState();
+  return Object.keys(COIN_DATA || {}).reduce((sum, coin) => {
+    const bal = Math.max(0, Number(getWalletBalance(coin) || 0));
+    const basePrice = Math.max(0.01, Number(((COIN_DATA || {})[coin] || {}).basePrice || 1));
+    return sum + bal * basePrice;
+  }, 0);
+}
+window.getWalletPortfolioUsd = getWalletPortfolioUsd;
+
+function getWalletTierMeta() {
+  const totalUsd = getWalletPortfolioUsd();
+  const tiers = [
+    { id: 'starter', name: 'Starter Wallet', minUsd: 0, apyBonusMult: 1.00 },
+    { id: 'desk', name: 'Yield Desk', minUsd: 2500, apyBonusMult: 1.05 },
+    { id: 'treasury', name: 'Treasury Stack', minUsd: 15000, apyBonusMult: 1.10 },
+    { id: 'vault', name: 'Institutional Vault', minUsd: 80000, apyBonusMult: 1.16 },
+  ];
+  let active = tiers[0];
+  tiers.forEach((tier) => {
+    if (totalUsd >= Number(tier.minUsd || 0)) active = tier;
+  });
+  return {
+    id: active.id,
+    name: active.name,
+    totalUsd,
+    apyBonusMult: Number(active.apyBonusMult || 1),
+    nextTier: tiers.find((tier) => totalUsd < Number(tier.minUsd || 0)) || null,
+  };
+}
+window.getWalletTierMeta = getWalletTierMeta;
+
+function recordWalletLedgerEntry(entry) {
+  if (!Array.isArray(G.walletLedger)) G.walletLedger = [];
+  const row = {
+    kind: String((entry && entry.kind) || 'note'),
+    coin: String((entry && entry.coin) || ''),
+    amount: Math.max(0, Number((entry && entry.amount) || 0)),
+    usd: Math.max(0, Number((entry && entry.usd) || 0)),
+    day: Math.max(1, Math.floor(Number(G.worldDay || 1))),
+    time: Date.now(),
+    text: String((entry && entry.text) || ''),
+  };
+  G.walletLedger.unshift(row);
+  if (G.walletLedger.length > 24) G.walletLedger.length = 24;
+}
+window.recordWalletLedgerEntry = recordWalletLedgerEntry;
 
 function spendCoin(coin, amount, reason) {
   const key = String(coin || 'BTC').toUpperCase();
   const need = Math.max(0, Number(amount || 0));
   if (need <= 0) return true;
   const total = Math.max(0, Number((G.coins || {})[key] || 0));
-  if (total + 1e-9 < need) return false;
+  const free = Math.max(0, Number(getAvailableCoinBalance(key) || 0));
+  if (free + 1e-9 < need || total + 1e-9 < need) return false;
   G.coins[key] = Math.max(0, total - need);
   if (reason) {
     notify('🪙 ' + reason + ': -' + fmtNum(need, 4) + ' ' + key, 'warning');
@@ -625,7 +680,12 @@ window.addMarketImpulse = addMarketImpulse;
 function getWalletDailyRate(coin) {
   const data = (COIN_DATA && COIN_DATA[coin]) ? COIN_DATA[coin] : null;
   const apy = Math.max(0, Number((data && data.walletApy) || 0));
-  return Math.max(0, Math.min(0.025, apy / 365));
+  const skillFx = (typeof window.getPrestigeSkillEffects === 'function')
+    ? getPrestigeSkillEffects()
+    : {};
+  const skillMult = Math.max(1, Number(skillFx.walletYieldMult || 1));
+  const tierMult = Math.max(1, Number((getWalletTierMeta() || {}).apyBonusMult || 1));
+  return Math.max(0, Math.min(0.025, apy * skillMult * tierMult / 365));
 }
 window.getWalletDailyRate = getWalletDailyRate;
 
@@ -644,7 +704,8 @@ function settleWalletYieldForDay(dayNo) {
     if (rate <= 0) return;
     const reward = bal * rate;
     if (reward <= 0) return;
-    G.coins[coin] = bal + reward;
+    G.coins[coin] = Math.max(0, Number((G.coins || {})[coin] || 0) + reward);
+    G.coinReserves[coin] = Math.max(0, Number((G.coinReserves || {})[coin] || 0) + reward);
     const usd = reward * Math.max(0.000001, Number((G.prices || {})[coin] || 0));
     totalUsd += usd;
     rates.push(coin + ' +' + fmtNum(reward, 4));
@@ -653,10 +714,53 @@ function settleWalletYieldForDay(dayNo) {
   G.walletYieldLastDay = day;
   if (totalUsd > 0) {
     G.walletYieldAccruedUsd = Math.max(0, Number(G.walletYieldAccruedUsd || 0) + totalUsd);
+    if (!Array.isArray(G.walletYieldHistory)) G.walletYieldHistory = [];
+    G.walletYieldHistory.unshift({
+      day,
+      totalUsd,
+      parts: rates.slice(0, 8),
+    });
+    if (G.walletYieldHistory.length > 14) G.walletYieldHistory.length = 14;
+    recordWalletLedgerEntry({ kind: 'yield', usd: totalUsd, text: rates.join(' · ') });
     notify('🏦 Wallet-Zinsen T' + day + ': ' + rates.join(' · ') + ' (~$' + fmtNum(totalUsd, 2) + ')', 'success');
   }
 }
 window.settleWalletYieldForDay = settleWalletYieldForDay;
+
+function getWeeklyObjectiveCurrentValue(type) {
+  const t = String(type || '');
+  if (t === 'total_hashes_delta') return Math.max(0, Number(G.totalHashes || 0));
+  if (t === 'total_earned_delta') return Math.max(0, Number(G.totalEarned || 0));
+  if (t === 'contracts_done_delta') return Math.max(0, Number(G.contractsDone || 0));
+  if (t === 'wallet_yield_delta') return Math.max(0, Number(G.walletYieldAccruedUsd || 0));
+  if (t === 'shop_items_delta') {
+    return (typeof window.getTotalLocationShopItemsOwned === 'function')
+      ? Number(getTotalLocationShopItemsOwned(G) || 0)
+      : 0;
+  }
+  if (t === 'ops_actions_delta') {
+    return Math.max(0, Number(G.layoutSwitchCount || 0))
+      + Math.max(0, Number(G.coolingModeChanges || 0))
+      + Math.max(0, Number(G.powerRiskProfileChanges || 0))
+      + Math.max(0, Number(G.powerTariffPolicyChanges || 0));
+  }
+  return 0;
+}
+window.getWeeklyObjectiveCurrentValue = getWeeklyObjectiveCurrentValue;
+
+function getOperationsProjectCurrentValue(project) {
+  const type = String((project && project.type) || '');
+  if (type === 'wallet_value_peak') return getWalletPortfolioUsd();
+  if (type === 'outage_responses_total') return Math.max(0, Number(G.outageDecisions || 0));
+  if (type === 'collection_sets_active') return Math.max(0, Number(G.collectionSetCompletions || 0));
+  if (type === 'prestige_and_skills') {
+    const prestige = Math.max(0, Number(G.prestigeCount || 0));
+    const skills = Math.max(0, Number(G.prestigeSkillPurchases || 0));
+    return { prestige, skills };
+  }
+  return 0;
+}
+window.getOperationsProjectCurrentValue = getOperationsProjectCurrentValue;
 
 function emitAmbientLiveNews() {
   const templates = [

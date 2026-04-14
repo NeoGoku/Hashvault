@@ -117,6 +117,7 @@ function buyPrestigeSkill(id) {
   G.chips -= cost;
   G.prestigeSkills = G.prestigeSkills || {};
   G.prestigeSkills[id] = current + 1;
+  G.prestigeSkillPurchases = Math.max(0, Number(G.prestigeSkillPurchases || 0)) + 1;
   computeMultipliers();
   renderAll();
   saveGame();

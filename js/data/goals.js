@@ -218,3 +218,52 @@ window.GOALS = [
     rewards: { chips: 24, cash: 5000000 }
   }
 ];
+
+window.WEEKLY_OBJECTIVE_TEMPLATES = [
+  { id:'w_hash_push', name:'Hash Push', desc:'Sammle {t} Hashes in dieser Woche.', type:'total_hashes_delta', baseTarget: 2500000, growth: 0.34, rewards:{ cash: 120000, chips: 2 } },
+  { id:'w_cash_route', name:'Cash Route', desc:'Verdiene ${t} in dieser Woche.', type:'total_earned_delta', baseTarget: 180000, growth: 0.38, rewards:{ cash: 150000, chips: 2 } },
+  { id:'w_ops_grid', name:'Grid Discipline', desc:'Fuehre {t} Grid-/Cooling-Wechsel aus.', type:'ops_actions_delta', baseTarget: 10, growth: 0.22, rewards:{ cash: 95000, chips: 2 } },
+  { id:'w_contract_run', name:'Contract Run', desc:'Schliesse {t} Contracts in dieser Woche ab.', type:'contracts_done_delta', baseTarget: 4, growth: 0.26, rewards:{ cash: 135000, chips: 3 } },
+  { id:'w_wallet_yield', name:'Yield Desk', desc:'Erziele $ {t} Wallet-Zinsen in dieser Woche.', type:'wallet_yield_delta', baseTarget: 2500, growth: 0.45, rewards:{ cash: 90000, chips: 3 } },
+  { id:'w_shop_expansion', name:'Facility Sprint', desc:'Kaufe {t} Standort-Shop-Items in dieser Woche.', type:'shop_items_delta', baseTarget: 2, growth: 0.20, rewards:{ cash: 140000, chips: 2 } },
+];
+
+window.OPERATIONS_PROJECTS = [
+  {
+    id: 'p_first_vault',
+    name: 'Yield Treasury',
+    desc: 'Baue zum ersten Mal eine ernsthafte Wallet auf.',
+    targetLabel: 'Wallet-Wert auf $25.000 bringen',
+    type: 'wallet_value_peak',
+    target: 25000,
+    rewards: { cash: 220000, chips: 4 },
+  },
+  {
+    id: 'p_grid_stability',
+    name: 'Zero Panic Week',
+    desc: 'Halte dein Netz stabil trotz Last und Ausbau.',
+    targetLabel: '12 manuelle/automatische Outage-Entscheidungen',
+    type: 'outage_responses_total',
+    target: 12,
+    rewards: { cash: 260000, chips: 4 },
+  },
+  {
+    id: 'p_collection_push',
+    name: 'Set Architect',
+    desc: 'Aktiviere mehrere Set-Boni fuer deinen Betrieb.',
+    targetLabel: '3 aktive Sammlungs-Sets',
+    type: 'collection_sets_active',
+    target: 3,
+    rewards: { cash: 340000, chips: 5 },
+  },
+  {
+    id: 'p_prestige_loop',
+    name: 'Legacy Loop',
+    desc: 'Verzahne Meta-Progress und Live-Betrieb.',
+    targetLabel: '2 Prestiges und 6 Skilltree-Kauefe',
+    type: 'prestige_and_skills',
+    target: 2,
+    subTarget: 6,
+    rewards: { cash: 480000, chips: 8 },
+  },
+];

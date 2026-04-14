@@ -79,6 +79,31 @@ window.COLLECTION_SETS = [
     bonus: { coolingMult: 1.12, opsCostMult: 0.94, powerCapMult: 1.06 },
     rewardText: '+12% Cooling, -6% Fixkosten, +6% Netzkapazitaet',
   },
+  {
+    id: 'wallet_treasury',
+    name: 'Wallet Treasury',
+    icon: '🏦',
+    desc: 'Nicht alles direkt verkaufen. Eine echte Treasury bringt Ertrag und Stabilitaet.',
+    requirements: [
+      { type: 'wallet_value', count: 25000, label: '$25k Wallet-Wert' },
+      { type: 'wallet_days', count: 3, label: '3 Tage Wallet-Zinsen' },
+    ],
+    bonus: { contractBonus: 0.08, clickMult: 1.06 },
+    rewardText: '+8% Missionsbonus, +6% Klick-Power',
+  },
+  {
+    id: 'crew_matrix',
+    name: 'Crew Matrix',
+    icon: '🧑‍🔧',
+    desc: 'Rig Crew, Core Staff und Standort muessen als System greifen.',
+    requirements: [
+      { type: 'rig_staff_total', count: 6, label: '6 Rig-Crew gesamt' },
+      { type: 'staff_total', count: 12, label: '12 Staff gesamt' },
+      { type: 'location_tier', count: 5, label: 'Standort Tier 5' },
+    ],
+    bonus: { crewEffMult: 1.08, automationMult: 1.10, crewWageMult: 0.96 },
+    rewardText: '+8% Crew-Effizienz, +10% Automation, -4% Crew-Loehne',
+  },
 ];
 
 function getCollectionStateObject(stateArg) {
@@ -104,6 +129,17 @@ function getCollectionRequirementValue(req, stateArg) {
   }
   if (type === 'power_infra') return Math.max(0, Number(state.powerInfraLevel || 0));
   if (type === 'research_count') return Array.isArray(state.research) ? state.research.length : 0;
+  if (type === 'wallet_value') {
+    if (typeof window.getWalletPortfolioUsd === 'function') return Math.max(0, Number(getWalletPortfolioUsd() || 0));
+    return 0;
+  }
+  if (type === 'wallet_days') return Math.max(0, Number(state.walletYieldLastDay || 0));
+  if (type === 'rig_staff_total') {
+    return Object.values(state.hiredRigStaff || {}).reduce((sum, value) => sum + Math.max(0, Number(value || 0)), 0);
+  }
+  if (type === 'staff_total') {
+    return Object.values(state.staff || {}).reduce((sum, value) => sum + Math.max(0, Number(value || 0)), 0);
+  }
   if (type === 'prestige_count') return Math.max(0, Number(state.prestigeCount || 0));
   return 0;
 }

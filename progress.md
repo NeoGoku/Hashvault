@@ -1040,3 +1040,24 @@ Original prompt: Lass uns hier weitermachen am Projekt.
   - Build angehoben:
     - `index.html` BUILD_ID -> `20260413v30`
     - `version.json` buildId -> `20260413v30`
+
+- 2026-04-13: Wallet-Polish, Prestige-/Set-Pass und Retention-Content.
+  - Wallet:
+    - Yield-Historie (letzte 14 Tage)
+    - Wallet-Logbuch (Einzahlung, Auszahlung, Zins)
+    - echter Yield-Tier-Bonus nach Wallet-Wert
+    - Wallet-Zinsen koennen pausiert/aktiviert werden
+    - Wallet-Coins sind jetzt wirklich gegen Utility-Ausgaben gesperrt
+  - Coin-Nutzen-UI:
+    - Markt zeigt Wallet-Tier und klarere Utility-/Yield-Hinweise
+    - Wallet zeigt pro Coin den praktischen Nutzen
+  - Prestige-/Set-Pass:
+    - Skilltree neu balanciert
+    - neuer Prestige-Skill `Treasury Desk`
+    - neue Sets `Wallet Treasury` und `Crew Matrix`
+  - Retention:
+    - neue `Weekly Ops` im Missions-Reiter
+    - neue `Operations-Projekte` als laenger laufende Meta-Ziele
+  - Build angehoben:
+    - `index.html` BUILD_ID -> `20260413v31`
+    - `version.json` buildId -> `20260413v31`

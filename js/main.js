@@ -273,6 +273,137 @@ function moveCoinFromWalletAmount(coin) {
 }
 window.moveCoinFromWalletAmount = moveCoinFromWalletAmount;
 
+function toggleWalletYieldEnabled() {
+  G.walletYieldEnabled = G.walletYieldEnabled === false;
+  notify('🏦 Wallet-Zinsen ' + (G.walletYieldEnabled ? 'aktiviert' : 'pausiert') + '.', G.walletYieldEnabled ? 'success' : 'warning');
+  if (typeof renderMarket === 'function') renderMarket();
+  if (typeof renderWallet === 'function') renderWallet();
+}
+window.toggleWalletYieldEnabled = toggleWalletYieldEnabled;
+
+function getCurrentWeekIndex() {
+  return Math.max(1, Math.floor((Math.max(1, Number(G.worldDay || 1)) - 1) / 7) + 1);
+}
+window.getCurrentWeekIndex = getCurrentWeekIndex;
+
+function buildWeeklyObjective(template, week) {
+  const target = Math.max(1, Math.floor(Number(template.baseTarget || 1) * Math.pow(1 + Number(template.growth || 0), Math.max(0, week - 1))));
+  return {
+    id: String(template.id || ('weekly_' + week)),
+    name: String(template.name || 'Weekly'),
+    desc: String(template.desc || '').replace('{t}', fmtNum(target)).replace('$ {t}', '$' + fmtNum(target)),
+    type: String(template.type || ''),
+    target,
+    rewards: {
+      cash: Math.max(0, Math.floor(Number(((template.rewards || {}).cash) || 0) * (1 + Math.max(0, week - 1) * 0.18))),
+      chips: Math.max(0, Math.floor(Number(((template.rewards || {}).chips) || 0))),
+    },
+    startValue: Math.max(0, Number((typeof getWeeklyObjectiveCurrentValue === 'function') ? getWeeklyObjectiveCurrentValue(template.type) : 0)),
+    progress: 0,
+    completed: false,
+    claimed: false,
+    week,
+  };
+}
+
+function ensureWeeklyObjectives() {
+  const currentWeek = getCurrentWeekIndex();
+  if (!Array.isArray(G.weeklyObjectives)) G.weeklyObjectives = [];
+  if (!Number.isFinite(G.weeklyObjectivesWeek) || G.weeklyObjectivesWeek < 1) G.weeklyObjectivesWeek = 0;
+  if (!G.weeklyObjectivesClaimed || typeof G.weeklyObjectivesClaimed !== 'object') G.weeklyObjectivesClaimed = {};
+
+  if (G.weeklyObjectivesWeek !== currentWeek || !G.weeklyObjectives.length) {
+    const templates = Array.isArray(window.WEEKLY_OBJECTIVE_TEMPLATES) ? window.WEEKLY_OBJECTIVE_TEMPLATES : [];
+    const picked = [];
+    for (let i = 0; i < Math.min(3, templates.length); i += 1) {
+      const idx = (currentWeek - 1 + i) % templates.length;
+      if (templates[idx]) picked.push(buildWeeklyObjective(templates[idx], currentWeek));
+    }
+    G.weeklyObjectives = picked;
+    G.weeklyObjectivesWeek = currentWeek;
+    G.weeklyObjectivesClaimed = {};
+  }
+
+  G.weeklyObjectives.forEach((obj) => {
+    const current = Math.max(0, Number((typeof getWeeklyObjectiveCurrentValue === 'function') ? getWeeklyObjectiveCurrentValue(obj.type) : 0));
+    obj.progress = Math.max(0, current - Math.max(0, Number(obj.startValue || 0)));
+    obj.completed = obj.progress >= Math.max(1, Number(obj.target || 1));
+    obj.claimed = !!G.weeklyObjectivesClaimed[obj.id];
+  });
+}
+window.ensureWeeklyObjectives = ensureWeeklyObjectives;
+
+function claimWeeklyObjective(index) {
+  ensureWeeklyObjectives();
+  const obj = Array.isArray(G.weeklyObjectives) ? G.weeklyObjectives[index] : null;
+  if (!obj || obj.claimed || !obj.completed) return;
+  const cash = Math.max(0, Number((obj.rewards || {}).cash || 0));
+  const chips = Math.max(0, Number((obj.rewards || {}).chips || 0));
+  G.usd += cash;
+  G.totalEarned += cash;
+  G.chips += chips;
+  G.weeklyObjectivesClaimed[obj.id] = true;
+  obj.claimed = true;
+  notify('📅 Weekly abgeschlossen: ' + obj.name + ' (+$' + fmtNum(cash) + ' · 💎 ' + fmtNum(chips, 0) + ')', 'gold');
+  if (typeof renderMissions === 'function') renderMissions();
+  if (typeof renderPrestige === 'function') renderPrestige();
+  if (typeof updateMineUI === 'function') updateMineUI();
+}
+window.claimWeeklyObjective = claimWeeklyObjective;
+
+function getOperationsProjectStatus(projectId) {
+  const project = (window.OPERATIONS_PROJECTS || []).find((entry) => entry.id === projectId);
+  if (!project) return null;
+  const claimed = !!((G.projectClaims || {})[project.id]);
+  let progressValue = 0;
+  let percent = 0;
+  let done = false;
+  let progressText = '0 / 0';
+
+  if (project.type === 'prestige_and_skills') {
+    const data = (typeof getOperationsProjectCurrentValue === 'function') ? getOperationsProjectCurrentValue(project) : { prestige: 0, skills: 0 };
+    const prestige = Math.max(0, Number((data && data.prestige) || 0));
+    const skills = Math.max(0, Number((data && data.skills) || 0));
+    const targetA = Math.max(1, Number(project.target || 1));
+    const targetB = Math.max(1, Number(project.subTarget || 1));
+    percent = ((Math.min(prestige, targetA) / targetA) + (Math.min(skills, targetB) / targetB)) * 50;
+    done = prestige >= targetA && skills >= targetB;
+    progressText = prestige + '/' + targetA + ' Prestige · ' + skills + '/' + targetB + ' Skills';
+  } else {
+    progressValue = Math.max(0, Number((typeof getOperationsProjectCurrentValue === 'function') ? getOperationsProjectCurrentValue(project) : 0));
+    const target = Math.max(1, Number(project.target || 1));
+    percent = Math.max(0, Math.min(100, (Math.min(progressValue, target) / target) * 100));
+    done = progressValue >= target;
+    progressText = fmtNum(progressValue, 0) + ' / ' + fmtNum(target, 0);
+  }
+
+  return { claimed, done, percent, progressText };
+}
+window.getOperationsProjectStatus = getOperationsProjectStatus;
+
+function claimOperationsProject(projectId) {
+  const project = (window.OPERATIONS_PROJECTS || []).find((entry) => entry.id === projectId);
+  if (!project) return;
+  if (!G.projectClaims || typeof G.projectClaims !== 'object') G.projectClaims = {};
+  if (G.projectClaims[project.id]) return;
+  const status = getOperationsProjectStatus(project.id);
+  if (!status || !status.done) {
+    notify('Projekt noch nicht abgeschlossen.', 'error');
+    return;
+  }
+  const cash = Math.max(0, Number((project.rewards || {}).cash || 0));
+  const chips = Math.max(0, Number((project.rewards || {}).chips || 0));
+  G.usd += cash;
+  G.totalEarned += cash;
+  G.chips += chips;
+  G.projectClaims[project.id] = true;
+  notify('📁 Projekt abgeschlossen: ' + project.name + ' (+$' + fmtNum(cash) + ' · 💎 ' + fmtNum(chips, 0) + ')', 'gold');
+  if (typeof renderMissions === 'function') renderMissions();
+  if (typeof renderPrestige === 'function') renderPrestige();
+  if (typeof updateMineUI === 'function') updateMineUI();
+}
+window.claimOperationsProject = claimOperationsProject;
+
 function setRigCrewSpec(tierId, specId) {
   const tier = (typeof window.getRigStaffTierById === 'function') ? getRigStaffTierById(tierId) : null;
   const specs = window.HV_RIG_CREW_SPECS || {};
@@ -1553,6 +1684,13 @@ function init() {
   });
   if (!G.coinReserves || typeof G.coinReserves !== 'object') G.coinReserves = {};
   if (typeof ensureCoinReserveState === 'function') ensureCoinReserveState();
+  if (!Array.isArray(G.walletYieldHistory)) G.walletYieldHistory = [];
+  if (!Array.isArray(G.walletLedger)) G.walletLedger = [];
+  if (!Number.isFinite(G.prestigeSkillPurchases) || G.prestigeSkillPurchases < 0) G.prestigeSkillPurchases = 0;
+  if (!Array.isArray(G.weeklyObjectives)) G.weeklyObjectives = [];
+  if (!Number.isFinite(G.weeklyObjectivesWeek) || G.weeklyObjectivesWeek < 0) G.weeklyObjectivesWeek = 0;
+  if (!G.weeklyObjectivesClaimed || typeof G.weeklyObjectivesClaimed !== 'object') G.weeklyObjectivesClaimed = {};
+  if (!G.projectClaims || typeof G.projectClaims !== 'object') G.projectClaims = {};
   if (typeof G.uiRigSort !== 'string' || !G.uiRigSort) G.uiRigSort = 'tier';
   if (typeof G.uiRigOwnedOnly !== 'boolean') G.uiRigOwnedOnly = false;
   if (typeof G.debugOverlay !== 'boolean') G.debugOverlay = false;
@@ -1740,6 +1878,7 @@ function init() {
   if (typeof ensureRigLayoutState === 'function') ensureRigLayoutState();
   if (typeof ensureRigHeatState === 'function') ensureRigHeatState();
   if (typeof ensurePowerOutageState === 'function') ensurePowerOutageState();
+  if (typeof ensureWeeklyObjectives === 'function') ensureWeeklyObjectives();
   if (typeof computeLocationEffects === 'function') computeLocationEffects();
   if (typeof checkRigModUnlocks === 'function') checkRigModUnlocks(false);
   

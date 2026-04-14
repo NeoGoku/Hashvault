@@ -29,11 +29,30 @@ function countClaimableChallenges() {
   return G.dailyChallenges.filter((ch) => ch && ch.completed && !ch.claimed).length;
 }
 
+function countClaimableWeeklyObjectives() {
+  if (!Array.isArray(G.weeklyObjectives)) return 0;
+  return G.weeklyObjectives.filter((obj) => obj && obj.completed && !obj.claimed).length;
+}
+
+function countClaimableProjects() {
+  const list = Array.isArray(window.OPERATIONS_PROJECTS) ? window.OPERATIONS_PROJECTS : [];
+  const claimed = G.projectClaims || {};
+  let total = 0;
+  list.forEach((project) => {
+    if (!project || claimed[project.id]) return;
+    const status = (typeof window.getOperationsProjectStatus === 'function')
+      ? getOperationsProjectStatus(project.id)
+      : null;
+    if (status && status.done) total++;
+  });
+  return total;
+}
+
 function updateMissionBadge() {
   const badge = document.getElementById('mission-badge');
   if (!badge) return;
   const canClaimDaily = (Date.now() - Number(G.lastDaily || 0)) >= 86400000;
-  const claimables = countClaimableContracts() + countClaimableGoals() + countClaimableChallenges();
+  const claimables = countClaimableContracts() + countClaimableGoals() + countClaimableChallenges() + countClaimableWeeklyObjectives() + countClaimableProjects();
   const storyProgress = (typeof window.getStoryMissionProgress === 'function')
     ? getStoryMissionProgress()
     : null;
@@ -305,10 +324,12 @@ function renderMarket() {
   const floorPct = Math.round(Math.max(0, Number(G._marketFloorMult || 0.45)) * 100);
   const walletYieldOn = G.walletYieldEnabled !== false;
   const walletAccrued = Math.max(0, Number(G.walletYieldAccruedUsd || 0));
+  const walletTier = (typeof window.getWalletTierMeta === 'function') ? getWalletTierMeta() : { name: 'Starter Wallet', apyBonusMult: 1, totalUsd: 0 };
   trend.innerHTML = '📈 Regime: <strong style="color:var(--text)">' + regimeLabel + '</strong>' +
     ' · Zyklus: ' + (shock ? '<span style="color:var(--gold)">aktiv</span>' : 'ruhig') +
     ' · Wechsel in: ' + fmtTime(nextPhase) +
     ' · Markt-Floor: ' + floorPct + '%' +
+    ' · Wallet-Tier: <span style="color:var(--accent2)">' + String(walletTier.name || 'Starter Wallet') + '</span>' +
     ' · Wallet-Zins: ' + (walletYieldOn ? '<span style="color:var(--green)">AN</span>' : 'AUS') +
     ' · Zins-Ertrag: $' + fmtNum(walletAccrued, 2);
   grid.appendChild(trend);
@@ -353,7 +374,7 @@ function renderMarket() {
       ? getWalletDailyRate(coin)
       : Math.max(0, Number((data && data.walletApy) || 0) / 365);
     const apyPct = Math.max(0, Number((data && data.walletApy) || 0) * 100);
-    const estDailyYield = Math.max(0, Number(balance || 0) * dailyYieldRate);
+    const estDailyYield = Math.max(0, Number(reserve || 0) * dailyYieldRate);
     const autoEnabled = !!autoMap[coin];
     const canSellAny = freeBalance > 0.009;
 
@@ -371,7 +392,7 @@ function renderMarket() {
       <div class="coin-miners">⛏️ ${minerText}</div>
       <div class="coin-miners">🧠 ${utilityRole}</div>
       <div class="coin-miners">🎛️ ${profile.yieldLabel || 'Standard'} · H/Coin ${fmtNum(convRateCoin, 0)} · Yield-Index ${yieldIndex}</div>
-      <div class="coin-miners">🏦 Wallet APY: ${fmtNum(apyPct, 2)}% · Erwartet/Tag: +${fmtNum(estDailyYield, 4)} ${coin}</div>
+      <div class="coin-miners">🏦 Wallet APY: ${fmtNum(apyPct, 2)}% · Eingelagert: ${fmtNum(reserve, 4)} ${coin} · Erwartet/Tag: +${fmtNum(estDailyYield, 4)} ${coin}</div>
       <div class="coin-auto-row">
         <span>Auto-Sell ${coin}</span>
         <div class="toggle ${autoEnabled ? 'on' : ''}" onclick="toggleAutoSellCoin('${coin}')"></div>
@@ -400,6 +421,9 @@ function renderWallet() {
     const bal = (typeof getWalletBalance === 'function') ? getWalletBalance(coin) : 0;
     return sum + bal * Math.max(0, Number((G.prices || {})[coin] || 0));
   }, 0);
+  const walletTier = (typeof window.getWalletTierMeta === 'function') ? getWalletTierMeta() : { name: 'Starter Wallet', apyBonusMult: 1, totalUsd: 0, nextTier: null };
+  const history = Array.isArray(G.walletYieldHistory) ? G.walletYieldHistory : [];
+  const ledger = Array.isArray(G.walletLedger) ? G.walletLedger : [];
   const top = document.createElement('div');
   top.className = 'power-card';
   top.innerHTML = `
@@ -407,10 +431,42 @@ function renderWallet() {
     <div class="power-list">
       <div class="power-row"><span>Status</span><strong>${G.walletYieldEnabled !== false ? 'Zinsen aktiv' : 'Zinsen pausiert'}</strong></div>
       <div class="power-row"><span>Wallet-Wert</span><strong>$${fmtNum(totalWalletUsd, 2)}</strong></div>
+      <div class="power-row"><span>Tier</span><strong>${walletTier.name} (+${fmtNum((Math.max(1, Number(walletTier.apyBonusMult || 1)) - 1) * 100, 1)}% APY)</strong></div>
       <div class="power-row"><span>Bisherige Zinsen</span><strong>$${fmtNum(Number(G.walletYieldAccruedUsd || 0), 2)}</strong></div>
       <div class="power-row"><span>Letzte Gutschrift</span><strong>${Math.max(0, Number(G.walletYieldLastDay || 0)) > 0 ? ('Tag ' + fmtNum(G.walletYieldLastDay, 0)) : 'Noch keine'}</strong></div>
+    </div>
+    <div class="power-actions" style="margin-top:8px;">
+      <button class="buy-btn" onclick="toggleWalletYieldEnabled()">${G.walletYieldEnabled !== false ? 'Zinsen pausieren' : 'Zinsen aktivieren'}</button>
+      <button class="buy-btn" disabled>${walletTier.nextTier ? ('Naechstes Tier: $' + fmtNum(Number(walletTier.nextTier.minUsd || 0), 0)) : 'Max Tier erreicht'}</button>
     </div>`;
   grid.appendChild(top);
+
+  const historyCard = document.createElement('div');
+  historyCard.className = 'power-card';
+  historyCard.innerHTML = '<h3>Yield-Historie</h3>' + (
+    history.length
+      ? '<div class="power-list">' + history.slice(0, 6).map((row) => (
+          '<div class="power-row"><span>Tag ' + fmtNum(Number(row.day || 0), 0) + '</span><strong>$' + fmtNum(Number(row.totalUsd || 0), 2) + '</strong></div>'
+        )).join('') + '</div>'
+      : '<div class="power-list-item">Noch keine Zinsbuchungen vorhanden.</div>'
+  );
+  grid.appendChild(historyCard);
+
+  const ledgerCard = document.createElement('div');
+  ledgerCard.className = 'power-card';
+  ledgerCard.innerHTML = '<h3>Wallet-Logbuch</h3>' + (
+    ledger.length
+      ? '<div class="power-list">' + ledger.slice(0, 8).map((row) => {
+          const label = row.kind === 'deposit' ? 'Einzahlung'
+            : (row.kind === 'withdraw' ? 'Auszahlung' : 'Zins');
+          const value = row.coin
+            ? (fmtNum(Number(row.amount || 0), 4) + ' ' + row.coin)
+            : ('$' + fmtNum(Number(row.usd || 0), 2));
+          return '<div class="power-row"><span>Tag ' + fmtNum(Number(row.day || 0), 0) + ' · ' + label + '</span><strong>' + value + '</strong></div>';
+        }).join('') + '</div>'
+      : '<div class="power-list-item">Noch keine Wallet-Bewegungen vorhanden.</div>'
+  );
+  grid.appendChild(ledgerCard);
 
   Object.entries(COIN_DATA).forEach(([coin, data]) => {
     const total = Math.max(0, Number((G.coins || {})[coin] || 0));
@@ -428,6 +484,7 @@ function renderWallet() {
         <div class="power-row"><span>In Wallet</span><strong>${fmtNum(wallet, 4)} ${coin}</strong></div>
         <div class="power-row"><span>APY</span><strong>${fmtNum(Number(data.walletApy || 0) * 100, 2)}%</strong></div>
         <div class="power-row"><span>Erwartet / Tag</span><strong>+${fmtNum(estYield, 4)} ${coin}</strong></div>
+        <div class="power-row"><span>Nutzen</span><strong>${coin === 'BTC' ? 'Power-Upgrades' : (coin === 'ETH' ? 'Research' : (coin === 'LTC' ? 'Repair' : 'Ops-Rabatt'))}</strong></div>
       </div>
       <div class="wallet-transfer-row">
         <input
@@ -732,6 +789,8 @@ function renderRigCrew() {
 }
 
 function renderMissions() {
+  renderWeeklyObjectives();
+  renderOperationsProjects();
   renderContracts();
   renderChallenges();
   if (typeof window.renderStoryMissionCard === 'function') renderStoryMissionCard();
@@ -739,6 +798,84 @@ function renderMissions() {
   updateContractTimer();
   updateMissionBadge();
 }
+
+function renderWeeklyObjectives() {
+  const grid = document.getElementById('weekly-grid');
+  const label = document.getElementById('weekly-cycle-label');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  if (typeof window.ensureWeeklyObjectives === 'function') ensureWeeklyObjectives();
+  const currentWeek = Math.max(1, Number(G.weeklyObjectivesWeek || 1));
+  if (label) label.textContent = 'Woche ' + fmtNum(currentWeek, 0);
+
+  const objectives = Array.isArray(G.weeklyObjectives) ? G.weeklyObjectives : [];
+  if (!objectives.length) {
+    grid.innerHTML = '<div class="contract-card"><div class="contract-desc">Noch keine Wochenziele geladen.</div></div>';
+    return;
+  }
+
+  objectives.forEach((obj, idx) => {
+    const target = Math.max(1, Number(obj.target || 1));
+    const progress = Math.max(0, Number(obj.progress || 0));
+    const pct = Math.max(0, Math.min(100, (Math.min(progress, target) / target) * 100));
+    const canClaim = !!obj.completed && !obj.claimed;
+    const card = document.createElement('div');
+    card.className = 'contract-card' + (obj.claimed ? ' completed' : (canClaim ? ' active' : ''));
+    card.innerHTML = `
+      <div class="contract-type ${obj.claimed ? 'easy' : 'medium'}">WEEKLY</div>
+      <div class="contract-name">${obj.name}</div>
+      <div class="contract-desc">${obj.desc}</div>
+      <div class="contract-timer" style="margin:6px 0 4px;">${fmtNum(Math.min(progress, target))} / ${fmtNum(target)}</div>
+      <div style="height:6px;background:var(--panel1);border-radius:999px;overflow:hidden;margin-bottom:8px;">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--gold),var(--accent2));transition:width .25s;"></div>
+      </div>
+      <div class="contract-reward">🎁 $${fmtNum(Number((obj.rewards || {}).cash || 0))} · 💎 ${fmtNum(Number((obj.rewards || {}).chips || 0), 0)}</div>
+      ${obj.claimed
+        ? '<div style="color:var(--green);font-weight:700;">✅ Eingeloest</div>'
+        : (canClaim
+          ? `<button class="accept-btn" style="background:linear-gradient(135deg,var(--green),#00aa55);color:#000;" onclick="claimWeeklyObjective(${idx})">🎉 Einloesen</button>`
+          : '<div class="contract-timer">Wird im Wochenzyklus verfolgt</div>')}
+    `;
+    grid.appendChild(card);
+  });
+}
+window.renderWeeklyObjectives = renderWeeklyObjectives;
+
+function renderOperationsProjects() {
+  const grid = document.getElementById('project-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  const projects = Array.isArray(window.OPERATIONS_PROJECTS) ? window.OPERATIONS_PROJECTS : [];
+  const claimed = G.projectClaims || {};
+  if (!projects.length) {
+    grid.innerHTML = '<div class="contract-card"><div class="contract-desc">Keine Projekte verfuegbar.</div></div>';
+    return;
+  }
+
+  projects.forEach((project) => {
+    const status = (typeof window.getOperationsProjectStatus === 'function')
+      ? getOperationsProjectStatus(project.id)
+      : null;
+    if (!status) return;
+    const isClaimed = !!claimed[project.id];
+    const card = document.createElement('div');
+    card.className = 'chip-item' + (isClaimed ? ' chip-unlocked' : (status.done ? ' chip-maxed' : ''));
+    card.innerHTML =
+      '<div class="chip-item-header">' +
+        '<div class="chip-item-name">📁 ' + project.name + '</div>' +
+        '<span class="chip-owned">' + (isClaimed ? 'Claimed' : (status.done ? 'Fertig' : fmtNum(status.percent, 0) + '%')) + '</span>' +
+      '</div>' +
+      '<div class="chip-item-desc">' + project.desc + '</div>' +
+      '<div class="chip-item-desc" style="color:var(--text);margin-top:6px;"><strong>Ziel:</strong> ' + project.targetLabel + '</div>' +
+      '<div class="power-list-item"><span>Fortschritt</span><strong>' + status.progressText + '</strong></div>' +
+      '<div class="power-list-item"><span>Belohnung</span><strong>$' + fmtNum(Number((project.rewards || {}).cash || 0)) + ' · 💎 ' + fmtNum(Number((project.rewards || {}).chips || 0), 0) + '</strong></div>' +
+      '<button class="chip-btn ' + (isClaimed ? 'chip-btn-done' : '') + '" ' + ((status.done && !isClaimed) ? '' : 'disabled') + ' onclick="claimOperationsProject(\'' + project.id + '\')">' + (isClaimed ? '✓ Abgeschlossen' : (status.done ? 'Belohnung abholen' : 'Projekt laeuft')) + '</button>';
+    grid.appendChild(card);
+  });
+}
+window.renderOperationsProjects = renderOperationsProjects;
 
 // ── Contracts ────────────────────────────────────────────────
 function renderContracts() {
@@ -894,6 +1031,9 @@ function renderCollections() {
       '</div>' +
       '<div class="chip-item-desc">' + status.desc + '</div>' +
       '<div class="chip-item-desc" style="color:var(--text);margin-top:6px;"><strong>Bonus:</strong> ' + status.rewardText + '</div>' +
+      '<div style="height:6px;background:var(--panel1);border-radius:999px;overflow:hidden;margin:8px 0 10px;">' +
+        '<div style="height:100%;width:' + fmtNum((doneCount / Math.max(1, status.progress.length)) * 100, 0) + '%;background:linear-gradient(90deg,var(--accent),var(--accent2));"></div>' +
+      '</div>' +
       status.progress.map((row) => (
         '<div class="power-list-item"><span>' + row.label + '</span><strong>' + fmtNum(row.current, 0) + '/' + fmtNum(row.target, 0) + '</strong></div>'
       )).join('') +
@@ -948,6 +1088,7 @@ function renderPrestige() {
       else if (key === 'outagePrepMult') parts.push('+' + fmtNum((raw - 1) * 100, 1) + '% Outage');
       else if (key === 'crewEffMult') parts.push('+' + fmtNum((raw - 1) * 100, 1) + '% Crew');
       else if (key === 'crewWageMult') parts.push('-' + fmtNum((1 - raw) * 100, 1) + '% Loehne');
+      else if (key === 'walletYieldMult') parts.push('+' + fmtNum((raw - 1) * 100, 1) + '% Wallet-APY');
       else if (key === 'hpsMult') parts.push('+' + fmtNum((raw - 1) * 100, 1) + '% H/s');
       else if (key === 'clickMult') parts.push('+' + fmtNum((raw - 1) * 100, 1) + '% Klick');
       else if (key === 'marketFloorAdd') parts.push('+' + fmtNum(raw * 100, 1) + '% Floor');
@@ -973,7 +1114,9 @@ function renderPrestige() {
     '<div class="power-list-item"><span>Standort-Shop Kosten</span><strong>-' + fmtNum(shopCostCut, 1) + '%</strong></div>' +
     '<div class="power-list-item"><span>Standort-Shop Slots</span><strong>+' + fmtNum(shopSlotBonus, 0) + '</strong></div>' +
     '<div class="power-list-item"><span>Aktive Sets</span><strong>' + fmtNum(collectionState.totalCompleted || 0, 0) + '/' + fmtNum(allSets.length, 0) + '</strong></div>' +
-    '<div class="power-list-item"><span>Skilltree-Bonus</span><strong>+' + fmtNum((Math.max(1, Number(prestigeSkillFx.collectionBonusMult || 1)) - 1) * 100, 1) + '% Set-Staerke</strong></div>';
+    '<div class="power-list-item"><span>Skilltree-Bonus</span><strong>+' + fmtNum((Math.max(1, Number(prestigeSkillFx.collectionBonusMult || 1)) - 1) * 100, 1) + '% Set-Staerke</strong></div>' +
+    '<div class="power-list-item"><span>Wallet-APY Bonus</span><strong>+' + fmtNum((Math.max(1, Number(prestigeSkillFx.walletYieldMult || 1)) - 1) * 100, 1) + '%</strong></div>' +
+    '<div class="power-list-item"><span>Skill-Kaeufe gesamt</span><strong>' + fmtNum(Number(G.prestigeSkillPurchases || 0), 0) + '</strong></div>';
   grid.appendChild(prestigeFx);
 
   const groups = [];

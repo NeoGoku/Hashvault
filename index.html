@@ -9,7 +9,7 @@
 <title>HashVault Pro</title>
 <script>
 (function() {
-  const BUILD_ID = '20260413v30';
+  const BUILD_ID = '20260413v31';
   const BUILD_KEY = '__hv_build_id';
   const prevBuild = localStorage.getItem(BUILD_KEY);
   const isNewBuild = prevBuild !== BUILD_ID;
@@ -545,6 +545,13 @@
       <button class="daily-claim-btn" id="daily-claim-btn">Claim</button>
     </div>
   </div>
+  <div style="padding:14px 20px 8px;display:flex;justify-content:space-between;align-items:center;">
+    <div style="font-size:13px;color:var(--muted);">📅 Weekly Ops</div>
+    <span id="weekly-cycle-label" style="font-size:12px;color:var(--muted);">Woche 1</span>
+  </div>
+  <div class="contract-grid" style="padding:0 20px 16px;" id="weekly-grid"></div>
+  <div style="padding:0 20px 8px;font-size:13px;color:var(--muted);">📁 Operations-Projekte</div>
+  <div class="challenge-grid" style="padding:0 20px 16px;" id="project-grid"></div>
   <div style="padding:14px 20px 8px;font-size:13px;color:var(--muted);">Contracts</div>
   <div class="contract-grid" style="padding:0 20px 16px;" id="contract-grid"></div>
   <div style="padding:0 20px 8px;font-size:13px;color:var(--muted);">📚 Story-Mission</div>

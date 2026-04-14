@@ -84,7 +84,8 @@ const SAVE_FIELDS = [
   'marketRegime','marketRegimeTimer','marketRegimeDrift','marketRegimeVolMult','marketShockTimer','marketShockDir','marketShockAmp',
   'marketFloorDrift','marketMomentum','marketEventDrift','marketEventDriftTimer',
   '_newsTickerTimer',
-  'walletYieldEnabled','walletYieldAccruedUsd','walletYieldLastDay',
+  'walletYieldEnabled','walletYieldAccruedUsd','walletYieldLastDay','walletYieldHistory','walletLedger',
+  'prestigeSkillPurchases','weeklyObjectives','weeklyObjectivesWeek','weeklyObjectivesClaimed','projectClaims',
   'hiredRigStaff','rigStaffAssignments','rigCrewProgress','rigCrewFocus','rigAutoRepair',
 ];
 
