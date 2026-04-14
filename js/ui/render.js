@@ -417,7 +417,7 @@ function renderWallet() {
   if (!grid) return;
   grid.innerHTML = '';
 
-  const totalWalletUsd = Object.keys(COIN_DATA || {}).reduce((sum, coin) => {
+  const totalWalletLiveUsd = Object.keys(COIN_DATA || {}).reduce((sum, coin) => {
     const bal = (typeof getWalletBalance === 'function') ? getWalletBalance(coin) : 0;
     return sum + bal * Math.max(0, Number((G.prices || {})[coin] || 0));
   }, 0);
@@ -430,7 +430,8 @@ function renderWallet() {
     <h3>Wallet-Uebersicht</h3>
     <div class="power-list">
       <div class="power-row"><span>Status</span><strong>${G.walletYieldEnabled !== false ? 'Zinsen aktiv' : 'Zinsen pausiert'}</strong></div>
-      <div class="power-row"><span>Wallet-Wert</span><strong>$${fmtNum(totalWalletUsd, 2)}</strong></div>
+      <div class="power-row"><span>Wallet-Marktwert</span><strong>$${fmtNum(totalWalletLiveUsd, 2)}</strong></div>
+      <div class="power-row"><span>Tier-Bewertung</span><strong>$${fmtNum(Number(walletTier.totalUsd || 0), 2)}</strong></div>
       <div class="power-row"><span>Tier</span><strong>${walletTier.name} (+${fmtNum((Math.max(1, Number(walletTier.apyBonusMult || 1)) - 1) * 100, 1)}% APY)</strong></div>
       <div class="power-row"><span>Bisherige Zinsen</span><strong>$${fmtNum(Number(G.walletYieldAccruedUsd || 0), 2)}</strong></div>
       <div class="power-row"><span>Letzte Gutschrift</span><strong>${Math.max(0, Number(G.walletYieldLastDay || 0)) > 0 ? ('Tag ' + fmtNum(G.walletYieldLastDay, 0)) : 'Noch keine'}</strong></div>
@@ -861,17 +862,28 @@ function renderOperationsProjects() {
     if (!status) return;
     const isClaimed = !!claimed[project.id];
     const card = document.createElement('div');
-    card.className = 'chip-item' + (isClaimed ? ' chip-unlocked' : (status.done ? ' chip-maxed' : ''));
+    card.className = 'chip-item' + (status.locked ? '' : (isClaimed ? ' chip-unlocked' : (status.done ? ' chip-maxed' : '')));
+    const lockText = status.locked && project.req
+      ? '<div class="chip-item-desc" style="color:var(--muted);margin-top:6px;"><strong>Freischaltung:</strong> '
+        + [
+          Number.isFinite(project.req.minDay) ? ('ab Tag ' + fmtNum(project.req.minDay, 0)) : '',
+          Number.isFinite(project.req.minLocationTier) ? ('Standort-Tier ' + fmtNum(project.req.minLocationTier, 0)) : '',
+          Number.isFinite(project.req.minPowerInfraLevel) ? ('Power-Infra ' + fmtNum(project.req.minPowerInfraLevel, 0)) : '',
+          Number.isFinite(project.req.minPrestige) ? ('Prestige ' + fmtNum(project.req.minPrestige, 0)) : '',
+        ].filter(Boolean).join(' · ')
+        + '</div>'
+      : '';
     card.innerHTML =
       '<div class="chip-item-header">' +
         '<div class="chip-item-name">📁 ' + project.name + '</div>' +
-        '<span class="chip-owned">' + (isClaimed ? 'Claimed' : (status.done ? 'Fertig' : fmtNum(status.percent, 0) + '%')) + '</span>' +
+        '<span class="chip-owned">' + (status.locked ? 'Gesperrt' : (isClaimed ? 'Claimed' : (status.done ? 'Fertig' : fmtNum(status.percent, 0) + '%'))) + '</span>' +
       '</div>' +
       '<div class="chip-item-desc">' + project.desc + '</div>' +
       '<div class="chip-item-desc" style="color:var(--text);margin-top:6px;"><strong>Ziel:</strong> ' + project.targetLabel + '</div>' +
+      lockText +
       '<div class="power-list-item"><span>Fortschritt</span><strong>' + status.progressText + '</strong></div>' +
       '<div class="power-list-item"><span>Belohnung</span><strong>$' + fmtNum(Number((project.rewards || {}).cash || 0)) + ' · 💎 ' + fmtNum(Number((project.rewards || {}).chips || 0), 0) + '</strong></div>' +
-      '<button class="chip-btn ' + (isClaimed ? 'chip-btn-done' : '') + '" ' + ((status.done && !isClaimed) ? '' : 'disabled') + ' onclick="claimOperationsProject(\'' + project.id + '\')">' + (isClaimed ? '✓ Abgeschlossen' : (status.done ? 'Belohnung abholen' : 'Projekt laeuft')) + '</button>';
+      '<button class="chip-btn ' + (isClaimed ? 'chip-btn-done' : '') + '" ' + ((status.done && !isClaimed && !status.locked) ? '' : 'disabled') + ' onclick="claimOperationsProject(\'' + project.id + '\')">' + (status.locked ? 'Noch gesperrt' : (isClaimed ? '✓ Abgeschlossen' : (status.done ? 'Belohnung abholen' : 'Projekt laeuft'))) + '</button>';
     grid.appendChild(card);
   });
 }

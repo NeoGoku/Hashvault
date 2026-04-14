@@ -220,12 +220,12 @@ window.GOALS = [
 ];
 
 window.WEEKLY_OBJECTIVE_TEMPLATES = [
-  { id:'w_hash_push', name:'Hash Push', desc:'Sammle {t} Hashes in dieser Woche.', type:'total_hashes_delta', baseTarget: 2500000, growth: 0.34, rewards:{ cash: 120000, chips: 2 } },
-  { id:'w_cash_route', name:'Cash Route', desc:'Verdiene ${t} in dieser Woche.', type:'total_earned_delta', baseTarget: 180000, growth: 0.38, rewards:{ cash: 150000, chips: 2 } },
-  { id:'w_ops_grid', name:'Grid Discipline', desc:'Fuehre {t} Grid-/Cooling-Wechsel aus.', type:'ops_actions_delta', baseTarget: 10, growth: 0.22, rewards:{ cash: 95000, chips: 2 } },
-  { id:'w_contract_run', name:'Contract Run', desc:'Schliesse {t} Contracts in dieser Woche ab.', type:'contracts_done_delta', baseTarget: 4, growth: 0.26, rewards:{ cash: 135000, chips: 3 } },
-  { id:'w_wallet_yield', name:'Yield Desk', desc:'Erziele $ {t} Wallet-Zinsen in dieser Woche.', type:'wallet_yield_delta', baseTarget: 2500, growth: 0.45, rewards:{ cash: 90000, chips: 3 } },
-  { id:'w_shop_expansion', name:'Facility Sprint', desc:'Kaufe {t} Standort-Shop-Items in dieser Woche.', type:'shop_items_delta', baseTarget: 2, growth: 0.20, rewards:{ cash: 140000, chips: 2 } },
+  { id:'w_hash_push', name:'Hash Push', desc:'Sammle {t} Hashes in dieser Woche.', type:'total_hashes_delta', baseTarget: 1400000, growth: 0.26, rewardGrowth: 0.12, rewards:{ cash: 85000, chips: 1 }, req:{ minDay: 1 } },
+  { id:'w_cash_route', name:'Cash Route', desc:'Verdiene ${t} in dieser Woche.', type:'total_earned_delta', baseTarget: 120000, growth: 0.28, rewardGrowth: 0.14, rewards:{ cash: 95000, chips: 1 }, req:{ minDay: 2 } },
+  { id:'w_ops_grid', name:'Grid Discipline', desc:'Fuehre {t} Grid-/Cooling-Wechsel aus.', type:'ops_actions_delta', baseTarget: 6, growth: 0.18, rewardGrowth: 0.10, rewards:{ cash: 70000, chips: 1 }, req:{ minDay: 4, minPowerInfraLevel: 1 } },
+  { id:'w_contract_run', name:'Contract Run', desc:'Schliesse {t} Contracts in dieser Woche ab.', type:'contracts_done_delta', baseTarget: 3, growth: 0.20, rewardGrowth: 0.12, rewards:{ cash: 105000, chips: 2 }, req:{ minDay: 3 } },
+  { id:'w_wallet_yield', name:'Yield Desk', desc:'Erziele $ {t} Wallet-Zinsen in dieser Woche.', type:'wallet_yield_delta', baseTarget: 450, growth: 0.32, rewardGrowth: 0.16, rewards:{ cash: 80000, chips: 2 }, req:{ minDay: 5, walletUnlocked: true } },
+  { id:'w_shop_expansion', name:'Facility Sprint', desc:'Kaufe {t} Standort-Shop-Items in dieser Woche.', type:'shop_items_delta', baseTarget: 2, growth: 0.18, rewardGrowth: 0.10, rewards:{ cash: 110000, chips: 2 }, req:{ minDay: 4, minLocationTier: 2 } },
 ];
 
 window.OPERATIONS_PROJECTS = [
@@ -237,6 +237,7 @@ window.OPERATIONS_PROJECTS = [
     type: 'wallet_value_peak',
     target: 25000,
     rewards: { cash: 220000, chips: 4 },
+    req: { minDay: 5 },
   },
   {
     id: 'p_grid_stability',
@@ -246,6 +247,7 @@ window.OPERATIONS_PROJECTS = [
     type: 'outage_responses_total',
     target: 12,
     rewards: { cash: 260000, chips: 4 },
+    req: { minDay: 6, minPowerInfraLevel: 1 },
   },
   {
     id: 'p_collection_push',
@@ -255,6 +257,7 @@ window.OPERATIONS_PROJECTS = [
     type: 'collection_sets_active',
     target: 3,
     rewards: { cash: 340000, chips: 5 },
+    req: { minDay: 8, minLocationTier: 2 },
   },
   {
     id: 'p_prestige_loop',
@@ -265,5 +268,6 @@ window.OPERATIONS_PROJECTS = [
     target: 2,
     subTarget: 6,
     rewards: { cash: 480000, chips: 8 },
+    req: { minPrestige: 1 },
   },
 ];

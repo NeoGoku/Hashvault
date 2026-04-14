@@ -286,8 +286,23 @@ function getCurrentWeekIndex() {
 }
 window.getCurrentWeekIndex = getCurrentWeekIndex;
 
+function isObjectiveRequirementMet(req) {
+  const rules = req || {};
+  if (Number.isFinite(rules.minDay) && Number(G.worldDay || 1) < Number(rules.minDay)) return false;
+  if (Number.isFinite(rules.minPrestige) && Number(G.prestigeCount || 0) < Number(rules.minPrestige)) return false;
+  if (Number.isFinite(rules.minLocationTier) && Number(G.unlockedLocationTier || 1) < Number(rules.minLocationTier)) return false;
+  if (Number.isFinite(rules.minPowerInfraLevel) && Number(G.powerInfraLevel || 0) < Number(rules.minPowerInfraLevel)) return false;
+  if (rules.walletUnlocked) {
+    const totalCoins = Object.values(G.coins || {}).reduce((sum, value) => sum + Math.max(0, Number(value || 0)), 0);
+    if (totalCoins <= 0.0001) return false;
+  }
+  return true;
+}
+window.isObjectiveRequirementMet = isObjectiveRequirementMet;
+
 function buildWeeklyObjective(template, week) {
   const target = Math.max(1, Math.floor(Number(template.baseTarget || 1) * Math.pow(1 + Number(template.growth || 0), Math.max(0, week - 1))));
+  const rewardGrowth = Math.max(0, Number(template.rewardGrowth || 0.12));
   return {
     id: String(template.id || ('weekly_' + week)),
     name: String(template.name || 'Weekly'),
@@ -295,14 +310,15 @@ function buildWeeklyObjective(template, week) {
     type: String(template.type || ''),
     target,
     rewards: {
-      cash: Math.max(0, Math.floor(Number(((template.rewards || {}).cash) || 0) * (1 + Math.max(0, week - 1) * 0.18))),
-      chips: Math.max(0, Math.floor(Number(((template.rewards || {}).chips) || 0))),
+      cash: Math.max(0, Math.floor(Number(((template.rewards || {}).cash) || 0) * (1 + Math.max(0, week - 1) * rewardGrowth))),
+      chips: Math.max(0, Math.floor(Number(((template.rewards || {}).chips) || 0) + Math.max(0, Math.floor((week - 1) / 3)))),
     },
     startValue: Math.max(0, Number((typeof getWeeklyObjectiveCurrentValue === 'function') ? getWeeklyObjectiveCurrentValue(template.type) : 0)),
     progress: 0,
     completed: false,
     claimed: false,
     week,
+    req: template.req || null,
   };
 }
 
@@ -313,11 +329,16 @@ function ensureWeeklyObjectives() {
   if (!G.weeklyObjectivesClaimed || typeof G.weeklyObjectivesClaimed !== 'object') G.weeklyObjectivesClaimed = {};
 
   if (G.weeklyObjectivesWeek !== currentWeek || !G.weeklyObjectives.length) {
-    const templates = Array.isArray(window.WEEKLY_OBJECTIVE_TEMPLATES) ? window.WEEKLY_OBJECTIVE_TEMPLATES : [];
+    const templates = (Array.isArray(window.WEEKLY_OBJECTIVE_TEMPLATES) ? window.WEEKLY_OBJECTIVE_TEMPLATES : [])
+      .filter((template) => isObjectiveRequirementMet(template.req));
     const picked = [];
     for (let i = 0; i < Math.min(3, templates.length); i += 1) {
-      const idx = (currentWeek - 1 + i) % templates.length;
+      const idx = (currentWeek - 1 + i) % Math.max(1, templates.length);
       if (templates[idx]) picked.push(buildWeeklyObjective(templates[idx], currentWeek));
+    }
+    if (!picked.length) {
+      const fallback = (window.WEEKLY_OBJECTIVE_TEMPLATES || [])[0];
+      if (fallback) picked.push(buildWeeklyObjective(fallback, currentWeek));
     }
     G.weeklyObjectives = picked;
     G.weeklyObjectivesWeek = currentWeek;
@@ -355,10 +376,15 @@ function getOperationsProjectStatus(projectId) {
   const project = (window.OPERATIONS_PROJECTS || []).find((entry) => entry.id === projectId);
   if (!project) return null;
   const claimed = !!((G.projectClaims || {})[project.id]);
+  const locked = !isObjectiveRequirementMet(project.req);
   let progressValue = 0;
   let percent = 0;
   let done = false;
   let progressText = '0 / 0';
+
+  if (locked) {
+    return { claimed, done: false, percent: 0, progressText: 'Noch gesperrt', locked: true };
+  }
 
   if (project.type === 'prestige_and_skills') {
     const data = (typeof getOperationsProjectCurrentValue === 'function') ? getOperationsProjectCurrentValue(project) : { prestige: 0, skills: 0 };
@@ -377,7 +403,7 @@ function getOperationsProjectStatus(projectId) {
     progressText = fmtNum(progressValue, 0) + ' / ' + fmtNum(target, 0);
   }
 
-  return { claimed, done, percent, progressText };
+  return { claimed, done, percent, progressText, locked: false };
 }
 window.getOperationsProjectStatus = getOperationsProjectStatus;
 

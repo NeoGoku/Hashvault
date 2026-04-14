@@ -1,5 +1,23 @@
 Original prompt: Lass uns hier weitermachen am Projekt.
 
+- 2026-04-13: Balance-/Progressions-Pass fuer Wallet, Weeklies und Projekte umgesetzt.
+  - Weekly-Ziele neu gestaffelt:
+    - niedrigere Einstiegstargets fuer fruehe Wochen
+    - moderatere Growth-Werte
+    - Reward-Growth jetzt pro Template steuerbar
+    - Chip-Belohnungen skalieren leicht ueber laengere Laufzeit mit
+  - Weekly-Freischaltung kontextsensitiv:
+    - Power-/Wallet-/Shop-Weeklies tauchen erst auf, wenn die zugrunde liegenden Systeme sinnvoll erreichbar sind
+    - Fallback verhindert leere Weekly-Slots
+  - Operations-Projekte haben jetzt Unlock-Gates und zeigen im Missions-UI klar `Gesperrt` + Freischaltbedingungen statt leerem/irrefuehrendem Progress.
+  - Wallet-Uebersicht konsistent gemacht:
+    - `Wallet-Marktwert` (Livepreis) separat von `Tier-Bewertung` (stabile Basis fuer Wallet-Tier/APY)
+    - damit kein Widerspruch mehr zwischen sichtbarem Wallet-Wert und Tier-Fortschritt
+  - Build-Version angehoben: `20260413v32`.
+  - Verifikation:
+    - `npm test` erfolgreich
+    - `node --check` erfolgreich fuer `main.js`, `render.js`, `goals.js`
+
 - 2026-04-13: Echte Wallet-Phase umgesetzt.
   - `coinReserves` semantisch von technischer Reserve auf echte Wallet-Bestaende umgestellt; Default jetzt `0` fuer alle Coins.
   - Neuer Reiter `Wallet` mit Uebersicht und Coin-Karten:
