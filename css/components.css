@@ -200,6 +200,26 @@
   background: linear-gradient(135deg, rgba(0, 212, 255, 0.26), rgba(124, 92, 255, 0.24));
 }
 
+.wallet-transfer-row {
+  margin-top: 10px;
+}
+
+.wallet-amount-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(10, 20, 36, 0.92);
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.wallet-amount-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.12);
+}
+
 #tutorial-spotlight {
   position: fixed;
   left: 0;

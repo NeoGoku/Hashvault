@@ -429,10 +429,21 @@ function renderWallet() {
         <div class="power-row"><span>APY</span><strong>${fmtNum(Number(data.walletApy || 0) * 100, 2)}%</strong></div>
         <div class="power-row"><span>Erwartet / Tag</span><strong>+${fmtNum(estYield, 4)} ${coin}</strong></div>
       </div>
+      <div class="wallet-transfer-row">
+        <input
+          id="wallet-amount-${coin}"
+          class="wallet-amount-input"
+          type="number"
+          min="0"
+          step="0.0001"
+          inputmode="decimal"
+          placeholder="Betrag in ${coin}"
+        />
+      </div>
       <div class="power-actions" style="margin-top:8px;">
-        <button class="buy-btn" ${free > 0.0009 ? '' : 'disabled'} onclick="moveCoinToWallet('${coin}', 0.25)">25% einzahlen</button>
+        <button class="buy-btn" ${free > 0.0009 ? '' : 'disabled'} onclick="moveCoinToWalletAmount('${coin}')">Einzahlen</button>
         <button class="buy-btn" ${free > 0.0009 ? '' : 'disabled'} onclick="moveCoinToWallet('${coin}', 1)">Alles einzahlen</button>
-        <button class="buy-btn" ${wallet > 0.0009 ? '' : 'disabled'} onclick="moveCoinFromWallet('${coin}', 0.25)">25% auszahlen</button>
+        <button class="buy-btn" ${wallet > 0.0009 ? '' : 'disabled'} onclick="moveCoinFromWalletAmount('${coin}')">Auszahlen</button>
         <button class="buy-btn" ${wallet > 0.0009 ? '' : 'disabled'} onclick="moveCoinFromWallet('${coin}', 1)">Alles auszahlen</button>
       </div>`;
     grid.appendChild(card);

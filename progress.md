@@ -1022,3 +1022,21 @@ Original prompt: Lass uns hier weitermachen am Projekt.
   - Build angehoben:
     - `index.html` BUILD_ID -> `20260413v24`
     - `version.json` buildId -> `20260413v24`
+
+- 2026-04-13: Wallet auf freie Betragseingabe umgestellt.
+  - Wallet-Karten haben jetzt pro Coin ein Eingabefeld fuer Ein- und Auszahlungen.
+  - 25%-Buttons entfernt, `Alles einzahlen` / `Alles auszahlen` bleiben erhalten.
+  - Neue Aktionen:
+    - `moveCoinToWalletAmount(coin)`
+    - `moveCoinFromWalletAmount(coin)`
+  - Build angehoben:
+    - `index.html` BUILD_ID -> `20260413v29`
+    - `version.json` buildId -> `20260413v29`
+
+- 2026-04-13: Research- und Reparatur-Tokenkosten komplett vom Live-Markt entkoppelt.
+  - ETH-Kosten fuer Research nutzen jetzt den stabilen ETH-Base-Price.
+  - LTC-Kosten fuer Reparaturen nutzen jetzt den stabilen LTC-Base-Price.
+  - Keine Systemkosten mehr mit Live-Coinpreis-Schwankung in diesen beiden Pfaden.
+  - Build angehoben:
+    - `index.html` BUILD_ID -> `20260413v30`
+    - `version.json` buildId -> `20260413v30`

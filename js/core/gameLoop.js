@@ -528,7 +528,7 @@ window.spendCoin = spendCoin;
 
 function getResearchEthCostByUsd(usdCost) {
   const usd = Math.max(0, Number(usdCost || 0));
-  const ethPrice = Math.max(0.01, Number(((G.prices || {}).ETH) || 1));
+  const ethPrice = Math.max(0.01, Number(((COIN_DATA || {}).ETH || {}).basePrice || 1));
   const tokenCost = usd * Number(COIN_UTILITY_BALANCE.researchEthUsdRate || 0.12) / ethPrice;
   return Math.max(
     Number(COIN_UTILITY_BALANCE.researchEthMin || 0.08),
@@ -539,7 +539,7 @@ window.getResearchEthCostByUsd = getResearchEthCostByUsd;
 
 function getRepairLtcCostByUsd(usdCost) {
   const usd = Math.max(0, Number(usdCost || 0));
-  const ltcPrice = Math.max(0.01, Number(((G.prices || {}).LTC) || 1));
+  const ltcPrice = Math.max(0.01, Number(((COIN_DATA || {}).LTC || {}).basePrice || 1));
   const tokenCost = usd * Number(COIN_UTILITY_BALANCE.repairLtcUsdRate || 0.18) / ltcPrice;
   return Math.max(
     Number(COIN_UTILITY_BALANCE.repairLtcMin || 0.06),

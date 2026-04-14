@@ -204,6 +204,35 @@ function moveCoinToWallet(coin, fraction) {
 }
 window.moveCoinToWallet = moveCoinToWallet;
 
+function getWalletInputAmount(coin) {
+  const el = document.getElementById('wallet-amount-' + String(coin || 'BTC').toUpperCase());
+  const raw = el ? String(el.value || '').replace(',', '.') : '';
+  const amount = Number(raw);
+  return Number.isFinite(amount) && amount > 0 ? amount : 0;
+}
+
+function moveCoinToWalletAmount(coin) {
+  const key = String(coin || 'BTC').toUpperCase();
+  const amount = getWalletInputAmount(key);
+  if (amount <= 0) {
+    notify('Bitte einen gueltigen Betrag fuer ' + key + ' eingeben.', 'warning');
+    return;
+  }
+  const free = (typeof getAvailableCoinBalance === 'function') ? getAvailableCoinBalance(key) : 0;
+  if (amount - free > 1e-9) {
+    notify('Zu wenig freie ' + key + ' vorhanden.', 'error');
+    return;
+  }
+  if (!(typeof depositCoinToWallet === 'function' && depositCoinToWallet(key, amount))) {
+    notify('Wallet-Einzahlung fehlgeschlagen.', 'error');
+    return;
+  }
+  notify('🏦 ' + fmtNum(amount, 4) + ' ' + key + ' in die Wallet verschoben.', 'success');
+  if (typeof renderMarket === 'function') renderMarket();
+  if (typeof renderWallet === 'function') renderWallet();
+}
+window.moveCoinToWalletAmount = moveCoinToWalletAmount;
+
 function moveCoinFromWallet(coin, fraction) {
   const key = String(coin || 'BTC').toUpperCase();
   const wallet = (typeof getWalletBalance === 'function') ? getWalletBalance(key) : 0;
@@ -221,6 +250,28 @@ function moveCoinFromWallet(coin, fraction) {
   if (typeof renderWallet === 'function') renderWallet();
 }
 window.moveCoinFromWallet = moveCoinFromWallet;
+
+function moveCoinFromWalletAmount(coin) {
+  const key = String(coin || 'BTC').toUpperCase();
+  const amount = getWalletInputAmount(key);
+  if (amount <= 0) {
+    notify('Bitte einen gueltigen Betrag fuer ' + key + ' eingeben.', 'warning');
+    return;
+  }
+  const wallet = (typeof getWalletBalance === 'function') ? getWalletBalance(key) : 0;
+  if (amount - wallet > 1e-9) {
+    notify('Zu wenig ' + key + ' in der Wallet vorhanden.', 'error');
+    return;
+  }
+  if (!(typeof withdrawCoinFromWallet === 'function' && withdrawCoinFromWallet(key, amount))) {
+    notify('Wallet-Auszahlung fehlgeschlagen.', 'error');
+    return;
+  }
+  notify('📤 ' + fmtNum(amount, 4) + ' ' + key + ' aus der Wallet freigegeben.', 'success');
+  if (typeof renderMarket === 'function') renderMarket();
+  if (typeof renderWallet === 'function') renderWallet();
+}
+window.moveCoinFromWalletAmount = moveCoinFromWalletAmount;
 
 function setRigCrewSpec(tierId, specId) {
   const tier = (typeof window.getRigStaffTierById === 'function') ? getRigStaffTierById(tierId) : null;
