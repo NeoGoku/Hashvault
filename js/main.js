@@ -263,6 +263,11 @@ function moveCoinFromWalletAmount(coin) {
     notify('Zu wenig ' + key + ' in der Wallet vorhanden.', 'error');
     return;
   }
+  if (typeof isWalletLocked === 'function' && isWalletLocked(key)) {
+    const unlockDay = (typeof getWalletUnlockDay === 'function') ? getWalletUnlockDay(key) : Number(G.worldDay || 1);
+    notify(key + ' ist bis Tag ' + fmtNum(unlockDay, 0) + ' gebunden.', 'warning');
+    return;
+  }
   if (!(typeof withdrawCoinFromWallet === 'function' && withdrawCoinFromWallet(key, amount))) {
     notify('Wallet-Auszahlung fehlgeschlagen.', 'error');
     return;
@@ -272,6 +277,13 @@ function moveCoinFromWalletAmount(coin) {
   if (typeof renderWallet === 'function') renderWallet();
 }
 window.moveCoinFromWalletAmount = moveCoinFromWalletAmount;
+
+function setMissionFilter(filterId) {
+  const next = String(filterId || 'all');
+  G.uiMissionFilter = ['all', 'active', 'claimable', 'done', 'locked'].includes(next) ? next : 'all';
+  if (typeof renderMissions === 'function') renderMissions();
+}
+window.setMissionFilter = setMissionFilter;
 
 function toggleWalletYieldEnabled() {
   G.walletYieldEnabled = G.walletYieldEnabled === false;
@@ -1712,6 +1724,8 @@ function init() {
   if (typeof ensureCoinReserveState === 'function') ensureCoinReserveState();
   if (!Array.isArray(G.walletYieldHistory)) G.walletYieldHistory = [];
   if (!Array.isArray(G.walletLedger)) G.walletLedger = [];
+  if (!G.walletUnlockDay || typeof G.walletUnlockDay !== 'object') G.walletUnlockDay = {};
+  if (typeof G.uiMissionFilter !== 'string' || !G.uiMissionFilter) G.uiMissionFilter = 'all';
   if (!Number.isFinite(G.prestigeSkillPurchases) || G.prestigeSkillPurchases < 0) G.prestigeSkillPurchases = 0;
   if (!Array.isArray(G.weeklyObjectives)) G.weeklyObjectives = [];
   if (!Number.isFinite(G.weeklyObjectivesWeek) || G.weeklyObjectivesWeek < 0) G.weeklyObjectivesWeek = 0;

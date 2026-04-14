@@ -1,5 +1,22 @@
 Original prompt: Lass uns hier weitermachen am Projekt.
 
+- 2026-04-13: Wallet-/Missionen-/Markt-Polish umgesetzt.
+  - Wallet vertieft:
+    - Sperrfrist pro Coin nach Einzahlung (`walletUnlockDay`), Auszahlungen vor Freigabe blockiert.
+    - Wallet-Tiers zeigen jetzt explizit Bonus, Perk und Sperrfrist.
+    - Yield-Historie erweitert um Tier + Wallet-Basiswert.
+  - Missionen-UI erweitert:
+    - Filterleiste fuer `Alle / Aktiv / Claimbar / Fertig / Gesperrt`.
+    - Weeklies und Operations-Projekte respektieren den aktiven Filter.
+  - Markt-News an Regime gekoppelt:
+    - bull/bear/range haben eigene Ambient-News-Templates.
+    - News referenzieren jetzt aktuelle Top-/Flop-Coins statt nur generische Texte.
+    - News-Frequenz passt sich an Regime/Schockzustand an.
+  - Build-Version angehoben: `20260413v33`.
+  - Verifikation:
+    - `npm test` erfolgreich
+    - Syntaxchecks fuer `main.js`, `gameLoop.js`, `render.js`, `goals.js` erfolgreich
+
 - 2026-04-13: Balance-/Progressions-Pass fuer Wallet, Weeklies und Projekte umgesetzt.
   - Weekly-Ziele neu gestaffelt:
     - niedrigere Einstiegstargets fuer fruehe Wochen

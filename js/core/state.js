@@ -258,6 +258,8 @@ const DEFAULT_STATE = {
   walletYieldLastDay: 0,
   walletYieldHistory: [],
   walletLedger: [],
+  walletUnlockDay: {},
+  uiMissionFilter: 'all',
   prestigeSkillPurchases: 0,
   weeklyObjectives: [],
   weeklyObjectivesWeek: 0,

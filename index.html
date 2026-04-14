@@ -9,7 +9,7 @@
 <title>HashVault Pro</title>
 <script>
 (function() {
-  const BUILD_ID = '20260413v32';
+  const BUILD_ID = '20260413v33';
   const BUILD_KEY = '__hv_build_id';
   const prevBuild = localStorage.getItem(BUILD_KEY);
   const isNewBuild = prevBuild !== BUILD_ID;
@@ -535,6 +535,7 @@
     <span id="contract-refresh" style="font-size:12px;color:var(--muted);">Refresh in: 30:00</span>
   </div>
   <div style="padding:8px 20px 0;font-size:12px;color:var(--muted);">Alle Auftraege und taeglichen Aufgaben in einem Bereich.</div>
+  <div id="mission-filter-bar" style="padding:12px 20px 0;"></div>
   <div style="padding:12px 20px 0;">
     <div class="daily-bar" id="daily-bar">
       <div class="daily-icon">🎁</div>

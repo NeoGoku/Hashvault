@@ -482,6 +482,18 @@ function getWalletBalance(coin) {
 }
 window.getWalletBalance = getWalletBalance;
 
+function getWalletUnlockDay(coin) {
+  const key = String(coin || 'BTC').toUpperCase();
+  if (!G.walletUnlockDay || typeof G.walletUnlockDay !== 'object') G.walletUnlockDay = {};
+  return Math.max(0, Number(G.walletUnlockDay[key] || 0));
+}
+window.getWalletUnlockDay = getWalletUnlockDay;
+
+function isWalletLocked(coin) {
+  return Number(G.worldDay || 1) < getWalletUnlockDay(coin);
+}
+window.isWalletLocked = isWalletLocked;
+
 function getAvailableCoinBalance(coin) {
   const key = String(coin || 'BTC').toUpperCase();
   const total = Math.max(0, Number((G.coins || {})[key] || 0));
@@ -496,9 +508,16 @@ function depositCoinToWallet(coin, amount) {
   if (!COIN_DATA[key] || move <= 0) return false;
   const free = getAvailableCoinBalance(key);
   if (free + 1e-9 < move) return false;
+  const tier = getWalletTierMeta();
+  const lockDays = Math.max(1, Number((tier && tier.lockDays) || 1));
   G.coinReserves[key] = Math.max(0, Number((G.coinReserves || {})[key] || 0) + move);
+  G.walletUnlockDay = G.walletUnlockDay || {};
+  G.walletUnlockDay[key] = Math.max(
+    getWalletUnlockDay(key),
+    Math.floor(Number(G.worldDay || 1)) + lockDays
+  );
   if (typeof recordWalletLedgerEntry === 'function') {
-    recordWalletLedgerEntry({ kind: 'deposit', coin: key, amount: move });
+    recordWalletLedgerEntry({ kind: 'deposit', coin: key, amount: move, text: 'frei ab Tag ' + fmtNum(getWalletUnlockDay(key), 0) });
   }
   return true;
 }
@@ -510,6 +529,7 @@ function withdrawCoinFromWallet(coin, amount) {
   if (!COIN_DATA[key] || move <= 0) return false;
   const wallet = getCoinReserve(key);
   if (wallet + 1e-9 < move) return false;
+  if (isWalletLocked(key)) return false;
   G.coinReserves[key] = Math.max(0, wallet - move);
   if (typeof recordWalletLedgerEntry === 'function') {
     recordWalletLedgerEntry({ kind: 'withdraw', coin: key, amount: move });
@@ -531,10 +551,10 @@ window.getWalletPortfolioUsd = getWalletPortfolioUsd;
 function getWalletTierMeta() {
   const totalUsd = getWalletPortfolioUsd();
   const tiers = [
-    { id: 'starter', name: 'Starter Wallet', minUsd: 0, apyBonusMult: 1.00 },
-    { id: 'desk', name: 'Yield Desk', minUsd: 2500, apyBonusMult: 1.05 },
-    { id: 'treasury', name: 'Treasury Stack', minUsd: 15000, apyBonusMult: 1.10 },
-    { id: 'vault', name: 'Institutional Vault', minUsd: 80000, apyBonusMult: 1.16 },
+    { id: 'starter', name: 'Starter Wallet', minUsd: 0, apyBonusMult: 1.00, lockDays: 1, perk: 'Basis-Zins ohne Bonus' },
+    { id: 'desk', name: 'Yield Desk', minUsd: 2500, apyBonusMult: 1.05, lockDays: 1, perk: 'frueher APY-Boost fuer kleine Portfolios' },
+    { id: 'treasury', name: 'Treasury Stack', minUsd: 15000, apyBonusMult: 1.10, lockDays: 1, perk: 'stabiler Midgame-Zinsmotor' },
+    { id: 'vault', name: 'Institutional Vault', minUsd: 80000, apyBonusMult: 1.16, lockDays: 2, perk: 'maximale APY fuer spaete Holdings' },
   ];
   let active = tiers[0];
   tiers.forEach((tier) => {
@@ -545,6 +565,9 @@ function getWalletTierMeta() {
     name: active.name,
     totalUsd,
     apyBonusMult: Number(active.apyBonusMult || 1),
+    lockDays: Math.max(1, Number(active.lockDays || 1)),
+    perk: String(active.perk || ''),
+    tiers,
     nextTier: tiers.find((tier) => totalUsd < Number(tier.minUsd || 0)) || null,
   };
 }
@@ -718,6 +741,8 @@ function settleWalletYieldForDay(dayNo) {
     G.walletYieldHistory.unshift({
       day,
       totalUsd,
+      tier: String((getWalletTierMeta() || {}).name || 'Starter Wallet'),
+      walletUsd: Number(getWalletPortfolioUsd() || 0),
       parts: rates.slice(0, 8),
     });
     if (G.walletYieldHistory.length > 14) G.walletYieldHistory.length = 14;
@@ -763,24 +788,41 @@ function getOperationsProjectCurrentValue(project) {
 window.getOperationsProjectCurrentValue = getOperationsProjectCurrentValue;
 
 function emitAmbientLiveNews() {
-  const templates = [
-    '📡 Marktbriefing: Regime {REGIME}, Volatilitaet bleibt {VOL}.',
-    '📰 Orderflow: BTC-Dominanz bei {BTCDOM}% laut Desk-Schaetzung.',
-    '📊 Derivate-Desk meldet Funding-Spanne von {FUND}% bis {FUND2}%.',
-    '🌍 Miner-Update: Netzwerk-Hashrate {HASH} PH/s, Energiepreis {PRICE}$/kWh.',
-    '🏦 Macro-Ticker: Risikoappetit {RISK}, Liquiditaet bleibt {LIQ}.',
-    '⚙️ Infrastruktur: Grid-Auslastung {LOAD}% bei Tarif {TARIFF}.',
-    '🧠 Research-Desk: Altcoin-Beta {BETA}, Mean-Reversion im Fokus.',
-    '🐋 Whale-Watch: ungewoehnliche Wallet-Aktivitaet in {COIN}.',
-  ];
+  const templatesByRegime = {
+    bull: [
+      '📡 Bull Desk: {TOP} fuehrt den Risk-On-Move mit {TOPMOVE}% an.',
+      '🐂 Momentum-Ticker: Regime {REGIME}, Liquiditaet {LIQ}, Trader bleiben {RISK}.',
+      '📰 Risk-On: Funding zieht auf {FUND}% an, {COIN} bleibt im Fokus.',
+    ],
+    bear: [
+      '📉 Bear Desk: {BOT} bleibt mit {BOTMOVE}% Schlusslicht, Risikoappetit ist {RISK}.',
+      '🛡️ Defensiver Flow: Regime {REGIME}, Volatilitaet {VOL}, Liquiditaet {LIQ}.',
+      '📰 Stress-Ticker: {COIN} unter Druck, Funding bei {FUND}% bis {FUND2}%.',
+    ],
+    range: [
+      '📡 Range Desk: {TOP} und {BOT} pendeln um Mean-Reversion, Volatilitaet bleibt {VOL}.',
+      '📰 Seitwaertsphase: BTC-Dominanz {BTCDOM}%, Tariffokus {TARIFF}, Grid bei {LOAD}%.',
+      '🧠 Marktbriefing: Regime {REGIME}, Altcoin-Beta {BETA}, Orderflow ausgeglichen.',
+    ],
+  };
   const regime = String(G.marketRegime || 'range');
+  const templates = templatesByRegime[regime] || templatesByRegime.range;
   const regimeLabel = regime === 'bull' ? 'bullish' : (regime === 'bear' ? 'bearish' : 'seitwaerts');
   const vol = regime === 'range' ? 'moderat' : (regime === 'bull' ? 'erhoeht' : 'nervoes');
   const load = Math.max(0, Math.min(999, Number((G._powerLoadRatio || 0) * 100)));
   const hashPh = Math.max(50, Math.floor(180 + Number(getTotalHps() || 0) / 240));
   const risk = regime === 'bear' ? 'defensiv' : (regime === 'bull' ? 'offensiv' : 'neutral');
   const liq = Number(G.marketShockTimer || 0) > 0 ? 'duenn' : 'stabil';
-  const co = ['BTC', 'ETH', 'LTC', 'BNB'][Math.floor(Math.random() * 4)];
+  const ranked = Object.keys(COIN_DATA || {}).map((coin) => {
+    const hist = Array.isArray((G.priceHistory || {})[coin]) ? G.priceHistory[coin] : [];
+    const latest = Number((G.prices || {})[coin] || 0);
+    const prev = Number(hist[Math.max(0, hist.length - 6)] || latest || 1);
+    const move = prev > 0 ? ((latest / prev) - 1) * 100 : 0;
+    return { coin, move };
+  }).sort((a, b) => b.move - a.move);
+  const top = ranked[0] || { coin: 'BTC', move: 0 };
+  const bot = ranked[ranked.length - 1] || { coin: 'LTC', move: 0 };
+  const co = regime === 'bull' ? top.coin : (regime === 'bear' ? bot.coin : ranked[Math.floor(Math.random() * Math.max(1, ranked.length))].coin);
   const msg = templates[Math.floor(Math.random() * templates.length)]
     .replace('{REGIME}', regimeLabel)
     .replace('{VOL}', vol)
@@ -794,7 +836,13 @@ function emitAmbientLiveNews() {
     .replace('{LOAD}', fmtNum(load, 0))
     .replace('{TARIFF}', String(G.powerTariffLabel || 'Tag'))
     .replace('{BETA}', fmtNum(0.85 + Math.random() * 0.55, 2))
-    .replace('{COIN}', co);
+    .replace('{COIN}', co)
+    .replace('{TOP}', top.coin)
+    .replace('{BOT}', bot.coin)
+    .replace('{TOPMOVE}', fmtNum(top.move, 2))
+    .replace('{BOTMOVE}', fmtNum(bot.move, 2))
+    .replace('{HASH}', String(hashPh))
+    .replace('{PRICE}', fmtNum(Number(G.powerPriceCurrent || 0.18), 3));
 
   G.recentEvents = Array.isArray(G.recentEvents) ? G.recentEvents : [];
   G.recentEvents.unshift({ msg, time: Date.now() });
@@ -3830,7 +3878,9 @@ function gameTick() {
   G._newsTickerTimer = Number.isFinite(G._newsTickerTimer) ? Number(G._newsTickerTimer) : (75 + Math.random() * 70);
   G._newsTickerTimer -= dt;
   if (G._newsTickerTimer <= 0) {
-    G._newsTickerTimer = 65 + Math.random() * 95;
+    const baseDelay = G.marketRegime === 'range' ? 95 : (G.marketRegime === 'bull' ? 70 : 60);
+    const shockCut = Number(G.marketShockTimer || 0) > 0 ? 18 : 0;
+    G._newsTickerTimer = Math.max(35, baseDelay - shockCut + Math.random() * 32);
     if (!(G.activeEvent && Number((G.activeEvent || {}).endsAt || 0) > Date.now())) emitAmbientLiveNews();
   }
 

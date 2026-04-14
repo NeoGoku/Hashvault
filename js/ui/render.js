@@ -433,6 +433,7 @@ function renderWallet() {
       <div class="power-row"><span>Wallet-Marktwert</span><strong>$${fmtNum(totalWalletLiveUsd, 2)}</strong></div>
       <div class="power-row"><span>Tier-Bewertung</span><strong>$${fmtNum(Number(walletTier.totalUsd || 0), 2)}</strong></div>
       <div class="power-row"><span>Tier</span><strong>${walletTier.name} (+${fmtNum((Math.max(1, Number(walletTier.apyBonusMult || 1)) - 1) * 100, 1)}% APY)</strong></div>
+      <div class="power-row"><span>Sperrfrist</span><strong>${fmtNum(Number(walletTier.lockDays || 1), 0)} Tag(e)</strong></div>
       <div class="power-row"><span>Bisherige Zinsen</span><strong>$${fmtNum(Number(G.walletYieldAccruedUsd || 0), 2)}</strong></div>
       <div class="power-row"><span>Letzte Gutschrift</span><strong>${Math.max(0, Number(G.walletYieldLastDay || 0)) > 0 ? ('Tag ' + fmtNum(G.walletYieldLastDay, 0)) : 'Noch keine'}</strong></div>
     </div>
@@ -442,12 +443,27 @@ function renderWallet() {
     </div>`;
   grid.appendChild(top);
 
+  const tierCard = document.createElement('div');
+  tierCard.className = 'power-card';
+  tierCard.innerHTML = '<h3>Bonus-Tiers</h3>' + (
+    Array.isArray(walletTier.tiers) && walletTier.tiers.length
+      ? '<div class="power-list">' + walletTier.tiers.map((tier) => {
+          const active = tier.id === walletTier.id;
+          const next = walletTier.nextTier && walletTier.nextTier.id === tier.id;
+          return '<div class="power-row"><span>' + (active ? '✅ ' : (next ? '⏭️ ' : '• ')) + tier.name + '</span><strong>$' + fmtNum(Number(tier.minUsd || 0), 0) + ' · +' + fmtNum((Number(tier.apyBonusMult || 1) - 1) * 100, 1) + '%</strong></div>' +
+            '<div class="power-list-item" style="margin-bottom:8px;">' + String(tier.perk || '') + ' · Sperrfrist ' + fmtNum(Number(tier.lockDays || 1), 0) + ' Tag(e)</div>';
+        }).join('') + '</div>'
+      : '<div class="power-list-item">Keine Wallet-Tiers geladen.</div>'
+  );
+  grid.appendChild(tierCard);
+
   const historyCard = document.createElement('div');
   historyCard.className = 'power-card';
   historyCard.innerHTML = '<h3>Yield-Historie</h3>' + (
     history.length
       ? '<div class="power-list">' + history.slice(0, 6).map((row) => (
-          '<div class="power-row"><span>Tag ' + fmtNum(Number(row.day || 0), 0) + '</span><strong>$' + fmtNum(Number(row.totalUsd || 0), 2) + '</strong></div>'
+          '<div class="power-row"><span>Tag ' + fmtNum(Number(row.day || 0), 0) + ' · ' + String(row.tier || 'Wallet') + '</span><strong>$' + fmtNum(Number(row.totalUsd || 0), 2) + '</strong></div>' +
+          '<div class="power-list-item" style="margin-bottom:8px;">Wallet-Basis: $' + fmtNum(Number(row.walletUsd || 0), 2) + ' · ' + String((row.parts || []).slice(0, 3).join(' · ') || 'Keine Teilwerte') + '</div>'
         )).join('') + '</div>'
       : '<div class="power-list-item">Noch keine Zinsbuchungen vorhanden.</div>'
   );
@@ -475,6 +491,8 @@ function renderWallet() {
     const free = (typeof getAvailableCoinBalance === 'function') ? getAvailableCoinBalance(coin) : Math.max(0, total - wallet);
     const dailyRate = (typeof getWalletDailyRate === 'function') ? getWalletDailyRate(coin) : 0;
     const estYield = wallet * dailyRate;
+    const locked = (typeof isWalletLocked === 'function') ? isWalletLocked(coin) : false;
+    const unlockDay = (typeof getWalletUnlockDay === 'function') ? getWalletUnlockDay(coin) : Number(G.worldDay || 1);
     const card = document.createElement('div');
     card.className = 'power-card';
     card.innerHTML = `
@@ -485,6 +503,7 @@ function renderWallet() {
         <div class="power-row"><span>In Wallet</span><strong>${fmtNum(wallet, 4)} ${coin}</strong></div>
         <div class="power-row"><span>APY</span><strong>${fmtNum(Number(data.walletApy || 0) * 100, 2)}%</strong></div>
         <div class="power-row"><span>Erwartet / Tag</span><strong>+${fmtNum(estYield, 4)} ${coin}</strong></div>
+        <div class="power-row"><span>Status</span><strong>${locked ? ('Gesperrt bis Tag ' + fmtNum(unlockDay, 0)) : 'Liquid'}</strong></div>
         <div class="power-row"><span>Nutzen</span><strong>${coin === 'BTC' ? 'Power-Upgrades' : (coin === 'ETH' ? 'Research' : (coin === 'LTC' ? 'Repair' : 'Ops-Rabatt'))}</strong></div>
       </div>
       <div class="wallet-transfer-row">
@@ -506,6 +525,21 @@ function renderWallet() {
       </div>`;
     grid.appendChild(card);
   });
+}
+
+function getMissionFilter() {
+  const filter = String(G.uiMissionFilter || 'all');
+  return ['all', 'active', 'claimable', 'done', 'locked'].includes(filter) ? filter : 'all';
+}
+
+function missionCardMatchesFilter(status) {
+  const filter = getMissionFilter();
+  if (filter === 'all') return true;
+  if (filter === 'claimable') return !!status.claimable;
+  if (filter === 'done') return !!status.done;
+  if (filter === 'locked') return !!status.locked;
+  if (filter === 'active') return !!status.active;
+  return true;
 }
 
 // ── Research ─────────────────────────────────────────────────
@@ -790,6 +824,14 @@ function renderRigCrew() {
 }
 
 function renderMissions() {
+  const filterBar = document.getElementById('mission-filter-bar');
+  if (filterBar) {
+    const active = getMissionFilter();
+    filterBar.innerHTML = ['all', 'active', 'claimable', 'done', 'locked'].map((id) => {
+      const labels = { all: 'Alle', active: 'Aktiv', claimable: 'Claimbar', done: 'Fertig', locked: 'Gesperrt' };
+      return '<button class="chip-btn' + (active === id ? ' chip-btn-done' : '') + '" style="margin-right:8px;margin-bottom:8px;" onclick="setMissionFilter(\'' + id + '\')">' + labels[id] + '</button>';
+    }).join('');
+  }
   renderWeeklyObjectives();
   renderOperationsProjects();
   renderContracts();
@@ -821,6 +863,12 @@ function renderWeeklyObjectives() {
     const progress = Math.max(0, Number(obj.progress || 0));
     const pct = Math.max(0, Math.min(100, (Math.min(progress, target) / target) * 100));
     const canClaim = !!obj.completed && !obj.claimed;
+    if (!missionCardMatchesFilter({
+      claimable: canClaim,
+      done: !!obj.claimed,
+      active: !obj.claimed && !canClaim,
+      locked: false,
+    })) return;
     const card = document.createElement('div');
     card.className = 'contract-card' + (obj.claimed ? ' completed' : (canClaim ? ' active' : ''));
     card.innerHTML = `
@@ -861,6 +909,12 @@ function renderOperationsProjects() {
       : null;
     if (!status) return;
     const isClaimed = !!claimed[project.id];
+    if (!missionCardMatchesFilter({
+      claimable: !!(status.done && !isClaimed && !status.locked),
+      done: !!isClaimed,
+      active: !status.locked && !isClaimed && !status.done,
+      locked: !!status.locked,
+    })) return;
     const card = document.createElement('div');
     card.className = 'chip-item' + (status.locked ? '' : (isClaimed ? ' chip-unlocked' : (status.done ? ' chip-maxed' : '')));
     const lockText = status.locked && project.req
