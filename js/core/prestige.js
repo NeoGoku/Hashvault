@@ -23,6 +23,16 @@ function doPrestige() {
         chips:          G.chips + chips,
         chipShop:       JSON.parse(JSON.stringify(G.chipShop)),
         prestigeSkills: JSON.parse(JSON.stringify(G.prestigeSkills || {})),
+        selectedCoin:   String(G.selectedCoin || 'BTC'),
+        coins:          JSON.parse(JSON.stringify(G.coins || { BTC:0, ETH:0, LTC:0, BNB:0 })),
+        coinReserves:   JSON.parse(JSON.stringify(G.coinReserves || { BTC:0, ETH:0, LTC:0, BNB:0 })),
+        walletYieldEnabled: G.walletYieldEnabled !== false,
+        walletYieldAccruedUsd: Math.max(0, Number(G.walletYieldAccruedUsd || 0)),
+        walletYieldLastDay: Math.max(0, Number(G.walletYieldLastDay || 0)),
+        walletYieldHistory: JSON.parse(JSON.stringify(G.walletYieldHistory || [])),
+        walletLedger: JSON.parse(JSON.stringify(G.walletLedger || [])),
+        walletUnlockDay: JSON.parse(JSON.stringify(G.walletUnlockDay || {})),
+        walletHoldDays: JSON.parse(JSON.stringify(G.walletHoldDays || {})),
         dailyStreak:    G.dailyStreak,
         lastDaily:      G.lastDaily,
         prestigeCount:  G.prestigeCount + 1,
@@ -32,6 +42,7 @@ function doPrestige() {
         contractsDone:  G.contractsDone,
         storyMissionIndex: Number(G.storyMissionIndex || 0),
         storyMissionsClaimed: JSON.parse(JSON.stringify(G.storyMissionsClaimed || {})),
+        tutorialStep: Number(G.tutorialStep || 0),
         tutorialEnabled: G.tutorialEnabled !== false,
         tutorialCompleted: !!G.tutorialCompleted,
       };
@@ -52,6 +63,16 @@ function doPrestige() {
       G.chips          = saved.chips;
       G.chipShop       = saved.chipShop;
       G.prestigeSkills = saved.prestigeSkills;
+      G.selectedCoin   = saved.selectedCoin;
+      G.coins          = saved.coins;
+      G.coinReserves   = saved.coinReserves;
+      G.walletYieldEnabled = saved.walletYieldEnabled;
+      G.walletYieldAccruedUsd = saved.walletYieldAccruedUsd;
+      G.walletYieldLastDay = saved.walletYieldLastDay;
+      G.walletYieldHistory = saved.walletYieldHistory;
+      G.walletLedger = saved.walletLedger;
+      G.walletUnlockDay = saved.walletUnlockDay;
+      G.walletHoldDays = saved.walletHoldDays;
       G.dailyStreak    = saved.dailyStreak;
       G.lastDaily      = saved.lastDaily;
       G.prestigeCount  = saved.prestigeCount;
@@ -61,6 +82,7 @@ function doPrestige() {
       G.contractsDone  = saved.contractsDone;
       G.storyMissionIndex = saved.storyMissionIndex;
       G.storyMissionsClaimed = saved.storyMissionsClaimed;
+      G.tutorialStep = saved.tutorialStep;
       G.tutorialEnabled = saved.tutorialEnabled;
       G.tutorialCompleted = saved.tutorialCompleted;
       G.unlockedLocationTier = Math.min(4, 1 + Math.floor(saved.prestigeCount / 2));

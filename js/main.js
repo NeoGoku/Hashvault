@@ -30,6 +30,20 @@ function switchTab(tabName) {
   }
 }
 
+function applySelectedCoin(coin) {
+  const key = String(coin || 'BTC').toUpperCase();
+  if (!COIN_DATA[key]) return;
+  G.selectedCoin = key;
+  document.querySelectorAll('.crypto-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.coin === key);
+  });
+  const headerSelect = document.getElementById('header-coin-select');
+  if (headerSelect && headerSelect.value !== key) headerSelect.value = key;
+  if (typeof updateHeader === 'function') updateHeader();
+  if (typeof updateMineUI === 'function') updateMineUI();
+}
+window.applySelectedCoin = applySelectedCoin;
+
 function getPrestigeMissionRewardMult() {
   const prestige = Math.max(0, Number(G.prestigeCount || 0));
   return 1 + prestige * 0.03;
@@ -280,7 +294,7 @@ window.moveCoinFromWalletAmount = moveCoinFromWalletAmount;
 
 function setMissionFilter(filterId) {
   const next = String(filterId || 'all');
-  G.uiMissionFilter = ['all', 'active', 'claimable', 'done', 'locked'].includes(next) ? next : 'all';
+  G.uiMissionFilter = (next === 'active') ? 'active' : 'all';
   if (typeof renderMissions === 'function') renderMissions();
 }
 window.setMissionFilter = setMissionFilter;
@@ -1982,15 +1996,14 @@ function init() {
   // ── Crypto-Selektor ───────────────────────────────────────
   document.querySelectorAll('.crypto-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.crypto-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      G.selectedCoin = btn.dataset.coin;
+      applySelectedCoin(btn.dataset.coin);
     });
   });
-  // Geladenes selectedCoin wiederherstellen
-  document.querySelectorAll('.crypto-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.coin === G.selectedCoin)
-  );
+  const headerCoinSelect = document.getElementById('header-coin-select');
+  if (headerCoinSelect) {
+    headerCoinSelect.addEventListener('change', () => applySelectedCoin(headerCoinSelect.value));
+  }
+  applySelectedCoin(G.selectedCoin || 'BTC');
 
   // ── Tabs ──────────────────────────────────────────────────
   document.querySelectorAll('.tab').forEach(tab =>

@@ -121,11 +121,11 @@ const AUTO_REPAIR_BALANCE = {
 window.HV_AUTO_REPAIR_BALANCE = AUTO_REPAIR_BALANCE;
 
 const MARKET_BALANCE = {
-  noiseScale: 0.58,
-  momentumDecayPerSec: 1.55,
-  momentumNoiseInject: 1.15,
-  shockInjectScale: 0.82,
-  meanReversionBase: 0.017,
+  noiseScale: 0.34,
+  momentumDecayPerSec: 2.05,
+  momentumNoiseInject: 0.88,
+  shockInjectScale: 0.52,
+  meanReversionBase: 0.024,
   meanReversionVolFactor: 0.35,
   eventImpulseDurationSecMin: 50,
   eventImpulseDurationSecMax: 105,
@@ -210,8 +210,8 @@ const RIG_LAYOUT_PROFILES = [
 window.HV_RIG_LAYOUT_PROFILES = RIG_LAYOUT_PROFILES;
 
 const COOLING_BALANCE = {
-  baseCoolingPerSec: 0.55,
-  levelCoolingPerSec: 0.24,
+  baseCoolingPerSec: 0.92,
+  levelCoolingPerSec: 0.42,
   basePowerKw: 0.12,
   levelPowerKw: 0.08,
   overheatStart: 65,
@@ -2088,8 +2088,8 @@ function updateThermalSystem(dt) {
     const loadHeat = 1 + Math.max(0, loadRatio - 0.88) * 0.8;
     const coverageCool = (1 + Math.max(0, Number(maintenance.coverage || 0)) * 0.3) * Math.max(0.82, Number(maintenance.coolingAssistMult || 1));
 
-    const gain = rigKw * 0.22 * layoutHeat * loadHeat * Math.max(0.8, Number(maintenance.heatGainMult || 1)) * safeDt;
-    const drop = coolingPerSec * coverageCool * safeDt;
+    const gain = rigKw * 0.15 * layoutHeat * loadHeat * Math.max(0.78, Number(maintenance.heatGainMult || 1)) * safeDt;
+    const drop = coolingPerSec * coverageCool * 1.25 * safeDt;
     heat = Math.max(0, Math.min(100, heat + gain - drop));
     G.rigHeat[rigId] = heat;
 
@@ -3828,11 +3828,11 @@ function gameTick() {
 
   // Seltene Mikrozyklen fuer kurze Spikes/Crashes
   G.marketShockTimer = Math.max(0, Number(G.marketShockTimer || 0) - dt);
-  if (G.marketShockTimer <= 0 && Math.random() < 0.0030) {
+  if (G.marketShockTimer <= 0 && Math.random() < 0.0011) {
     const dir = Math.random() < 0.5 ? -1 : 1;
     G.marketShockDir = dir;
-    G.marketShockAmp = 0.010 + Math.random() * 0.014;
-    G.marketShockTimer = 26 + Math.random() * 45;
+    G.marketShockAmp = 0.003 + Math.random() * 0.007;
+    G.marketShockTimer = 18 + Math.random() * 32;
     updateTicker(dir > 0 ? '📈 Mikro-Zyklus: Short Squeeze startet!' : '📉 Mikro-Zyklus: Liquidity Crunch!');
   }
 
@@ -3885,8 +3885,15 @@ function gameTick() {
       + (Math.random() - 0.5) * Number(MARKET_BALANCE.floorDriftStepPerSec || 0.0009) * dt;
     floorDrift = Math.max(-0.06, Math.min(0.06, floorDrift));
     const floor = floorBase * (1 + floorDrift);
-    const ceiling = Number(c.basePrice || 1) * (9 + Math.min(6, Math.max(0, Number(G.prestigeCount || 0))));
+    const ceiling = Number(c.basePrice || 1) * (4.6 + Math.min(2.2, Math.max(0, Number(G.prestigeCount || 0)) * 0.22));
     let finalPrice = Math.max(floor, Math.min(ceiling, nextPrice));
+    // Zusätzliche Bandbegrenzung für hochpreisige Märkte:
+    // reduziert Sprünge wie 30k -> 300k innerhalb kurzer Zeit.
+    if (coin === 'BTC' && basePrice >= 50000) {
+      const btcFloor = Math.max(floor, 200000);
+      const btcCeil = Math.min(ceiling, 400000);
+      finalPrice = Math.max(btcFloor, Math.min(btcCeil, finalPrice));
+    }
     let momentumFinal = momentum;
     if (finalPrice <= floor * 1.0002) {
       const reboundPct = (Number(MARKET_BALANCE.floorReboundMinPct || 0.0014) +

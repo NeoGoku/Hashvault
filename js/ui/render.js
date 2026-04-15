@@ -548,7 +548,7 @@ function renderWallet() {
 
 function getMissionFilter() {
   const filter = String(G.uiMissionFilter || 'all');
-  return ['all', 'active', 'claimable', 'done', 'locked'].includes(filter) ? filter : 'all';
+  return filter === 'active' ? 'active' : 'all';
 }
 
 function missionCardMatchesFilter(status) {
@@ -845,11 +845,8 @@ function renderRigCrew() {
 function renderMissions() {
   const filterBar = document.getElementById('mission-filter-bar');
   if (filterBar) {
-    const active = getMissionFilter();
-    filterBar.innerHTML = ['all', 'active', 'claimable', 'done', 'locked'].map((id) => {
-      const labels = { all: 'Alle', active: 'Aktiv', claimable: 'Claimbar', done: 'Fertig', locked: 'Gesperrt' };
-      return '<button class="chip-btn' + (active === id ? ' chip-btn-done' : '') + '" style="margin-right:8px;margin-bottom:8px;" onclick="setMissionFilter(\'' + id + '\')">' + labels[id] + '</button>';
-    }).join('');
+    filterBar.innerHTML = '';
+    filterBar.style.display = 'none';
   }
   renderWeeklyObjectives();
   renderOperationsProjects();
@@ -1396,8 +1393,16 @@ function updateHeader() {
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   const usageKw = Number(G.powerUsageKw || 0);
   const capKw = Number(G._powerEffectiveCapKw || G.powerCapacityKw || 0);
+  const selectedCoin = String(G.selectedCoin || 'BTC');
+  const selectedAmount = Number((G.coins || {})[selectedCoin] || 0);
+  const selectedPrice = Number((G.prices || {})[selectedCoin] || 0);
+  const selectedUsd = selectedAmount * selectedPrice * Number(G._priceMult || 1);
+  const headerCoinSelect = document.getElementById('header-coin-select');
+  if (headerCoinSelect && headerCoinSelect.value !== selectedCoin) headerCoinSelect.value = selectedCoin;
   set('hd-usd',   '$' + fmtNum(G.usd));
   set('hd-hs',    fmtNum(getTotalHps()) + ' H/s');
+  set('hd-coin-value', selectedCoin + ': ' + fmtNum(selectedAmount, 4));
+  set('hd-coin-value-usd', '$' + fmtNum(selectedUsd, 2));
   set('hd-power', fmtNum(usageKw, 2) + ' / ' + fmtNum(capKw, 2) + ' kW');
   set('hd-net',   'Net: $' + fmtNum(G.totalEarned));
   set('hd-clock', fmtClock());
@@ -2069,11 +2074,15 @@ function updateMineUI() {
   set('click-power', fmtNum(clickPow));
   set('hps-display', fmtNum(getTotalHps()));
   if (typeof window.getHoldMiningStatusText === 'function') set('hold-status', getHoldMiningStatusText());
+  const freeBtc = (typeof getAvailableCoinBalance === 'function') ? getAvailableCoinBalance('BTC') : Number((G.coins || {}).BTC || 0);
+  const freeEth = (typeof getAvailableCoinBalance === 'function') ? getAvailableCoinBalance('ETH') : Number((G.coins || {}).ETH || 0);
+  const freeLtc = (typeof getAvailableCoinBalance === 'function') ? getAvailableCoinBalance('LTC') : Number((G.coins || {}).LTC || 0);
+  const freeBnb = (typeof getAvailableCoinBalance === 'function') ? getAvailableCoinBalance('BNB') : Number((G.coins || {}).BNB || 0);
   set('s-hashes',    fmtNum(G.totalHashes));
-  set('s-btc',       fmtNum(G.coins.BTC, 6));
-  set('s-eth',       fmtNum(G.coins.ETH, 6));
-  set('s-ltc',       fmtNum(G.coins.LTC, 6));
-  set('s-bnb',       fmtNum(G.coins.BNB, 6));
+  set('s-btc',       fmtNum(freeBtc, 6));
+  set('s-eth',       fmtNum(freeEth, 6));
+  set('s-ltc',       fmtNum(freeLtc, 6));
+  set('s-bnb',       fmtNum(freeBnb, 6));
   set('s-usd',       '$' + fmtNum(G.totalEarned));
   set('s-rigs',      totalRigs);
   set('s-time',      fmtTime(G.playTime));
