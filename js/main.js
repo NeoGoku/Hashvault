@@ -640,6 +640,7 @@ function toggleDebugOverlay() {
   G.debugOverlay = !G.debugOverlay;
   if (typeof renderDebugOverlay === 'function') renderDebugOverlay();
 }
+window.toggleDebugOverlay = toggleDebugOverlay;
 
 function toggleTutorialMode() {
   const isEnabled = G.tutorialEnabled !== false;
@@ -2107,8 +2108,23 @@ function init() {
       setAutoRepairForAll(next);
     });
   }
-  const debugBtn = document.getElementById('debug-toggle-btn');
-  if (debugBtn) debugBtn.addEventListener('click', toggleDebugOverlay);
+  const logoEl = document.getElementById('logo');
+  if (logoEl) {
+    let tapCount = 0;
+    let tapTimer = null;
+    const onSecretTap = () => {
+      tapCount += 1;
+      if (tapTimer) clearTimeout(tapTimer);
+      tapTimer = setTimeout(() => { tapCount = 0; }, 1400);
+      if (tapCount >= 5) {
+        tapCount = 0;
+        if (tapTimer) clearTimeout(tapTimer);
+        toggleDebugOverlay();
+      }
+    };
+    logoEl.addEventListener('click', onSecretTap);
+    logoEl.addEventListener('touchstart', onSecretTap, { passive: true });
+  }
   const hsBtn = document.getElementById('hs-breakdown-btn');
   if (hsBtn) hsBtn.addEventListener('click', () => {
     if (typeof window.renderHsBreakdownModal === 'function') renderHsBreakdownModal();

@@ -2,14 +2,14 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>HashVault Pro</title>
 <script>
 (function() {
-  const BUILD_ID = '20260415v35';
+  const BUILD_ID = '20260415v36';
   const BUILD_KEY = '__hv_build_id';
   const prevBuild = localStorage.getItem(BUILD_KEY);
   const isNewBuild = prevBuild !== BUILD_ID;
@@ -181,14 +181,12 @@
       <option value="LTC">LTC</option>
       <option value="BNB">BNB</option>
     </select>
-    <span id="hd-coin-value">0 BTC</span>
-    <span id="hd-coin-value-usd">$0</span>
+    <span id="hd-coin-value">BTC: $0</span>
   </div>
   <div class="stat-pill">⚡ <span id="hd-power">0.00 / 3.00 kW</span></div>
   <div class="stat-pill">🏆 <span id="hd-net">Net: $0</span></div>
   <div class="stat-pill">🕒 <span id="hd-clock">Tag 1 08:00</span></div>
   <div class="stat-pill">💎 <span id="hd-chips">0 💎</span></div>
-  <button id="debug-toggle-btn" style="margin-left:6px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px;cursor:pointer;">🧪 Debug</button>
   <button id="tutorial-toggle-btn" style="margin-left:6px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px;cursor:pointer;">📘 Tutorial</button>
   <button id="prestige-btn">✨ PRESTIGE</button>
 </div>

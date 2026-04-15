@@ -19,13 +19,17 @@ function doPrestige() {
     'Das Spiel wird zurückgesetzt — Achievements, Chips, Skilltree & Streak bleiben erhalten.',
     () => {
       // Was wird gerettet
+      const walletOnlyCoins = Object.keys(COIN_DATA || { BTC:1, ETH:1, LTC:1, BNB:1 }).reduce((acc, coin) => {
+        acc[coin] = Math.max(0, Number((G.coinReserves || {})[coin] || 0));
+        return acc;
+      }, {});
       const saved = {
         chips:          G.chips + chips,
         chipShop:       JSON.parse(JSON.stringify(G.chipShop)),
         prestigeSkills: JSON.parse(JSON.stringify(G.prestigeSkills || {})),
         selectedCoin:   String(G.selectedCoin || 'BTC'),
-        coins:          JSON.parse(JSON.stringify(G.coins || { BTC:0, ETH:0, LTC:0, BNB:0 })),
-        coinReserves:   JSON.parse(JSON.stringify(G.coinReserves || { BTC:0, ETH:0, LTC:0, BNB:0 })),
+        coins:          walletOnlyCoins,
+        coinReserves:   walletOnlyCoins,
         walletYieldEnabled: G.walletYieldEnabled !== false,
         walletYieldAccruedUsd: Math.max(0, Number(G.walletYieldAccruedUsd || 0)),
         walletYieldLastDay: Math.max(0, Number(G.walletYieldLastDay || 0)),

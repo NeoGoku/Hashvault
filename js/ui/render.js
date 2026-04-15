@@ -398,10 +398,11 @@ function renderMarket() {
         <div class="toggle ${autoEnabled ? 'on' : ''}" onclick="toggleAutoSellCoin('${coin}')"></div>
       </div>
       <div class="coin-balance">
-        Balance: <span>${fmtNum(balance, 4)} ${coin}</span>
-        = <span style="color:var(--gold)">$${fmtNum(balance * price * G._priceMult, 2)}</span>
+        Verfuegbar: <span>${fmtNum(freeBalance, 4)} ${coin}</span>
+        = <span style="color:var(--gold)">$${fmtNum(freeBalance * price * G._priceMult, 2)}</span>
       </div>
       <div class="coin-miners">Wallet: ${fmtNum(reserve, 4)} ${coin} · Frei: ${fmtNum(freeBalance, 4)} ${coin}</div>
+      <div class="coin-miners">Gesamt: ${fmtNum(balance, 4)} ${coin}</div>
       <div class="sell-btns">
         <button class="sell-btn half" ${canSellAny ? '' : 'disabled'} onclick="sellCoins('${coin}', 0.5)">Sell 50%</button>
         <button class="sell-btn all" ${canSellAny ? '' : 'disabled'} onclick="sellCoins('${coin}', 1)">Sell ALL</button>
@@ -1394,15 +1395,13 @@ function updateHeader() {
   const usageKw = Number(G.powerUsageKw || 0);
   const capKw = Number(G._powerEffectiveCapKw || G.powerCapacityKw || 0);
   const selectedCoin = String(G.selectedCoin || 'BTC');
-  const selectedAmount = Number((G.coins || {})[selectedCoin] || 0);
   const selectedPrice = Number((G.prices || {})[selectedCoin] || 0);
-  const selectedUsd = selectedAmount * selectedPrice * Number(G._priceMult || 1);
+  const priceDecimals = selectedPrice >= 1000 ? 2 : 3;
   const headerCoinSelect = document.getElementById('header-coin-select');
   if (headerCoinSelect && headerCoinSelect.value !== selectedCoin) headerCoinSelect.value = selectedCoin;
   set('hd-usd',   '$' + fmtNum(G.usd));
   set('hd-hs',    fmtNum(getTotalHps()) + ' H/s');
-  set('hd-coin-value', selectedCoin + ': ' + fmtNum(selectedAmount, 4));
-  set('hd-coin-value-usd', '$' + fmtNum(selectedUsd, 2));
+  set('hd-coin-value', selectedCoin + ': $' + fmtNum(selectedPrice, priceDecimals));
   set('hd-power', fmtNum(usageKw, 2) + ' / ' + fmtNum(capKw, 2) + ' kW');
   set('hd-net',   'Net: $' + fmtNum(G.totalEarned));
   set('hd-clock', fmtClock());

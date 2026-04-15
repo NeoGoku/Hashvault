@@ -374,7 +374,7 @@
 .upgrade-cost { font-size: 12px; font-weight: 700; color: var(--gold); }
 
 /* ── Market ──────────────────────────────────────────────── */
-#market-panel { padding: 20px; gap: 16px; }
+#market-panel { padding: clamp(12px, 2vw, 20px); gap: clamp(10px, 1.5vw, 16px); }
 .market-header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .auto-sell-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 
@@ -390,7 +390,7 @@
 }
 .toggle.on::after { left: 20px; }
 
-.market-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 16px; }
+.market-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: clamp(10px, 1.5vw, 16px); }
 
 .coin-card { background: var(--panel2); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
 .coin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }

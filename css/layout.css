@@ -6,22 +6,24 @@
 #header {
   background: linear-gradient(90deg,#0a0e1a 0%,#111827 50%,#0a0e1a 100%);
   border-bottom: 1px solid var(--border);
-  padding: 10px 20px;
+  padding: clamp(8px, 1.2vw, 12px) clamp(10px, 2.4vw, 22px);
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: clamp(8px, 1.2vw, 20px);
   flex-wrap: wrap;
   position: relative;
   z-index: 60;
 }
 
 #logo {
-  font-size: 22px;
+  font-size: clamp(18px, 1.5vw, 24px);
   font-weight: 900;
   background: linear-gradient(90deg, var(--accent), var(--accent2));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
 .stat-pill {
@@ -112,8 +114,8 @@
 #mine-panel { flex-direction: row !important; gap: 0; }
 
 #mine-left {
-  width: 320px;
-  min-width: 280px;
+  width: clamp(260px, 30vw, 340px);
+  min-width: 0;
   padding: 20px;
   border-right: 1px solid var(--border);
   display: flex;
@@ -156,7 +158,7 @@
 }
 
 /* ── Responsive ─────────────────────────────────────────── */
-@media (max-width: 700px) {
+@media (max-width: 980px) {
   #mine-panel { flex-direction: column !important; }
   #mine-left  { width: 100%; border-right: none; border-bottom: 1px solid var(--border); padding: 14px; }
   #mine-right { padding: 14px; }
