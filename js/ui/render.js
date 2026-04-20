@@ -1551,6 +1551,23 @@ function closeHsBreakdownModal() {
 }
 window.closeHsBreakdownModal = closeHsBreakdownModal;
 
+const TUTORIAL_COMPACT_KEY = '__hv_tutorial_compact';
+function isTutorialGuideCompact() {
+  let stored = null;
+  try { stored = localStorage.getItem(TUTORIAL_COMPACT_KEY); } catch (_) {}
+  if (stored === '1') return true;
+  if (stored === '0') return false;
+  return window.innerWidth <= 700;
+}
+function setTutorialGuideCompact(next) {
+  try { localStorage.setItem(TUTORIAL_COMPACT_KEY, next ? '1' : '0'); } catch (_) {}
+}
+function toggleTutorialGuideCompact() {
+  setTutorialGuideCompact(!isTutorialGuideCompact());
+  renderTutorialBox();
+}
+window.toggleTutorialGuideCompact = toggleTutorialGuideCompact;
+
 function renderTutorialBox() {
   const box = document.getElementById('tutorial-box');
   const guideBox = document.getElementById('tutorial-guide');
@@ -1584,6 +1601,7 @@ function renderTutorialBox() {
   const guide = getTutorialGuide(step.id);
   const target = resolveTutorialTarget(guide);
   const targetReady = !!(target && target.kind === 'target' && target.el);
+  const compact = isTutorialGuideCompact();
   const targetLabel = guide.focusLabel || (target && target.label) || 'Naechster Bereich';
   const areaLabel = guide.area || formatTutorialTab(guide.tab);
   const explain = getTutorialExplain(step, guide, idx, steps.length, targetReady, targetLabel, areaLabel);
@@ -1592,14 +1610,17 @@ function renderTutorialBox() {
     : ('Wechsle zuerst in den Bereich ' + areaLabel + '.');
   if (guideBox) {
     guideBox.classList.add('show');
+    guideBox.classList.toggle('compact', compact);
     guideBox.innerHTML = `
       <div class="tutorial-progress"><div class="tutorial-progress-fill" style="width:${(((idx + 1) / Math.max(1, steps.length)) * 100).toFixed(2)}%"></div></div>
       <div class="tutorial-guide-top">
         <div class="tutorial-chip">📘 Tutorial ${idx + 1}/${steps.length}</div>
         <div class="tutorial-chip">${areaLabel}</div>
+        <button class="tutorial-chip tutorial-chip-btn" type="button" onclick="toggleTutorialGuideCompact()">${compact ? 'Ausklappen' : 'Einklappen'}</button>
       </div>
       <div class="tutorial-guide-title">${step.title}</div>
       <div class="tutorial-guide-desc">${step.desc}</div>
+      <div class="tutorial-guide-details ${compact ? 'is-collapsed' : ''}">
       <div class="tutorial-guide-section">
         <div class="tutorial-guide-label">Was ist das?</div>
         <div class="tutorial-guide-copy">${explain.what}</div>
@@ -1617,6 +1638,7 @@ function renderTutorialBox() {
         <div>Ziel: <strong>${targetLabel}</strong></div>
         <div>Status: <strong>${targetReady ? 'markiert' : 'Bereich wechseln'}</strong></div>
         <div>Naechster Klick: <strong>${explain.nextClick}</strong></div>
+      </div>
       </div>
       <div class="tutorial-guide-actions">
         <button class="tutorial-mini-btn primary" type="button" onclick="jumpToTutorialTarget()">${targetReady ? 'Zum Ziel scrollen' : 'Zum Bereich springen'}</button>

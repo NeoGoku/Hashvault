@@ -79,6 +79,9 @@
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.46);
   padding: 14px 14px 12px;
   backdrop-filter: blur(12px);
+  max-height: min(62vh, 560px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 #tutorial-guide.show {
@@ -116,6 +119,17 @@
   color: #9ad8ff;
   font-size: 11px;
   font-weight: 700;
+}
+
+.tutorial-chip-btn {
+  border: 1px solid rgba(90, 192, 255, 0.25);
+  background: rgba(10, 24, 42, 0.85);
+  color: #9ad8ff;
+  cursor: pointer;
+}
+
+.tutorial-guide-details.is-collapsed {
+  display: none;
 }
 
 .tutorial-guide-title {
@@ -409,6 +423,7 @@
     bottom: 12px;
     width: auto;
     padding: 12px;
+    max-height: 46vh;
   }
   .tutorial-guide-actions {
     grid-template-columns: 1fr;
