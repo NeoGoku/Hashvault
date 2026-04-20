@@ -1991,8 +1991,17 @@ function init() {
     mineBtn.addEventListener('pointerleave', stopPointerHold, { passive: false });
   }
 
-  // iOS gesture zoom im Spielbereich unterbinden
+  // Mobile Zoom im Spielbereich unterbinden (Pinch + Double-Tap)
   document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+  document.addEventListener('touchmove', (e) => {
+    if (e.touches && e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+  let lastTouchEndAt = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTouchEndAt <= 320) e.preventDefault();
+    lastTouchEndAt = now;
+  }, { passive: false });
 
   // ── Crypto-Selektor ───────────────────────────────────────
   document.querySelectorAll('.crypto-btn').forEach(btn => {
